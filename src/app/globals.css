@@ -1,0 +1,17 @@
+/* globals.css — Align-it 전역 스타일 */
+
+/* 랜딩 페이지 스타일 */
+@import "../styles/landing.css";
+
+/* 대시보드 다크 테마 (Midnight Purple) */
+@import "../styles/theme.css";
+
+/* 추가 전역 스타일 */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

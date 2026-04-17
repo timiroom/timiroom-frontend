@@ -1,0 +1,168 @@
+/* ============================================================
+   Align-it Design System — Midnight Purple Theme
+   Obsidian × Google Anti-Gravity
+   ============================================================ */
+
+:root {
+  /* ── Background layers ── */
+  --db-bg-base:    #0A0818;   /* 가장 깊은 배경 */
+  --db-bg-primary: #0F0D1E;   /* 주 배경 */
+  --db-bg-surface: #171530;   /* 카드, 패널 */
+  --db-bg-elevated:#1E1B40;   /* 호버, 선택된 항목 */
+  --db-bg-glass:   rgba(23, 21, 48, 0.65); /* 글래스모피즘 */
+
+  /* ── Purple accent ── */
+  --db-purple-900: #2E1065;
+  --db-purple-800: #3B0764;
+  --db-purple-700: #4C1D95;
+  --db-purple-600: #5B21B6;
+  --db-purple-500: #7C3AED;
+  --db-purple-400: #8B5CF6;
+  --db-purple-300: #A78BFA;
+  --db-purple-200: #C4B5FD;
+  --db-purple-100: #EDE9FE;
+
+  /* ── Glow & border ── */
+  --db-glow-sm:    0 0 8px  rgba(139, 92, 246, 0.4);
+  --db-glow-md:    0 0 20px rgba(139, 92, 246, 0.35);
+  --db-glow-lg:    0 0 40px rgba(139, 92, 246, 0.3);
+  --db-glow-node:  0 0 12px rgba(139, 92, 246, 0.7), 0 0 30px rgba(139, 92, 246, 0.3);
+
+  --db-border:        rgba(139, 92, 246, 0.12);
+  --db-border-mid:    rgba(139, 92, 246, 0.25);
+  --db-border-active: rgba(139, 92, 246, 0.55);
+
+  /* ── Status colors ── */
+  --db-green:   #10B981;  --db-green-bg:   rgba(16, 185, 129, 0.12);
+  --db-blue:    #3B82F6;  --db-blue-bg:    rgba(59, 130, 246, 0.12);
+  --db-orange:  #F59E0B;  --db-orange-bg:  rgba(245, 158, 11, 0.12);
+  --db-red:     #EF4444;  --db-red-bg:     rgba(239, 68, 68, 0.12);
+  --db-pink:    #EC4899;  --db-pink-bg:    rgba(236, 72, 153, 0.12);
+
+  /* ── Text ── */
+  --db-text-primary:   #E2E8F0;
+  --db-text-secondary: #94A3B8;
+  --db-text-muted:     #475569;
+  --db-text-accent:    #A78BFA;
+
+  /* ── Gradient presets ── */
+  --db-grad-purple: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+  --db-grad-glow:   linear-gradient(135deg, #6D28D9 0%, #4338CA 100%);
+  --db-grad-glass:  linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(67,56,202,0.08) 100%);
+  --db-grad-node:   radial-gradient(circle, #A78BFA 0%, #7C3AED 60%, #4C1D95 100%);
+
+  /* ── Spacing & radius ── */
+  --db-radius-sm: 8px;
+  --db-radius:    12px;
+  --db-radius-lg: 16px;
+  --db-radius-xl: 24px;
+
+  /* ── Transitions ── */
+  --db-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --db-transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Global dashboard reset ── */
+.db-root {
+  font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
+               'SF Pro Display', 'Segoe UI', sans-serif;
+  background: var(--db-bg-base);
+  color: var(--db-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Glassmorphism card ── */
+.db-glass {
+  background: var(--db-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-lg);
+}
+.db-glass:hover {
+  border-color: var(--db-border-mid);
+  box-shadow: var(--db-glow-sm);
+}
+
+/* ── Surface card ── */
+.db-card {
+  background: var(--db-bg-surface);
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-lg);
+  transition: var(--db-transition);
+}
+.db-card:hover {
+  border-color: var(--db-border-mid);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), var(--db-glow-sm);
+}
+
+/* ── Status badges ── */
+.db-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 700; letter-spacing: .03em;
+}
+.db-badge-green  { background: var(--db-green-bg);  color: var(--db-green);  }
+.db-badge-blue   { background: var(--db-blue-bg);   color: var(--db-blue);   }
+.db-badge-orange { background: var(--db-orange-bg); color: var(--db-orange); }
+.db-badge-purple { background: rgba(139,92,246,.15);color: var(--db-purple-300); }
+.db-badge-red    { background: var(--db-red-bg);    color: var(--db-red);    }
+.db-badge-dot { width:6px;height:6px;border-radius:50%;background:currentColor; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--db-bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--db-purple-700); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--db-purple-500); }
+
+/* ── Animations ── */
+@keyframes db-pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.6; transform:scale(1.15); }
+}
+@keyframes db-glow-pulse {
+  0%,100% { box-shadow: 0 0 6px rgba(139,92,246,.5); }
+  50%      { box-shadow: 0 0 18px rgba(139,92,246,.9), 0 0 35px rgba(139,92,246,.4); }
+}
+@keyframes db-float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes db-slide-in {
+  from { opacity:0; transform:translateX(-16px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes db-fade-up {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes db-spin {
+  from { transform:rotate(0deg); }
+  to   { transform:rotate(360deg); }
+}
+@keyframes db-edge-flow {
+  from { stroke-dashoffset: 20; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes db-node-appear {
+  from { opacity:0; r:0; }
+  to   { opacity:1; }
+}
+@keyframes db-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.db-anim-fade-up { animation: db-fade-up .5s ease both; }
+.db-anim-slide   { animation: db-slide-in .4s ease both; }
+
+/* ── Anti-Gravity floating orbs (배경 분위기) ── */
+.db-orb {
+  position: absolute; border-radius: 50%; filter: blur(80px);
+  pointer-events: none; will-change: transform;
+}
+.db-orb-1 { width:400px;height:400px;background:rgba(124,58,237,.12);  animation:db-float 8s ease-in-out infinite; }
+.db-orb-2 { width:300px;height:300px;background:rgba(67,56,202,.10);   animation:db-float 10s ease-in-out infinite reverse; }
+.db-orb-3 { width:200px;height:200px;background:rgba(139,92,246,.08);  animation:db-float 6s ease-in-out infinite 2s; }
