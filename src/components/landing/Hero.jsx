@@ -3,6 +3,7 @@
 import { useMockProgress } from "@/hooks";
 import { Button } from "@/components/ui";
 import { smoothScroll } from "@/lib/smoothScroll";
+import { useAuth } from "@/context/AuthContext";
 
 /* ── 상수 데이터 ── */
 const HERO_STATS = [
@@ -138,6 +139,8 @@ function HeroMockup() {
 
 /* ── Hero (exported) ── */
 export function Hero() {
+  const { isLoggedIn, openAuthModal } = useAuth();
+
   return (
     <section className="al-hero" id="hero">
       {/* Background floating nodes */}
@@ -164,9 +167,15 @@ export function Hero() {
               설계 일관성을 실시간으로 검증합니다.
             </p>
             <div className="al-hero-actions al-anim al-d3">
-              <Button variant="primary" size="lg" href="#start" onClick={smoothScroll("#start")}>
-                무료로 시작하기 →
-              </Button>
+              {isLoggedIn ? (
+                <Button variant="primary" size="lg" href="/dashboard">
+                  대시보드로 이동 →
+                </Button>
+              ) : (
+                <Button variant="primary" size="lg" onClick={openAuthModal}>
+                  무료로 시작하기 →
+                </Button>
+              )}
               <Button variant="outline" size="lg" href="#how" onClick={smoothScroll("#how")}>
                 작동방식 보기
               </Button>
