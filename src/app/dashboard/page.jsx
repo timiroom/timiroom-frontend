@@ -15,8 +15,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   DashboardLayout,
   ProjectsListPage,
@@ -93,8 +95,20 @@ function ProjectsShell({ onSelectProject }) {
 
 /* ── 메인 페이지 컴포넌트 ── */
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isLoggedIn, isLoading, openAuthModal } = useAuth();
+  
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeView,      setActiveView]       = useState("overview");
+
+  /* 인증 체크 (Protected Route) */
+  useEffect(() => {
+    if (!isLoading && !isLoggedIn) {
+      router.replace("/");
+      // 약간의 지연 후 로그인 모달을 띄워 UX를 개선할 수 있습니다.
+      setTimeout(() => openAuthModal(), 100);
+    }
+  }, [isLoading, isLoggedIn, router, openAuthModal]);
 
   /* 프로젝트 선택 */
   const handleSelectProject = (project) => {
@@ -109,6 +123,14 @@ export default function DashboardPage() {
   };
 
   /* 프로젝트 미선택 → 목록 화면 */
+  if (isLoading || !isLoggedIn) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--db-bg-base)" }}>
+        <div style={{ fontSize: 14, color: "var(--db-text-muted)" }}>로딩 중...</div>
+      </div>
+    );
+  }
+
   if (!selectedProject) {
     return <ProjectsShell onSelectProject={handleSelectProject}/>;
   }
