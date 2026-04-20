@@ -4,8 +4,9 @@
  * 대시보드 진입점.
  *
  * 상태 머신:
- *   selectedProject === null  →  ProjectsListPage (프로젝트 카드 그리드)
- *   selectedProject !== null  →  DashboardLayout  (사이드바 + 뷰 탭)
+ *   isCreating  === true           →  CreateProjectWizard (프로젝트 생성 위저드)
+ *   selectedProject === null       →  ProjectsShell       (프로젝트 카드 그리드)
+ *   selectedProject !== null       →  DashboardLayout     (사이드바 + 뷰 탭)
  *
  * 새 페이지 추가 방법:
  *   1. src/components/dashboard/ 에 컴포넌트 생성
@@ -15,44 +16,39 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
 import {
   DashboardLayout,
   ProjectsListPage,
+  CreateProjectWizard,
   OverviewPanel,
   KnowledgeGraph,
   PipelineView,
 } from "@/components/dashboard";
+import { MOCK_PROJECTS } from "@/lib/projectData";
 
 /* ── 뷰 레지스트리: 새 뷰 추가 시 여기에만 등록 ── */
 const VIEWS = {
   overview: OverviewPanel,
   graph:    KnowledgeGraph,
   pipeline: PipelineView,
-  // specs: SpecsView,     ← 추후 추가
-  // prd:   PrdInputView,  ← 추후 추가
 };
 
-/* ── 프로젝트 목록 래퍼 (다크 배경 적용) ── */
-function ProjectsShell({ onSelectProject }) {
+/* ── 프로젝트 목록 래퍼 ── */
+function ProjectsShell({ onSelectProject, onCreateProject }) {
   return (
     <div className="db-root" style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
-      {/* Anti-Gravity 배경 orb */}
       <div className="db-orb db-orb-1" style={{ top: "-5%",  left: "20%",  zIndex: 0 }}/>
       <div className="db-orb db-orb-2" style={{ bottom: "5%",right: "10%", zIndex: 0 }}/>
       <div className="db-orb db-orb-3" style={{ top: "40%",  left: "55%",  zIndex: 0 }}/>
 
-      {/* 상단 헤더 */}
       <header style={{
         height: 60, padding: "0 32px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         background: "var(--db-bg-surface)", borderBottom: "1px solid var(--db-border)",
         position: "sticky", top: 0, zIndex: 10,
       }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 30, height: 30, borderRadius: 9,
             background: "var(--db-grad-purple)",
@@ -61,7 +57,7 @@ function ProjectsShell({ onSelectProject }) {
             boxShadow: "var(--db-glow-md)",
           }}>A</div>
           <span style={{ fontSize: 16, fontWeight: 800, color: "var(--db-purple-300)" }}>Align-it</span>
-        </Link>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 7,
@@ -81,61 +77,92 @@ function ProjectsShell({ onSelectProject }) {
         </div>
       </header>
 
-      {/* 본문 */}
       <main style={{
         padding: "36px 40px",
         background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--db-bg-base) 100%)",
         minHeight: "calc(100vh - 60px)", position: "relative", zIndex: 1,
       }}>
-        <ProjectsListPage onSelectProject={onSelectProject}/>
+        <ProjectsListPage
+          onSelectProject={onSelectProject}
+          onCreateProject={onCreateProject}
+        />
       </main>
+    </div>
+  );
+}
+
+/* ── 위저드 래퍼 ── */
+function WizardShell({ onComplete, onCancel }) {
+  return (
+    <div className="db-root" style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <CreateProjectWizard onComplete={onComplete} onCancel={onCancel} />
     </div>
   );
 }
 
 /* ── 메인 페이지 컴포넌트 ── */
 export default function DashboardPage() {
-  const router = useRouter();
-  const { isLoggedIn, isLoading, openAuthModal } = useAuth();
-  
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeView,      setActiveView]       = useState("overview");
+  const [isCreating,      setIsCreating]       = useState(false);
+  const [projects,        setProjects]         = useState(MOCK_PROJECTS);
 
-  /* 인증 체크 (Protected Route) */
-  useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
-      router.replace("/");
-      // 약간의 지연 후 로그인 모달을 띄워 UX를 개선할 수 있습니다.
-      setTimeout(() => openAuthModal(), 100);
-    }
-  }, [isLoading, isLoggedIn, router, openAuthModal]);
-
-  /* 프로젝트 선택 */
   const handleSelectProject = (project) => {
     setSelectedProject(project);
-    setActiveView("overview"); // 진입 시 항상 Overview 탭
+    setActiveView("overview");
   };
 
-  /* 프로젝트 목록으로 복귀 */
   const handleBackToList = () => {
     setSelectedProject(null);
     setActiveView("overview");
   };
 
-  /* 프로젝트 미선택 → 목록 화면 */
-  if (isLoading || !isLoggedIn) {
+  const handleWizardComplete = (wizardData) => {
+    const newProject = {
+      id:           `proj-${Date.now()}`,
+      name:         wizardData.name,
+      description:  wizardData.description,
+      status:       "draft",
+      score:        0,
+      progress:     0,
+      tags:         wizardData.techStack.slice(0, 3),
+      members:      ["M"],
+      lastActivity: "방금 전",
+      created:      new Date().toISOString().split("T")[0],
+      prdCount:     0,
+      issueCount:   0,
+      specCount:    0,
+      color:        "#7C3AED",
+      implType:     wizardData.implType,
+      _wizardData:  wizardData,
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setIsCreating(false);
+    setSelectedProject(newProject);
+    setActiveView("overview");
+  };
+
+  /* ── 위저드 화면 ── */
+  if (isCreating) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--db-bg-base)" }}>
-        <div style={{ fontSize: 14, color: "var(--db-text-muted)" }}>로딩 중...</div>
-      </div>
+      <WizardShell
+        onComplete={handleWizardComplete}
+        onCancel={() => setIsCreating(false)}
+      />
     );
   }
 
+  /* ── 프로젝트 미선택 → 목록 화면 ── */
   if (!selectedProject) {
-    return <ProjectsShell onSelectProject={handleSelectProject}/>;
+    return (
+      <ProjectsShell
+        onSelectProject={handleSelectProject}
+        onCreateProject={() => setIsCreating(true)}
+      />
+    );
   }
 
-  /* 프로젝트 선택 → 워크스페이스 */
+  /* ── 프로젝트 선택 → 워크스페이스 ── */
   const ActiveView = VIEWS[activeView];
 
   return (
@@ -155,7 +182,11 @@ export default function DashboardPage() {
 
 function ComingSoon({ view }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+    <div style={{
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      height: "60vh", gap: 12,
+    }}>
       <div style={{ fontSize: 48 }}>🚧</div>
       <div style={{ fontSize: 20, fontWeight: 700, color: "var(--db-text-primary)" }}>{view} 준비 중</div>
       <div style={{ fontSize: 14, color: "var(--db-text-muted)" }}>곧 추가될 예정입니다.</div>

@@ -202,7 +202,7 @@ function NewProjectCard({ onClick }) {
 }
 
 /* ── ProjectsListPage (exported) ── */
-export function ProjectsListPage({ onSelectProject }) {
+export function ProjectsListPage({ onSelectProject, onCreateProject }) {
   const [search, setSearch]   = useState("");
   const [filter, setFilter]   = useState("all"); // all | running | done | draft | paused
   const [sortBy, setSortBy]   = useState("recent"); // recent | score | name
@@ -332,7 +332,7 @@ export function ProjectsListPage({ onSelectProject }) {
         {filtered.map(p => (
           <ProjectCard key={p.id} project={p} onSelect={onSelectProject}/>
         ))}
-        <NewProjectCard onClick={() => {}} />
+        <NewProjectCard onClick={onCreateProject} />
       </div>
 
       {filtered.length === 0 && (
