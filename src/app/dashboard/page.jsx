@@ -3,15 +3,12 @@
  * ----------------------
  * 대시보드 진입점.
  *
- * 상태 머신:
- *   isCreating  === true           →  CreateProjectWizard (프로젝트 생성 위저드)
- *   selectedProject === null       →  ProjectsShell       (프로젝트 카드 그리드)
- *   selectedProject !== null       →  DashboardLayout     (사이드바 + 뷰 탭)
+ * 레이아웃: [좌측 콘텐츠 영역] + [우측 AgentPanel — 항상 표시]
  *
- * 새 페이지 추가 방법:
- *   1. src/components/dashboard/ 에 컴포넌트 생성
- *   2. dashboard/index.js 에 export 추가
- *   3. VIEWS 객체에 등록
+ * 상태 머신 (좌측):
+ *   isCreating === true      →  CreateProjectWizard
+ *   selectedProject === null →  ProjectsShell (프로젝트 그리드)
+ *   selectedProject !== null →  DashboardLayout (사이드바 + 뷰)
  */
 
 "use client";
@@ -21,23 +18,27 @@ import {
   DashboardLayout,
   ProjectsListPage,
   CreateProjectWizard,
+  AgentPanel,
   OverviewPanel,
   KnowledgeGraph,
   PipelineView,
 } from "@/components/dashboard";
 import { MOCK_PROJECTS } from "@/lib/projectData";
 
-/* ── 뷰 레지스트리: 새 뷰 추가 시 여기에만 등록 ── */
+/* ── 뷰 레지스트리 ── */
 const VIEWS = {
   overview: OverviewPanel,
   graph:    KnowledgeGraph,
   pipeline: PipelineView,
 };
 
-/* ── 프로젝트 목록 래퍼 ── */
+/* ══════════════════════════════════════
+   좌측 콘텐츠 뷰들
+══════════════════════════════════════ */
+
 function ProjectsShell({ onSelectProject, onCreateProject }) {
   return (
-    <div className="db-root" style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+    <div className="db-root" style={{ flex: 1, minHeight: "100vh", position: "relative", overflow: "hidden" }}>
       <div className="db-orb db-orb-1" style={{ top: "-5%",  left: "20%",  zIndex: 0 }}/>
       <div className="db-orb db-orb-2" style={{ bottom: "5%",right: "10%", zIndex: 0 }}/>
       <div className="db-orb db-orb-3" style={{ top: "40%",  left: "55%",  zIndex: 0 }}/>
@@ -91,16 +92,17 @@ function ProjectsShell({ onSelectProject, onCreateProject }) {
   );
 }
 
-/* ── 위저드 래퍼 ── */
 function WizardShell({ onComplete, onCancel }) {
   return (
-    <div className="db-root" style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="db-root" style={{ flex: 1, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <CreateProjectWizard onComplete={onComplete} onCancel={onCancel} />
     </div>
   );
 }
 
-/* ── 메인 페이지 컴포넌트 ── */
+/* ══════════════════════════════════════
+   메인 페이지
+══════════════════════════════════════ */
 export default function DashboardPage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeView,      setActiveView]       = useState("overview");
@@ -142,41 +144,53 @@ export default function DashboardPage() {
     setActiveView("overview");
   };
 
-  /* ── 위저드 화면 ── */
-  if (isCreating) {
+  /* 좌측 뷰 렌더 */
+  const renderMain = () => {
+    if (isCreating) {
+      return (
+        <WizardShell
+          onComplete={handleWizardComplete}
+          onCancel={() => setIsCreating(false)}
+        />
+      );
+    }
+
+    if (!selectedProject) {
+      return (
+        <ProjectsShell
+          onSelectProject={handleSelectProject}
+          onCreateProject={() => setIsCreating(true)}
+        />
+      );
+    }
+
+    const ActiveView = VIEWS[activeView];
     return (
-      <WizardShell
-        onComplete={handleWizardComplete}
-        onCancel={() => setIsCreating(false)}
-      />
+      <DashboardLayout
+        activeView={activeView}
+        onViewChange={setActiveView}
+        project={selectedProject}
+        onBackToList={handleBackToList}
+      >
+        {ActiveView
+          ? <ActiveView project={selectedProject}/>
+          : <ComingSoon view={activeView}/>
+        }
+      </DashboardLayout>
     );
-  }
+  };
 
-  /* ── 프로젝트 미선택 → 목록 화면 ── */
-  if (!selectedProject) {
-    return (
-      <ProjectsShell
-        onSelectProject={handleSelectProject}
-        onCreateProject={() => setIsCreating(true)}
-      />
-    );
-  }
-
-  /* ── 프로젝트 선택 → 워크스페이스 ── */
-  const ActiveView = VIEWS[activeView];
-
+  /* ── 전체 레이아웃: 좌측 콘텐츠 + 우측 AgentPanel ── */
   return (
-    <DashboardLayout
-      activeView={activeView}
-      onViewChange={setActiveView}
-      project={selectedProject}
-      onBackToList={handleBackToList}
-    >
-      {ActiveView
-        ? <ActiveView project={selectedProject}/>
-        : <ComingSoon view={activeView}/>
-      }
-    </DashboardLayout>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* 좌측: 메인 콘텐츠 (flex: 1, 스크롤 허용) */}
+      <div style={{ flex: 1, overflow: "auto", minWidth: 0 }}>
+        {renderMain()}
+      </div>
+
+      {/* 우측: Agent 패널 (항상 표시) */}
+      <AgentPanel project={selectedProject} />
+    </div>
   );
 }
 
