@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { useMockProgress } from "@/hooks";
 import { Button } from "@/components/ui";
 import { smoothScroll } from "@/lib/smoothScroll";
@@ -79,18 +80,17 @@ function HeroMockup() {
                 <div className="al-pipe-lbl">{row.label}</div>
                 <div className="al-pipe-nodes">
                   {row.nodes.map((n, i) => (
-                    <>
+                    <Fragment key={n.label}>
                       <div
-                        key={n.label}
                         className={`al-pnode${n.active ? " active" : ""}`}
                       >
                         <div className="al-ndot" style={{ background: n.color }} />
                         {n.label}
                       </div>
                       {i < row.nodes.length - 1 && (
-                        <span key={`a${i}`} className="al-parr">→</span>
+                        <span className="al-parr">→</span>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </div>
               </div>

@@ -920,9 +920,14 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // 백엔드 연동 시 여기서 API 호출
-    await new Promise(r => setTimeout(r, 800)); // 임시 딜레이
-    onComplete?.(data);
+    try {
+      // TODO: 백엔드 연동 시 여기서 API 호출 후 onComplete 호출
+      // const project = await createProject(data);
+      onComplete?.(data);
+    } catch (err) {
+      console.error("프로젝트 생성 실패:", err);
+      setIsSubmitting(false);
+    }
   };
 
   const STEP_CONTENT = {

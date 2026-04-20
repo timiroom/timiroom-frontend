@@ -14,9 +14,12 @@
  *
  * 그리고 AuthenticationSuccessHandler 에서:
  *   response.sendRedirect(frontendUrl + "/auth/callback?token=" + jwtToken);
+ *
+ * NOTE: useSearchParams() requires a Suspense boundary in Next.js 14.
+ *       CallbackInner 는 Suspense 내부에서만 렌더링됩니다.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -92,8 +95,8 @@ function StatusScreen({ type, message }) {
   );
 }
 
-/* ── 콜백 페이지 ── */
-export default function AuthCallbackPage() {
+/* ── 콜백 내부 컴포넌트 (useSearchParams 사용 → Suspense 필수) ── */
+function CallbackInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { login }    = useAuth();
@@ -132,4 +135,15 @@ export default function AuthCallbackPage() {
   }, [searchParams, login, router]);
 
   return <StatusScreen {...status} />;
+}
+
+/* ── 콜백 페이지 (Suspense 래핑) ── */
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <StatusScreen type="loading" message="인증 정보를 확인하는 중입니다..." />
+    }>
+      <CallbackInner />
+    </Suspense>
+  );
 }

@@ -36,7 +36,7 @@ const VIEWS = {
    좌측 콘텐츠 뷰들
 ══════════════════════════════════════ */
 
-function ProjectsShell({ onSelectProject, onCreateProject }) {
+function ProjectsShell({ onSelectProject, onCreateProject, projects }) {
   return (
     <div className="db-root" style={{ flex: 1, minHeight: "100vh", position: "relative", overflow: "hidden" }}>
       <div className="db-orb db-orb-1" style={{ top: "-5%",  left: "20%",  zIndex: 0 }}/>
@@ -86,6 +86,7 @@ function ProjectsShell({ onSelectProject, onCreateProject }) {
         <ProjectsListPage
           onSelectProject={onSelectProject}
           onCreateProject={onCreateProject}
+          projects={projects}
         />
       </main>
     </div>
@@ -160,6 +161,7 @@ export default function DashboardPage() {
         <ProjectsShell
           onSelectProject={handleSelectProject}
           onCreateProject={() => setIsCreating(true)}
+          projects={projects}
         />
       );
     }
@@ -170,6 +172,7 @@ export default function DashboardPage() {
         activeView={activeView}
         onViewChange={setActiveView}
         project={selectedProject}
+        projects={projects}
         onBackToList={handleBackToList}
       >
         {ActiveView

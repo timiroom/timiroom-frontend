@@ -130,7 +130,17 @@ export async function sendMessage({ messages, config, projectContext }) {
 }
 
 /* ── 스트리밍 응답 전송 (SSE) ── */
-export async function sendMessageStream({ messages, config, projectContext, onChunk, onDone, onError }) {
+/**
+ * @param {object}   opts
+ * @param {object[]} opts.messages        - 대화 히스토리
+ * @param {object}   opts.config          - { provider, apiKey, model }
+ * @param {object}   [opts.projectContext] - 프로젝트 컨텍스트
+ * @param {function} [opts.onChunk]       - 청크 수신 콜백 (delta: string)
+ * @param {function} [opts.onDone]        - 완료 콜백
+ * @param {function} [opts.onError]       - 오류 콜백 (message: string)
+ * @param {AbortSignal} [opts.signal]     - 취소 신호 (AbortController.signal)
+ */
+export async function sendMessageStream({ messages, config, projectContext, onChunk, onDone, onError, signal }) {
   const { provider, apiKey, model } = config;
 
   try {
@@ -147,6 +157,7 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
         systemPrompt:   buildSystemPrompt(projectContext),
         projectContext,
       }),
+      signal,  // AbortController.signal 연결
     });
 
     if (!res.ok) {
@@ -178,6 +189,8 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
     }
     onDone?.();
   } catch (err) {
+    // AbortError는 사용자 취소이므로 onError 호출 없이 조용히 종료
+    if (err.name === "AbortError") return;
     onError?.(err.message || "스트리밍 오류가 발생했습니다.");
   }
 }

@@ -296,8 +296,14 @@ function ChatView({ config, project, onOpenSettings }) {
   const [input,      setInput]      = useState("");
   const [isLoading,  setIsLoading]  = useState(false);
   const [streamText, setStreamText] = useState("");
-  const bottomRef  = useRef(null);
+  const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
+  const abortRef    = useRef(null);  // 진행 중인 스트림 취소용
+
+  /* 언마운트 시 진행 중인 스트림 취소 */
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   /* 최신 메시지로 스크롤 */
   useEffect(() => {
@@ -315,6 +321,11 @@ function ChatView({ config, project, onOpenSettings }) {
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
+
+    // 이전 스트림이 남아 있으면 취소
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const userMsg = { role: "user", content: text, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
@@ -334,6 +345,7 @@ function ChatView({ config, project, onOpenSettings }) {
       messages:       history,
       config,
       projectContext: project,
+      signal:         controller.signal,
       onChunk: (delta) => {
         accumulated += delta;
         setStreamText(accumulated);
@@ -345,6 +357,7 @@ function ChatView({ config, project, onOpenSettings }) {
         ]);
         setStreamText("");
         setIsLoading(false);
+        abortRef.current = null;
       },
       onError: (errMsg) => {
         setMessages(prev => [
@@ -358,6 +371,7 @@ function ChatView({ config, project, onOpenSettings }) {
         ]);
         setStreamText("");
         setIsLoading(false);
+        abortRef.current = null;
       },
     });
   }, [input, isLoading, messages, config, project]);

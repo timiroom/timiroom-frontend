@@ -27,7 +27,7 @@ const VIEW_TITLES = {
 };
 
 /* ── 프로젝트 전환 드롭다운 ── */
-function ProjectSwitcher({ project, collapsed, onBackToList }) {
+function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
   const [open, setOpen] = useState(false);
   const meta = STATUS_META[project.status];
 
@@ -103,7 +103,7 @@ function ProjectSwitcher({ project, collapsed, onBackToList }) {
           <div style={{ padding: "8px 10px 4px", fontSize: 10, color: "var(--db-text-muted)", letterSpacing: ".06em", textTransform: "uppercase" }}>
             프로젝트 전환
           </div>
-          {MOCK_PROJECTS.map(p => {
+          {(projects || MOCK_PROJECTS).map(p => {
             const m = STATUS_META[p.status];
             const isCurrent = p.id === project.id;
             return (
@@ -138,7 +138,7 @@ function ProjectSwitcher({ project, collapsed, onBackToList }) {
 }
 
 /* ── Sidebar ── */
-function Sidebar({ active, onSelect, collapsed, onToggle, project, onBackToList }) {
+function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onBackToList }) {
   return (
     <aside style={{
       width: collapsed ? 64 : 224,
@@ -173,7 +173,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, onBackToList 
       </Link>
 
       {/* 프로젝트 전환기 */}
-      <ProjectSwitcher project={project} collapsed={collapsed} onBackToList={onBackToList}/>
+      <ProjectSwitcher project={project} projects={projects} collapsed={collapsed} onBackToList={onBackToList}/>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -315,7 +315,7 @@ function Topbar({ view, project }) {
 }
 
 /* ── DashboardLayout (exported) ── */
-export function DashboardLayout({ children, activeView, onViewChange, project, onBackToList }) {
+export function DashboardLayout({ children, activeView, onViewChange, project, projects, onBackToList }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -331,6 +331,7 @@ export function DashboardLayout({ children, activeView, onViewChange, project, o
         collapsed={collapsed}
         onToggle={() => setCollapsed(c => !c)}
         project={project}
+        projects={projects}
         onBackToList={onBackToList}
       />
 

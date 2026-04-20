@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { MOCK_PROJECTS, STATUS_META, MEMBER_COLORS } from "@/lib/projectData";
 
+// Fix #1: MOCK_PROJECTS는 기본값(fallback)으로만 사용, 실제 데이터는 props로 수신
+
 /* ── 정합성 스코어 미니 링 ── */
 function ScoreMini({ score, color }) {
   const r = 20, circ = 2 * Math.PI * r;
@@ -202,26 +204,26 @@ function NewProjectCard({ onClick }) {
 }
 
 /* ── ProjectsListPage (exported) ── */
-export function ProjectsListPage({ onSelectProject, onCreateProject }) {
+export function ProjectsListPage({ onSelectProject, onCreateProject, projects = MOCK_PROJECTS }) {
   const [search, setSearch]   = useState("");
-  const [filter, setFilter]   = useState("all"); // all | running | done | draft | paused
-  const [sortBy, setSortBy]   = useState("recent"); // recent | score | name
+  const [filter, setFilter]   = useState("all");
+  const [sortBy, setSortBy]   = useState("recent");
 
-  const filtered = MOCK_PROJECTS
+  const filtered = projects
     .filter(p => filter === "all" || p.status === filter)
     .filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.description.includes(search))
     .sort((a, b) => {
       if (sortBy === "score")  return b.score - a.score;
       if (sortBy === "name")   return a.name.localeCompare(b.name);
-      return 0; // recent = 원래 순서
+      return 0;
     });
 
   const FILTERS = [
-    { id: "all",     label: "전체",    count: MOCK_PROJECTS.length },
-    { id: "running", label: "진행 중", count: MOCK_PROJECTS.filter(p=>p.status==="running").length },
-    { id: "done",    label: "완료",    count: MOCK_PROJECTS.filter(p=>p.status==="done").length },
-    { id: "draft",   label: "초안",    count: MOCK_PROJECTS.filter(p=>p.status==="draft").length },
-    { id: "paused",  label: "정지",    count: MOCK_PROJECTS.filter(p=>p.status==="paused").length },
+    { id: "all",     label: "전체",    count: projects.length },
+    { id: "running", label: "진행 중", count: projects.filter(p=>p.status==="running").length },
+    { id: "done",    label: "완료",    count: projects.filter(p=>p.status==="done").length },
+    { id: "draft",   label: "초안",    count: projects.filter(p=>p.status==="draft").length },
+    { id: "paused",  label: "정지",    count: projects.filter(p=>p.status==="paused").length },
   ];
 
   return (
@@ -233,7 +235,7 @@ export function ProjectsListPage({ onSelectProject, onCreateProject }) {
             내 프로젝트
           </div>
           <div style={{ fontSize: 14, color: "var(--db-text-muted)" }}>
-            총 {MOCK_PROJECTS.length}개 프로젝트 · 진행 중 {MOCK_PROJECTS.filter(p=>p.status==="running").length}개
+            총 {projects.length}개 프로젝트 · 진행 중 {projects.filter(p=>p.status==="running").length}개
           </div>
         </div>
         <button style={{
@@ -253,10 +255,10 @@ export function ProjectsListPage({ onSelectProject, onCreateProject }) {
       {/* 요약 스탯 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         {[
-          { icon: "📁", label: "전체 프로젝트", value: MOCK_PROJECTS.length,                               color: "var(--db-purple-300)" },
-          { icon: "⚡", label: "평균 정합성",   value: `${Math.round(MOCK_PROJECTS.reduce((a,p)=>a+p.score,0)/MOCK_PROJECTS.length)}%`, color: "var(--db-blue)"    },
-          { icon: "📄", label: "총 생성 명세서", value: MOCK_PROJECTS.reduce((a,p)=>a+p.specCount,0),       color: "var(--db-green)"   },
-          { icon: "⚠️", label: "전체 이슈",     value: MOCK_PROJECTS.reduce((a,p)=>a+p.issueCount,0),       color: "var(--db-orange)"  },
+          { icon: "📁", label: "전체 프로젝트", value: projects.length,                                                                                color: "var(--db-purple-300)" },
+          { icon: "⚡", label: "평균 정합성",   value: projects.length ? `${Math.round(projects.reduce((a,p)=>a+p.score,0)/projects.length)}%` : "0%", color: "var(--db-blue)"       },
+          { icon: "📄", label: "총 생성 명세서", value: projects.reduce((a,p)=>a+(p.specCount||0),0),                                                   color: "var(--db-green)"      },
+          { icon: "⚠️", label: "전체 이슈",     value: projects.reduce((a,p)=>a+(p.issueCount||0),0),                                                   color: "var(--db-orange)"     },
         ].map(s => (
           <div key={s.label} style={{
             background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
