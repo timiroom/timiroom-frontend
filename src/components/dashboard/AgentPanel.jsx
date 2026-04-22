@@ -3,12 +3,16 @@
 /**
  * AgentPanel.jsx
  * --------------
- * 우측 상시 표시 AI 에이전트 채팅 패널.
+ * 풀스크린 Claude 스타일 LLM 채팅 메인 영역.
+ *
+ * 레이아웃:
+ *   [상단 바: 프로젝트명 + 액션]
+ *   [메시지 영역: max-width 680px 중앙 정렬]
+ *   [입력 영역: Claude 스타일 라운드 컨테이너]
  *
  * 뷰 상태:
- *   "setup"  — API 키 미설정 → 설정 화면
- *   "settings" — 설정 편집 화면 (기어 아이콘 클릭)
- *   "chat"   — 채팅 화면
+ *   showSettings === true  →  설정 패널 오버레이
+ *   그 외                   →  채팅 화면
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -16,157 +20,165 @@ import {
   PROVIDERS,
   loadAgentConfig,
   saveAgentConfig,
-  clearAgentConfig,
   sendMessageStream,
 } from "@/lib/agentApi";
 
 /* ══════════════════════════════════════
-   상수 / 유틸
+   디자인 토큰
 ══════════════════════════════════════ */
-const PANEL_W = 288;
+const C = {
+  bg:         "#212121",
+  topbar:     "#1a1a1a",
+  border:     "rgba(255,255,255,0.07)",
+  text:       "#ececec",
+  muted:      "#8b8b8b",
+  subtle:     "#6b6b6b",
+  userBg:     "#2a2a2a",
+  inputBg:    "#2f2f2f",
+  inputBdr:   "rgba(255,255,255,0.10)",
+  hover:      "rgba(255,255,255,0.05)",
+  accent:     "#a78bfa",
+  accentBg:   "rgba(139,92,246,0.14)",
+  accentBdr:  "rgba(139,92,246,0.28)",
+  sendBg:     "#6B5CE7",
+  sendHover:  "#7C6FF0",
+};
 
-const SUGGESTION_PROMPTS = [
-  "PRD 초안을 작성해줘",
-  "API 엔드포인트 설계 검토해줘",
-  "DB 스키마 개선점 알려줘",
-  "QA 테스트 케이스 만들어줘",
-  "정합성 이슈 분석해줘",
+const MAX_W = 680;
+
+/* ── 프리셋 제안 프롬프트 ── */
+const SUGGESTIONS = [
+  { icon: "✏️", text: "PRD 초안을 작성해줘" },
+  { icon: "🔌", text: "API 엔드포인트 설계 검토해줘" },
+  { icon: "🗄️", text: "DB 스키마 개선점 알려줘" },
+  { icon: "🧪", text: "QA 테스트 케이스 만들어줘" },
+  { icon: "🕸", text: "정합성 이슈 분석해줘" },
+  { icon: "📐", text: "아키텍처 리뷰 해줘" },
 ];
 
-function formatTime(date) {
+/* ── 시간 포맷 ── */
+function fmtTime(date) {
   return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 }
 
-/* ── 타이핑 커서 점 애니메이션 ── */
+/* ── 타이핑 점 ── */
 function TypingDots() {
   return (
-    <div style={{ display: "flex", gap: 4, padding: "10px 14px", alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 0" }}>
       {[0, 1, 2].map(i => (
         <div key={i} style={{
-          width: 6, height: 6, borderRadius: "50%",
-          background: "var(--db-purple-400)",
-          animation: `agent-dot 1.2s ease infinite`,
-          animationDelay: `${i * 0.2}s`,
+          width: 7, height: 7, borderRadius: "50%",
+          background: C.muted,
+          animation: "ap-dot 1.2s ease infinite",
+          animationDelay: `${i * 0.18}s`,
         }}/>
       ))}
+      <style>{`
+        @keyframes ap-dot {
+          0%,80%,100% { transform: scale(0.7); opacity: 0.4; }
+          40%          { transform: scale(1);   opacity: 1;   }
+        }
+      `}</style>
     </div>
   );
 }
 
 /* ── 메시지 버블 ── */
-function MessageBubble({ msg, onCopy }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
+function MessageBubble({ msg }) {
+  const [hovered, setHovered] = useState(false);
+  const [copied,  setCopied]  = useState(false);
   const isUser = msg.role === "user";
 
-  return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: isUser ? "flex-end" : "flex-start",
-      gap: 4,
-      marginBottom: 14,
-    }}>
-      {/* 역할 레이블 */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        fontSize: 10, color: "var(--db-text-muted)",
-        flexDirection: isUser ? "row-reverse" : "row",
-      }}>
-        {isUser ? (
-          <div style={{
-            width: 16, height: 16, borderRadius: "50%",
-            background: "var(--db-grad-purple)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 9, fontWeight: 800, color: "#fff",
-          }}>M</div>
-        ) : (
-          <div style={{
-            width: 16, height: 16, borderRadius: 5,
-            background: "rgba(139,92,246,0.2)",
-            border: "1px solid var(--db-border-mid)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 9, color: "var(--db-purple-300)",
-          }}>✦</div>
-        )}
-        <span>{formatTime(msg.timestamp)}</span>
-      </div>
+  const handleCopy = () => {
+    navigator.clipboard.writeText(msg.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
-      {/* 말풍선 */}
-      <div
-        style={{
-          maxWidth: "90%",
-          padding: "9px 12px",
-          borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-          background: isUser
-            ? "rgba(139,92,246,0.2)"
-            : "var(--db-bg-elevated)",
-          border: isUser
-            ? "1px solid var(--db-border-mid)"
-            : "1px solid var(--db-border)",
-          fontSize: 12.5,
-          lineHeight: 1.6,
-          color: "var(--db-text-primary)",
+  if (isUser) {
+    return (
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+        <div style={{
+          maxWidth: "75%",
+          background: C.userBg,
+          border: `1px solid ${C.border}`,
+          borderRadius: "18px 18px 4px 18px",
+          padding: "10px 16px",
+          color: C.text,
+          fontSize: 14,
+          lineHeight: 1.65,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
-          position: "relative",
-          cursor: "default",
-        }}
-        onMouseEnter={e => {
-          const btn = e.currentTarget.querySelector(".copy-btn");
-          if (btn) btn.style.opacity = "1";
-        }}
-        onMouseLeave={e => {
-          const btn = e.currentTarget.querySelector(".copy-btn");
-          if (btn) btn.style.opacity = "0";
-        }}
-      >
-        {msg.content}
-        {/* 복사 버튼 */}
-        {!isUser && (
+        }}>
+          {msg.content}
+        </div>
+      </div>
+    );
+  }
+
+  /* 어시스턴트 메시지 */
+  return (
+    <div
+      style={{ display: "flex", gap: 12, marginBottom: 24, position: "relative" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* 아바타 */}
+      <div style={{
+        width: 30, height: 30, borderRadius: 9,
+        background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 13, fontWeight: 900, color: "#fff",
+        flexShrink: 0, marginTop: 2,
+        boxShadow: "0 2px 8px rgba(107,92,231,0.3)",
+      }}>A</div>
+
+      {/* 텍스트 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          color: msg.isError ? "#f87171" : C.text,
+          fontSize: 14,
+          lineHeight: 1.75,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}>
+          {msg.content}
+        </div>
+        <div style={{
+          marginTop: 6, fontSize: 11, color: C.subtle,
+          opacity: hovered ? 1 : 0, transition: "opacity 0.15s",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span>{fmtTime(msg.timestamp)}</span>
           <button
-            className="copy-btn"
             onClick={handleCopy}
             style={{
-              position: "absolute", top: 4, right: 4,
-              background: "var(--db-bg-surface)",
-              border: "1px solid var(--db-border)",
-              borderRadius: 4, padding: "2px 6px",
-              fontSize: 10, cursor: "pointer",
-              color: copied ? "var(--db-green)" : "var(--db-text-muted)",
-              opacity: 0, transition: "opacity 0.15s",
+              background: "none", border: "none", cursor: "pointer",
+              color: copied ? C.accent : C.subtle, fontSize: 11,
+              padding: 0, fontFamily: "inherit",
             }}
           >
-            {copied ? "✓" : "복사"}
+            {copied ? "복사됨" : "복사"}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ══════════════════════════════════════
-   설정 화면
+   설정 패널 (오버레이)
 ══════════════════════════════════════ */
-function SettingsView({ onSave, onCancel, existingConfig }) {
-  const [provider, setProvider] = useState(existingConfig?.provider || "anthropic");
-  const [apiKey,   setApiKey]   = useState(existingConfig?.apiKey   || "");
-  const [model,    setModel]    = useState(
-    existingConfig?.model || PROVIDERS.anthropic.models[1].id
-  );
-  const [testing,  setTesting]  = useState(false);
-  const [testResult, setTestResult] = useState(null); // null | "ok" | "fail"
+function SettingsPanel({ config, onSave, onClose }) {
+  const [provider, setProvider] = useState(config?.provider || "anthropic");
+  const [apiKey,   setApiKey]   = useState(config?.apiKey   || "");
+  const [model,    setModel]    = useState(config?.model     || PROVIDERS.anthropic.models[1].id);
+  const [showKey,  setShowKey]  = useState(false);
 
   const handleProviderChange = (p) => {
     setProvider(p);
-    setModel(PROVIDERS[p].models[1].id);
-    setTestResult(null);
+    setModel(PROVIDERS[p].models[0].id);
   };
 
   const handleSave = () => {
@@ -174,155 +186,202 @@ function SettingsView({ onSave, onCancel, existingConfig }) {
     onSave({ provider, apiKey: apiKey.trim(), model });
   };
 
-  const inputStyle = {
-    width: "100%",
-    background: "var(--db-bg-elevated)",
-    border: "1px solid var(--db-border)",
-    borderRadius: 7,
-    padding: "8px 11px",
-    color: "var(--db-text-primary)",
-    fontSize: 12,
-    outline: "none",
-    fontFamily: "monospace",
-    boxSizing: "border-box",
-  };
-
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "var(--db-text-muted)", letterSpacing: ".08em", marginBottom: 10 }}>
-          LLM PROVIDER
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {Object.entries(PROVIDERS).map(([key, prov]) => (
-            <button key={key} onClick={() => handleProviderChange(key)} style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "9px 12px", borderRadius: 8, cursor: "pointer",
-              background: provider === key ? "rgba(139,92,246,0.12)" : "var(--db-bg-elevated)",
-              border: provider === key ? "1px solid var(--db-border-active)" : "1px solid var(--db-border)",
-              color: provider === key ? "var(--db-purple-300)" : "var(--db-text-secondary)",
-              fontSize: 12, fontWeight: provider === key ? 600 : 400, textAlign: "left",
-              transition: "all 0.15s",
-            }}>
-              <div style={{
-                width: 12, height: 12, borderRadius: "50%",
-                border: provider === key ? "3.5px solid var(--db-purple-400)" : "1.5px solid var(--db-border-mid)",
-                flexShrink: 0,
-              }}/>
-              {prov.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "var(--db-text-muted)", letterSpacing: ".08em", marginBottom: 8 }}>
-          API KEY
-        </p>
-        <input
-          type="password"
-          placeholder={provider === "anthropic" ? "sk-ant-api03-..." : "sk-..."}
-          value={apiKey}
-          onChange={e => { setApiKey(e.target.value); setTestResult(null); }}
-          style={inputStyle}
-          onFocus={e => e.target.style.borderColor = "var(--db-border-active)"}
-          onBlur={e => e.target.style.borderColor = "var(--db-border)"}
-        />
-        <p style={{ fontSize: 10, color: "var(--db-text-muted)", marginTop: 5, lineHeight: 1.5 }}>
-          키는 브라우저 로컬에만 저장되며,<br/>백엔드 프록시를 통해서만 사용됩니다.
-        </p>
-      </div>
-
-      <div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "var(--db-text-muted)", letterSpacing: ".08em", marginBottom: 8 }}>
-          MODEL
-        </p>
-        <select
-          value={model}
-          onChange={e => setModel(e.target.value)}
-          style={{ ...inputStyle, fontFamily: "inherit", cursor: "pointer" }}
-        >
-          {PROVIDERS[provider].models.map(m => (
-            <option key={m.id} value={m.id} style={{ background: "#1E1B40" }}>{m.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* 테스트 결과 */}
-      {testResult && (
+    <div style={{
+      position: "absolute", inset: 0, zIndex: 20,
+      background: "rgba(0,0,0,0.6)",
+      backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        width: 440, background: "#1e1e1e",
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
+        overflow: "hidden",
+        fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      }}>
+        {/* 헤더 */}
         <div style={{
-          padding: "8px 12px", borderRadius: 7, fontSize: 12,
-          background: testResult === "ok" ? "var(--db-green-bg)" : "var(--db-red-bg)",
-          color: testResult === "ok" ? "var(--db-green)" : "var(--db-red)",
-          border: `1px solid ${testResult === "ok" ? "var(--db-green)" : "var(--db-red)"}20`,
+          padding: "18px 22px",
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          {testResult === "ok" ? "✓ 연결 성공" : "✕ 연결 실패 — 키를 확인하세요"}
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Agent 설정</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>LLM 제공사 및 API 키를 설정하세요</div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: C.muted, fontSize: 20, lineHeight: 1, padding: 4,
+          }}>×</button>
         </div>
-      )}
 
-      <div style={{ display: "flex", gap: 8 }}>
-        {existingConfig && (
-          <button onClick={onCancel} style={{
-            flex: 1, padding: "9px", borderRadius: 7, cursor: "pointer",
-            background: "none", border: "1px solid var(--db-border)",
-            color: "var(--db-text-muted)", fontSize: 12,
-          }}>취소</button>
-        )}
-        <button
-          onClick={handleSave}
-          disabled={!apiKey.trim()}
-          style={{
-            flex: 2, padding: "9px", borderRadius: 7, cursor: apiKey.trim() ? "pointer" : "not-allowed",
-            background: apiKey.trim() ? "var(--db-grad-purple)" : "var(--db-bg-elevated)",
+        {/* 본문 */}
+        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* 제공사 선택 */}
+          <div>
+            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
+              LLM 제공사
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {Object.entries(PROVIDERS).map(([key, info]) => (
+                <button key={key} onClick={() => handleProviderChange(key)} style={{
+                  flex: 1, padding: "9px 12px",
+                  background: provider === key ? C.accentBg : C.hover,
+                  border: `1px solid ${provider === key ? C.accentBdr : C.border}`,
+                  borderRadius: 8, cursor: "pointer",
+                  color: provider === key ? C.accent : C.muted,
+                  fontSize: 12, fontWeight: 600,
+                  transition: "all 0.12s", fontFamily: "inherit",
+                }}>
+                  {info.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* API 키 */}
+          <div>
+            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
+              API Key
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder={provider === "anthropic" ? "sk-ant-..." : "sk-..."}
+                style={{
+                  width: "100%", padding: "10px 44px 10px 12px",
+                  background: C.inputBg, border: `1px solid ${C.inputBdr}`,
+                  borderRadius: 8, color: C.text, fontSize: 13,
+                  fontFamily: "monospace", outline: "none",
+                  boxSizing: "border-box",
+                  transition: "border-color 0.15s",
+                }}
+                onFocus={e => e.target.style.borderColor = C.accentBdr}
+                onBlur={e => e.target.style.borderColor = C.inputBdr}
+              />
+              <button onClick={() => setShowKey(s => !s)} style={{
+                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer",
+                color: C.muted, fontSize: 13,
+              }}>
+                {showKey ? "숨김" : "표시"}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: C.subtle, marginTop: 6 }}>
+              키는 브라우저 로컬에 저장되며 백엔드 프록시를 통해 LLM API로 전달됩니다.
+            </p>
+          </div>
+
+          {/* 모델 */}
+          <div>
+            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
+              모델
+            </label>
+            <select
+              value={model}
+              onChange={e => setModel(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 12px",
+                background: C.inputBg, border: `1px solid ${C.inputBdr}`,
+                borderRadius: 8, color: C.text, fontSize: 13,
+                outline: "none", cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {(PROVIDERS[provider]?.models || []).map(m => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 푸터 */}
+        <div style={{
+          padding: "14px 22px",
+          borderTop: `1px solid ${C.border}`,
+          display: "flex", gap: 8, justifyContent: "flex-end",
+        }}>
+          <button onClick={onClose} style={{
+            padding: "8px 18px", borderRadius: 8,
+            background: "transparent", border: `1px solid ${C.border}`,
+            color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+          }}>
+            취소
+          </button>
+          <button onClick={handleSave} disabled={!apiKey.trim()} style={{
+            padding: "8px 20px", borderRadius: 8, cursor: apiKey.trim() ? "pointer" : "not-allowed",
+            background: apiKey.trim() ? C.sendBg : "#333",
             border: "none",
-            color: apiKey.trim() ? "#fff" : "var(--db-text-muted)",
-            fontSize: 12, fontWeight: 700,
-            boxShadow: apiKey.trim() ? "var(--db-glow-sm)" : "none",
-            transition: "all 0.15s",
-          }}
-        >
-          저장하기
-        </button>
+            color: apiKey.trim() ? "#fff" : C.muted,
+            fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+            transition: "background 0.15s",
+          }}>
+            저장
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 /* ══════════════════════════════════════
-   채팅 화면
+   메인 컴포넌트
 ══════════════════════════════════════ */
-function ChatView({ config, project, onOpenSettings }) {
-  const [messages,   setMessages]   = useState([]);
-  const [input,      setInput]      = useState("");
-  const [isLoading,  setIsLoading]  = useState(false);
-  const [streamText, setStreamText] = useState("");
+export function AgentPanel({ project }) {
+  const [config,       setConfig]       = useState(null);
+  const [messages,     setMessages]     = useState([]);
+  const [input,        setInput]        = useState("");
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [streamText,   setStreamText]   = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
-  const abortRef    = useRef(null);  // 진행 중인 스트림 취소용
+  const abortRef    = useRef(null);
 
-  /* 언마운트 시 진행 중인 스트림 취소 */
+  /* 설정 로드 */
+  useEffect(() => {
+    const saved = loadAgentConfig();
+    if (saved) setConfig(saved);
+    else setShowSettings(true); // 첫 방문이면 설정 자동 오픈
+  }, []);
+
+  /* 언마운트 시 스트림 취소 */
   useEffect(() => {
     return () => { abortRef.current?.abort(); };
   }, []);
 
-  /* 최신 메시지로 스크롤 */
+  /* 새 메시지 시 스크롤 */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamText]);
 
   /* textarea 자동 높이 */
-  const adjustHeight = () => {
+  const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }, []);
+
+  /* 설정 저장 */
+  const handleSaveConfig = (newConfig) => {
+    saveAgentConfig(newConfig);
+    setConfig(newConfig);
+    setShowSettings(false);
   };
 
+  /* 메시지 전송 */
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || !config) return;
 
-    // 이전 스트림이 남아 있으면 취소
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -330,13 +389,14 @@ function ChatView({ config, project, onOpenSettings }) {
     const userMsg = { role: "user", content: text, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
     setIsLoading(true);
     setStreamText("");
 
-    // 백엔드 전송용 메시지 포맷 (system 제외, role/content만)
     const history = [...messages, userMsg].map(m => ({
-      role:    m.role,
-      content: m.content,
+      role: m.role, content: m.content,
     }));
 
     let accumulated = "";
@@ -363,10 +423,10 @@ function ChatView({ config, project, onOpenSettings }) {
         setMessages(prev => [
           ...prev,
           {
-            role:      "assistant",
-            content:   `오류가 발생했습니다: ${errMsg}\n\n백엔드 서버가 실행 중인지, API 키가 올바른지 확인해주세요.`,
+            role: "assistant",
+            content: `오류가 발생했습니다: ${errMsg}\n\n백엔드 서버가 실행 중인지, API 키가 올바른지 확인해주세요.`,
             timestamp: new Date(),
-            isError:   true,
+            isError: true,
           },
         ]);
         setStreamText("");
@@ -383,326 +443,382 @@ function ChatView({ config, project, onOpenSettings }) {
     }
   };
 
-  const clearChat = () => setMessages([]);
+  /* 모델 표시 레이블 */
+  const modelLabel = config
+    ? (PROVIDERS[config.provider]?.models.find(m => m.id === config.model)?.label?.split(" ")[0] ?? config.model)
+    : null;
 
-  /* 모델 레이블 */
-  const modelLabel = PROVIDERS[config.provider]?.models
-    .find(m => m.id === config.model)?.label
-    ?.split(" ")[0] ?? config.model;
+  const isEmpty = messages.length === 0 && !isLoading;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* 컨텍스트 배지 */}
-      {project && (
-        <div style={{
-          padding: "7px 12px",
-          borderBottom: "1px solid var(--db-border)",
-          display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
-        }}>
-          <div style={{
-            width: 6, height: 6, borderRadius: "50%",
-            background: "var(--db-purple-400)", flexShrink: 0,
-          }}/>
-          <span style={{ fontSize: 11, color: "var(--db-text-muted)", overflow: "hidden",
-            textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {project.name}
-          </span>
-          <span style={{
-            marginLeft: "auto", fontSize: 10,
-            padding: "2px 7px", borderRadius: 10,
-            background: "rgba(139,92,246,0.12)",
-            border: "1px solid var(--db-border-mid)",
-            color: "var(--db-purple-300)", flexShrink: 0,
-          }}>
-            {modelLabel}
-          </span>
-        </div>
-      )}
+    <div style={{
+      flex: 1, display: "flex", flexDirection: "column",
+      height: "100vh", background: C.bg, overflow: "hidden",
+      position: "relative",
+      fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+    }}>
 
-      {/* 메시지 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px 4px" }}>
-        {messages.length === 0 && !isLoading ? (
-          /* 빈 상태 */
-          <div style={{ paddingTop: 20 }}>
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 12, margin: "0 auto 10px",
-                background: "rgba(139,92,246,0.12)",
-                border: "1px solid var(--db-border-mid)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18,
-              }}>✦</div>
-              <p style={{ fontSize: 12, color: "var(--db-text-muted)", lineHeight: 1.6 }}>
-                프로젝트에 대해 무엇이든<br/>물어보세요
-              </p>
-            </div>
-            {/* 빠른 제안 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {SUGGESTION_PROMPTS.map(s => (
-                <button key={s} onClick={() => { setInput(s); textareaRef.current?.focus(); }}
-                  style={{
-                    padding: "8px 11px", borderRadius: 8, cursor: "pointer",
-                    background: "var(--db-bg-surface)",
-                    border: "1px solid var(--db-border)",
-                    color: "var(--db-text-secondary)", fontSize: 11,
-                    textAlign: "left", transition: "all 0.12s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--db-text-primary)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border)"; e.currentTarget.style.color = "var(--db-text-secondary)"; }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* ── 상단 바 ── */}
+      <TopBar
+        project={project}
+        modelLabel={modelLabel}
+        hasMessages={messages.length > 0}
+        onClear={() => { setMessages([]); setStreamText(""); }}
+        onOpenSettings={() => setShowSettings(true)}
+      />
+
+      {/* ── 메시지 영역 ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 24px" }}>
+        {isEmpty ? (
+          <EmptyState
+            project={project}
+            hasConfig={!!config}
+            onOpenSettings={() => setShowSettings(true)}
+            onSelectSuggestion={s => {
+              setInput(s);
+              setTimeout(() => { textareaRef.current?.focus(); adjustHeight(); }, 50);
+            }}
+          />
         ) : (
-          <>
+          <div style={{ maxWidth: MAX_W, margin: "0 auto", paddingTop: 32, paddingBottom: 16 }}>
             {messages.map((msg, i) => (
               <MessageBubble key={i} msg={msg} />
             ))}
-            {/* 스트리밍 중 실시간 텍스트 */}
+            {/* 스트리밍 실시간 */}
             {isLoading && streamText && (
               <MessageBubble
                 msg={{ role: "assistant", content: streamText, timestamp: new Date() }}
               />
             )}
-            {/* 스트리밍 시작 전 타이핑 표시 */}
-            {isLoading && !streamText && <TypingDots />}
-          </>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* 입력 영역 */}
-      <div style={{
-        borderTop: "1px solid var(--db-border)",
-        padding: "10px 12px",
-        background: "var(--db-bg-base)",
-        flexShrink: 0,
-      }}>
-        {messages.length > 0 && (
-          <button onClick={clearChat} style={{
-            display: "block", marginLeft: "auto", marginBottom: 6,
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 10, color: "var(--db-text-muted)",
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = "var(--db-red)"}
-          onMouseLeave={e => e.currentTarget.style.color = "var(--db-text-muted)"}
-          >대화 초기화</button>
-        )}
-        <div style={{
-          display: "flex", gap: 8, alignItems: "flex-end",
-          background: "var(--db-bg-elevated)",
-          border: "1px solid var(--db-border)",
-          borderRadius: 10, padding: "8px 10px",
-        }}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => { setInput(e.target.value); adjustHeight(); }}
-            onKeyDown={handleKeyDown}
-            placeholder="메시지를 입력하세요... (Enter 전송)"
-            rows={1}
-            style={{
-              flex: 1, background: "none", border: "none", outline: "none",
-              color: "var(--db-text-primary)", fontSize: 12, lineHeight: 1.5,
-              resize: "none", fontFamily: "inherit", maxHeight: 120,
-              overflowY: "auto",
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            style={{
-              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: input.trim() && !isLoading ? "pointer" : "not-allowed",
-              background: input.trim() && !isLoading ? "var(--db-grad-purple)" : "var(--db-bg-surface)",
-              border: "none",
-              boxShadow: input.trim() && !isLoading ? "var(--db-glow-sm)" : "none",
-              transition: "all 0.15s",
-            }}
-          >
-            {isLoading ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--db-text-muted)" strokeWidth="2.5"
-                style={{ animation: "agent-spin 0.8s linear infinite" }}>
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
-                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke={input.trim() ? "#fff" : "var(--db-text-muted)"} strokeWidth="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
+            {/* 타이핑 대기 */}
+            {isLoading && !streamText && (
+              <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 9,
+                  background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 900, color: "#fff", flexShrink: 0, marginTop: 2,
+                }}>A</div>
+                <TypingDots />
+              </div>
             )}
-          </button>
-        </div>
-        <p style={{ fontSize: 10, color: "var(--db-text-muted)", marginTop: 5, textAlign: "center" }}>
-          Shift+Enter 줄바꿈 · Enter 전송
-        </p>
+            <div ref={bottomRef} />
+          </div>
+        )}
       </div>
 
-      <style>{`
-        @keyframes agent-dot {
-          0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes agent-spin { to { transform: rotate(360deg); } }
-      `}</style>
+      {/* ── 입력 영역 ── */}
+      <ChatInput
+        input={input}
+        setInput={setInput}
+        isLoading={isLoading}
+        config={config}
+        onSend={handleSend}
+        onKeyDown={handleKeyDown}
+        onInput={adjustHeight}
+        textareaRef={textareaRef}
+        onOpenSettings={() => setShowSettings(true)}
+        onStop={() => { abortRef.current?.abort(); setIsLoading(false); setStreamText(""); }}
+      />
+
+      {/* ── 설정 오버레이 ── */}
+      {showSettings && (
+        <SettingsPanel
+          config={config}
+          onSave={handleSaveConfig}
+          onClose={() => config && setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
 
-/* ══════════════════════════════════════
-   메인 export — AgentPanel
-══════════════════════════════════════ */
-export function AgentPanel({ project }) {
-  const [config,   setConfig]   = useState(null);   // null = 미설정
-  const [view,     setView]     = useState("setup"); // "setup" | "settings" | "chat"
-  const [loaded,   setLoaded]   = useState(false);
+/* ── 상단 바 ── */
+function TopBar({ project, modelLabel, hasMessages, onClear, onOpenSettings }) {
+  return (
+    <div style={{
+      height: 52, flexShrink: 0,
+      borderBottom: `1px solid ${C.border}`,
+      display: "flex", alignItems: "center",
+      padding: "0 24px",
+      justifyContent: "space-between",
+      background: C.topbar,
+    }}>
+      {/* 왼쪽: 프로젝트명 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {project ? (
+          <>
+            <div style={{
+              width: 22, height: 22, borderRadius: 6,
+              background: `${project.color || "#7C3AED"}22`,
+              border: `1px solid ${project.color || "#7C3AED"}44`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 900, color: project.color || "#a78bfa",
+            }}>
+              {(project.name || "P").charAt(0).toUpperCase()}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
+            {modelLabel && (
+              <span style={{
+                fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                background: C.accentBg, border: `1px solid ${C.accentBdr}`,
+                color: C.accent,
+              }}>
+                {modelLabel}
+              </span>
+            )}
+          </>
+        ) : (
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>프로젝트를 선택하세요</span>
+        )}
+      </div>
 
-  /* 저장된 설정 불러오기 */
-  useEffect(() => {
-    const saved = loadAgentConfig();
-    if (saved?.apiKey) {
-      setConfig(saved);
-      setView("chat");
-    } else {
-      setView("setup");
-    }
-    setLoaded(true);
-  }, []);
+      {/* 오른쪽: 액션 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {hasMessages && (
+          <TopBarBtn onClick={onClear} title="대화 초기화">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+            </svg>
+          </TopBarBtn>
+        )}
+        <TopBarBtn onClick={onOpenSettings} title="설정">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </TopBarBtn>
+      </div>
+    </div>
+  );
+}
 
-  const handleSave = (newConfig) => {
-    saveAgentConfig(newConfig);
-    setConfig(newConfig);
-    setView("chat");
-  };
+function TopBarBtn({ onClick, title, children }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick} title={title}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 32, height: 32, borderRadius: 7,
+        background: hovered ? C.hover : "transparent",
+        border: `1px solid ${hovered ? C.border : "transparent"}`,
+        cursor: "pointer", color: hovered ? C.text : C.muted,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all 0.12s",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
-  const handleReset = () => {
-    clearAgentConfig();
-    setConfig(null);
-    setView("setup");
-  };
+/* ── 빈 상태 (프로젝트 선택 / 첫 메시지) ── */
+function EmptyState({ project, hasConfig, onOpenSettings, onSelectSuggestion }) {
+  return (
+    <div style={{
+      maxWidth: MAX_W, margin: "0 auto",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      minHeight: "calc(100vh - 52px - 120px)",
+      paddingTop: 40, paddingBottom: 20,
+    }}>
+      {/* 로고 */}
+      <div style={{
+        width: 56, height: 56, borderRadius: 16,
+        background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 24, fontWeight: 900, color: "#fff",
+        boxShadow: "0 8px 28px rgba(107,92,231,0.35)",
+        marginBottom: 20,
+      }}>A</div>
 
-  if (!loaded) return null;
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: "0 0 8px", textAlign: "center" }}>
+        {project ? `${project.name}에 대해 물어보세요` : "안녕하세요 👋"}
+      </h2>
+      <p style={{ fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 1.65, margin: "0 0 32px" }}>
+        {project
+          ? "PRD 작성, API 설계, DB 스키마 등 프로젝트 전반에 대해 도움드릴게요."
+          : "왼쪽 사이드바에서 프로젝트를 선택하거나 새로 만들어보세요."}
+      </p>
+
+      {!hasConfig && (
+        <button
+          onClick={onOpenSettings}
+          style={{
+            padding: "10px 22px", borderRadius: 10,
+            background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+            border: "none", cursor: "pointer",
+            color: "#fff", fontSize: 13, fontWeight: 700,
+            boxShadow: "0 4px 16px rgba(107,92,231,0.35)",
+            marginBottom: 32, fontFamily: "inherit",
+          }}
+        >
+          ⚙️ API 키 설정하기
+        </button>
+      )}
+
+      {/* 제안 프롬프트 */}
+      {project && hasConfig && (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 10, width: "100%",
+        }}>
+          {SUGGESTIONS.map(s => (
+            <SuggestionChip
+              key={s.text}
+              icon={s.icon}
+              text={s.text}
+              onClick={() => onSelectSuggestion(s.text)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuggestionChip({ icon, text, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "11px 14px",
+        background: hovered ? "#2a2a2a" : "#232323",
+        border: `1px solid ${hovered ? "rgba(255,255,255,0.12)" : C.border}`,
+        borderRadius: 10, cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 10,
+        color: hovered ? C.text : "#9ca3af",
+        fontSize: 13, textAlign: "left",
+        transition: "all 0.12s",
+        fontFamily: "inherit",
+      }}
+    >
+      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+      <span style={{ lineHeight: 1.4 }}>{text}</span>
+    </button>
+  );
+}
+
+/* ── 입력 영역 ── */
+function ChatInput({ input, setInput, isLoading, config, onSend, onKeyDown, onInput, textareaRef, onOpenSettings, onStop }) {
+  const [focused, setFocused] = useState(false);
 
   return (
     <div style={{
-      width:         PANEL_W,
-      flexShrink:    0,
-      height:        "100vh",
-      display:       "flex",
-      flexDirection: "column",
-      background:    "var(--db-bg-base)",
-      borderLeft:    "1px solid var(--db-border)",
-      position:      "relative",
-      zIndex:        2,
+      flexShrink: 0,
+      padding: "14px 24px 20px",
     }}>
-      {/* ── 헤더 ── */}
       <div style={{
-        height: 42, padding: "0 14px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "1px solid var(--db-border)",
-        flexShrink: 0,
+        maxWidth: MAX_W, margin: "0 auto",
+        background: C.inputBg,
+        border: `1px solid ${focused ? "rgba(139,92,246,0.35)" : C.inputBdr}`,
+        borderRadius: 14,
+        transition: "border-color 0.15s",
+        overflow: "hidden",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <div style={{
-            width: 20, height: 20, borderRadius: 6,
-            background: "rgba(139,92,246,0.15)",
-            border: "1px solid var(--db-border-mid)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 10, color: "var(--db-purple-300)",
-          }}>✦</div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-text-primary)", letterSpacing: ".04em" }}>
-            Agent
-          </span>
-          {config && view === "chat" && (
-            <span style={{
-              fontSize: 10, padding: "1px 7px", borderRadius: 10,
-              background: "var(--db-green-bg)", color: "var(--db-green)",
-            }}>ON</span>
-          )}
-        </div>
+        {/* 텍스트에어리어 */}
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={e => { setInput(e.target.value); onInput(); }}
+          onKeyDown={onKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={config ? "메시지를 입력하세요... (Shift+Enter로 줄바꿈)" : "API 키를 먼저 설정해주세요"}
+          disabled={!config}
+          rows={1}
+          style={{
+            width: "100%", padding: "14px 16px 10px",
+            background: "transparent", border: "none",
+            color: C.text, fontSize: 14, lineHeight: 1.65,
+            resize: "none", outline: "none",
+            fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+            boxSizing: "border-box",
+            minHeight: 48, maxHeight: 160,
+          }}
+        />
 
-        <div style={{ display: "flex", gap: 4 }}>
-          {config && (
-            <button
-              onClick={() => setView(v => v === "settings" ? "chat" : "settings")}
-              title="API 설정"
-              style={{
-                width: 26, height: 26, borderRadius: 6,
-                background: view === "settings" ? "rgba(139,92,246,0.15)" : "none",
-                border: view === "settings" ? "1px solid var(--db-border-mid)" : "none",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                color: view === "settings" ? "var(--db-purple-300)" : "var(--db-text-muted)",
-                transition: "all 0.15s",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── 컨텐츠 ── */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-        {view === "setup" && (
-          <div style={{ padding: 16 }}>
-            <div style={{ textAlign: "center", padding: "20px 0 16px" }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 14, margin: "0 auto 12px",
-                background: "rgba(139,92,246,0.1)",
-                border: "1px solid var(--db-border-mid)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22,
-              }}>✦</div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--db-text-primary)", marginBottom: 6 }}>
-                Agent 설정
-              </p>
-              <p style={{ fontSize: 12, color: "var(--db-text-muted)", lineHeight: 1.6 }}>
-                API 키를 입력하면 AI와<br/>대화를 시작할 수 있어요
-              </p>
-            </div>
-            <SettingsView onSave={handleSave} onCancel={null} existingConfig={null} />
-          </div>
-        )}
-
-        {view === "settings" && (
-          <div style={{ padding: 16 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--db-text-muted)", letterSpacing: ".08em", marginBottom: 14 }}>
-              API 설정
-            </p>
-            <SettingsView
-              onSave={handleSave}
-              onCancel={() => setView("chat")}
-              existingConfig={config}
-            />
-            <button onClick={handleReset} style={{
-              marginTop: 12, width: "100%", padding: "8px",
+        {/* 하단 액션바 */}
+        <div style={{
+          padding: "8px 12px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          {/* 왼쪽: 설정 없으면 API 키 버튼 */}
+          {!config ? (
+            <button onClick={onOpenSettings} style={{
               background: "none", border: "none", cursor: "pointer",
-              fontSize: 11, color: "var(--db-text-muted)",
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = "var(--db-red)"}
-            onMouseLeave={e => e.currentTarget.style.color = "var(--db-text-muted)"}
-            >
-              API 키 초기화
+              color: C.accent, fontSize: 12, fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 5,
+            }}>
+              ⚙️ API 키 설정
             </button>
-          </div>
-        )}
+          ) : (
+            <div style={{ fontSize: 11, color: C.subtle }}>
+              Enter 전송 · Shift+Enter 줄바꿈
+            </div>
+          )}
 
-        {view === "chat" && config && (
-          <ChatView
-            config={config}
-            project={project}
-            onOpenSettings={() => setView("settings")}
-          />
-        )}
+          {/* 오른쪽: 전송 / 중지 */}
+          {isLoading ? (
+            <StopButton onClick={onStop} />
+          ) : (
+            <SendButton onClick={onSend} disabled={!input.trim() || !config} />
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function SendButton({ onClick, disabled }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => !disabled && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 34, height: 34, borderRadius: 9,
+        background: disabled ? "#333" : hovered ? C.sendHover : C.sendBg,
+        border: "none", cursor: disabled ? "not-allowed" : "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "background 0.12s",
+        boxShadow: disabled ? "none" : "0 2px 8px rgba(107,92,231,0.3)",
+      }}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={disabled ? C.muted : "#fff"} strokeWidth="2.2" strokeLinecap="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  );
+}
+
+function StopButton({ onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 34, height: 34, borderRadius: 9,
+        background: hovered ? "#3a3a3a" : "#2e2e2e",
+        border: `1px solid ${C.border}`, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "background 0.12s",
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill={C.muted}>
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+      </svg>
+    </button>
   );
 }
