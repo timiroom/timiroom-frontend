@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "figma-desktop": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:3845/mcp"
+      ]
+    }
+  },
+  "preferences": {
+    "sidebarMode": "code"
+  }
+}

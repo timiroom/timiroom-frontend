@@ -37,13 +37,6 @@ function IconSidebar() {
     </svg>
   );
 }
-function IconPlus() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  );
-}
 function IconSettings() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -98,7 +91,7 @@ function SidebarItem({ icon, label, onClick, isActive, collapsed, danger }) {
 /* ══════════════════════════════════════
    메인 컴포넌트
 ══════════════════════════════════════ */
-export function AppSidebar({ projects = [], selectedProject, onSelectProject, onCreateProject }) {
+export function AppSidebar({ projects = [], selectedProject, onSelectProject, isLoading = false }) {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -146,15 +139,10 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, on
         <SidebarToggle collapsed={collapsed} onClick={() => setCollapsed(c => !c)} />
       </div>
 
-      {/* ── 새 프로젝트 버튼 ── */}
-      <div style={{ padding: collapsed ? "10px 8px" : "10px 10px", flexShrink: 0 }}>
-        <NewProjectButton collapsed={collapsed} onClick={onCreateProject} />
-      </div>
-
       {/* ── 구분선 + 라벨 ── */}
       {!collapsed && (
         <div style={{
-          padding: "0 14px 6px",
+          padding: "12px 14px 6px",
           fontSize: 10, color: "#555", fontWeight: 700,
           letterSpacing: ".07em", textTransform: "uppercase",
           flexShrink: 0,
@@ -165,10 +153,16 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, on
 
       {/* ── 프로젝트 목록 ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: collapsed ? "0 6px" : "0 8px" }}>
-        {projects.length === 0 ? (
+        {isLoading ? (
+          !collapsed && (
+            <div style={{ padding: "12px 8px", fontSize: 12, color: C.subtle, textAlign: "center" }}>
+              불러오는 중...
+            </div>
+          )
+        ) : projects.length === 0 ? (
           !collapsed && (
             <div style={{ padding: "12px 8px", fontSize: 12, color: C.muted, textAlign: "center", lineHeight: 1.6 }}>
-              프로젝트가 없습니다.<br/>새 프로젝트를 만들어보세요.
+              연결된 프로젝트가 없습니다.
             </div>
           )
         ) : (
@@ -228,32 +222,6 @@ function SidebarToggle({ collapsed, onClick }) {
   );
 }
 
-function NewProjectButton({ collapsed, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      title={collapsed ? "새 프로젝트" : undefined}
-      style={{
-        width: "100%",
-        padding: collapsed ? "9px 0" : "8px 12px",
-        background: hovered ? C.accentDim : "rgba(139,92,246,0.08)",
-        border: `1px solid ${hovered ? "rgba(139,92,246,0.35)" : "rgba(139,92,246,0.18)"}`,
-        borderRadius: 8, cursor: "pointer",
-        display: "flex", alignItems: "center", gap: 8,
-        color: C.accent, fontSize: 13, fontWeight: 600,
-        justifyContent: collapsed ? "center" : "flex-start",
-        transition: "all 0.15s",
-        fontFamily: "inherit",
-      }}
-    >
-      <IconPlus />
-      {!collapsed && <span>새 프로젝트</span>}
-    </button>
-  );
-}
 
 function ProjectItem({ project, isSelected, collapsed, onClick }) {
   const [hovered, setHovered] = useState(false);

@@ -1,31 +1,39 @@
 "use client";
 
-import { Button } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 
 export function FooterCTA() {
   const { isLoggedIn, openAuthModal } = useAuth();
 
   return (
-    <div className="al-fcta">
-      <div className="al-fcta-blob b1" />
-      <div className="al-fcta-blob b2" />
-      <div className="al-container al-fcta-inner">
-        <div className="al-fcta-big al-anim">
-          Get<br /><span className="al-fcta-hl">Aligned</span>
+    <div className="al-get-aligned" id="get-started">
+      {/* 배경 라이트 효과 */}
+      <div className="al-get-aligned-bg" />
+
+      <div className="al-get-aligned-inner">
+        {/* 거대 텍스트 */}
+        <div className="al-get-aligned-big al-anim">
+          Get<br />Aligned
         </div>
-        <p className="al-fcta-sub al-anim al-d1">
-          기획과 개발의 간극을 제로로. Align-it으로 시작하세요.
+
+        {/* 서브 타이틀 */}
+        <p className="al-get-aligned-sub al-anim al-d1">
+          기획과 개발의 간극을 제로로. 지금 바로 시작하세요.
         </p>
-        <div className="al-fcta-btns al-anim al-d2">
+
+        {/* 글래스 CTA 버튼 */}
+        <div className="al-anim al-d2">
           {isLoggedIn ? (
-            <Button variant="white" size="lg" href="/dashboard">대시보드로 이동 →</Button>
+            <a href="/dashboard" className="al-pill-glass">
+              <span>⚡</span>
+              대시보드로 이동
+            </a>
           ) : (
-            <Button variant="white" size="lg" onClick={openAuthModal}>무료로 시작하기 →</Button>
+            <button className="al-pill-glass" onClick={openAuthModal}>
+              <span>⚡</span>
+              무료로 시작하기
+            </button>
           )}
-          <Button variant="ghost" size="lg" href="https://github.com" target="_blank" rel="noopener noreferrer">
-            GitHub에서 보기
-          </Button>
         </div>
       </div>
     </div>

@@ -1,0 +1,120 @@
+# ================================================================
+# Align-it  Spring Boot application.yml 템플릿
+# ================================================================
+# 위치: src/main/resources/application.yml  (Spring Boot 백엔드)
+#
+# 필요 의존성 (pom.xml):
+#   spring-boot-starter-data-jpa
+#   spring-boot-starter-data-neo4j
+#   spring-boot-starter-data-redis
+#   postgresql (org.postgresql:postgresql)
+#   spring-boot-starter-security
+#   spring-boot-starter-oauth2-client
+#   spring-ai-anthropic-spring-boot-starter  (또는 openai)
+# ================================================================
+
+spring:
+  application:
+    name: alignit-backend
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  datasource:
+    url:             jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB:alignit}
+    username:        ${POSTGRES_USER:alignit}
+    password:        ${POSTGRES_PASSWORD:alignit1234}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle:      2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # schema.sql로 이미 생성됨. validate로 충돌 방지
+    show-sql:  false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false           # 권장: false (N+1 방지)
+
+  sql:
+    init:
+      mode: never                 # schema.sql은 Docker init으로 실행, 중복 방지
+
+  # ── Neo4j ──────────────────────────────────────────────────
+  neo4j:
+    uri:           bolt://${NEO4J_HOST:localhost}:7687
+    authentication:
+      username:    neo4j
+      password:    ${NEO4J_PASSWORD:alignit1234}
+
+  data:
+    neo4j:
+      repositories:
+        enabled: true
+
+  # ── Redis ──────────────────────────────────────────────────
+  data:
+    redis:
+      host:     ${REDIS_HOST:localhost}
+      port:     6379
+      password: ${REDIS_PASSWORD:alignit1234}
+      timeout:  2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle:   4
+          min-idle:   1
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000        # 기본 캐시 TTL: 5분 (ms)
+
+  # ── OAuth2 소셜 로그인 ──────────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id:     ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:         email, profile
+            redirect-uri:  "{baseUrl}/login/oauth2/code/{registrationId}"
+          github:
+            client-id:     ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:         user:email
+            redirect-uri:  "{baseUrl}/login/oauth2/code/{registrationId}"
+
+# ── 서버 설정 ─────────────────────────────────────────────────
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# ── JWT 설정 ──────────────────────────────────────────────────
+jwt:
+  secret:     ${JWT_SECRET}        # 최소 256bit 랜덤 문자열
+  expiration: 86400000             # 24시간 (ms)
+
+# ── 프론트엔드 CORS ───────────────────────────────────────────
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - ${FRONTEND_URL:http://localhost:3000}
+
+# ── Redis Key 네이밍 컨벤션 ───────────────────────────────────
+# session:{token}                  → 사용자 세션  (TTL: 24h)
+# project:{id}                     → 프로젝트 캐시 (TTL: 5m)
+# pipeline:{runId}:status          → 파이프라인 상태 (TTL: 1h)
+# pipeline:{runId}:channel         → SSE Pub/Sub 채널
+
+# ── 로깅 ──────────────────────────────────────────────────────
+logging:
+  level:
+    root:                          INFO
+    com.alignit:                   DEBUG
+    org.springframework.security:  INFO
+    org.hibernate.SQL:             DEBUG   # SQL 로그 (개발 시만)

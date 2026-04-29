@@ -2,67 +2,56 @@
 
 import { Fragment } from "react";
 import { useMockProgress } from "@/hooks";
-import { Button } from "@/components/ui";
-import { smoothScroll } from "@/lib/smoothScroll";
 import { useAuth } from "@/context/AuthContext";
+import { smoothScroll } from "@/lib/smoothScroll";
 
-/* ── 상수 데이터 ── */
-const HERO_STATS = [
-  { num: "80%",        label: "설계 오류 수정 비용 절감" },
-  { num: "Full Cycle", label: "E2E 설계 정합성 보장"   },
-  { num: "실시간",      label: "멀티 에이전트 검증"     },
-];
-
+/* ── 파이프라인 행 데이터 ── */
 const PIPE_ROWS = [
   {
-    label: "PRD",
+    label: "수집",
     nodes: [
-      { label: "PM Agent",  active: true,  color: "#6B5CE7" },
-      { label: "DBA Agent", active: false, color: "#3B82F6" },
-      { label: "API Agent", active: false, color: "#10B981" },
+      { label: "Search Agent", active: true,  color: "#7d4cfc" },
+      { label: "PM Agent",     active: true,  color: "#8962ed" },
+    ],
+  },
+  {
+    label: "생성",
+    nodes: [
+      { label: "PRD Agent",    active: true,  color: "#6545b7" },
+      { label: "API Agent",    active: false, color: "#3b82f6" },
+      { label: "DB Agent",     active: false, color: "#10b981" },
     ],
   },
   {
     label: "검증",
     nodes: [
-      { label: "QA Agent",  active: false, color: "#F59E0B" },
-      { label: "검증 엔진",  active: true,  color: "#6B5CE7" },
-      { label: "Swagger",   active: false, color: "#10B981" },
-    ],
-  },
-  {
-    label: "시각화",
-    nodes: [
-      { label: "지식 그래프", active: false, color: "#EC4899" },
-      { label: "React Flow",  active: true,  color: "#6B5CE7" },
+      { label: "QA Agent",     active: false, color: "#f59e0b" },
+      { label: "정합성 스코어", active: true,  color: "#7d4cfc" },
     ],
   },
 ];
 
 const MOCK_TAGS = [
-  { bg: "#EDE9FE", color: "#6B5CE7", label: "GPT-4o"      },
-  { bg: "#EFF6FF", color: "#3B82F6", label: "LangGraph"   },
-  { bg: "#F0FDF4", color: "#16A34A", label: "Neo4j"       },
-  { bg: "#FFF7ED", color: "#EA580C", label: "Spring Boot" },
+  { bg: "#ede9fe", color: "#7d4cfc", label: "Claude 3.5" },
+  { bg: "#eff6ff", color: "#3b82f6", label: "LangGraph"  },
+  { bg: "#f0fdf4", color: "#16a34a", label: "Neo4j"      },
+  { bg: "#fff7ed", color: "#ea580c", label: "Spring Boot" },
 ];
 
-/* ── Sub-components ── */
-function HeroMockup() {
-  const progWidth = useMockProgress(72);
+const HERO_STATS = [
+  { num: "6",        label: "전문 AI 에이전트" },
+  { num: "Full",     label: "E2E 정합성 보장"  },
+  { num: "실시간",   label: "멀티에이전트 검증" },
+];
+
+/* ── 파이프라인 목업 ── */
+function PipelineMockup() {
+  const prog = useMockProgress(78);
 
   return (
-    <div style={{ position: "relative" }}>
-      {/* Floating badge — top */}
-      <div className="al-float-badge al-fb-top">
-        <div className="al-fb-icon" style={{ background: "#EDE9FE" }}>✅</div>
-        <div>
-          <div className="al-fb-main">정합성 검증 완료</div>
-          <div className="al-fb-sub">API 명세 · DB 스키마 · QA</div>
-        </div>
-      </div>
-
-      {/* Mockup window */}
-      <div className="al-mockup">
+    <div className="al-hero-mockup-wrap al-anim fade-only al-d3">
+      <div className="al-hero-mockup">
+        {/* 타이틀 바 */}
         <div className="al-mockup-bar">
           <div className="al-mockup-dots">
             <div className="al-dot al-dot-r" />
@@ -72,8 +61,8 @@ function HeroMockup() {
           <div className="al-mockup-ttl">Align-it — Multi-Agent Pipeline</div>
         </div>
 
+        {/* 바디 */}
         <div className="al-mockup-body">
-          {/* Pipeline rows */}
           <div className="al-pipeline">
             {PIPE_ROWS.map((row) => (
               <div className="al-pipe-row" key={row.label}>
@@ -81,15 +70,11 @@ function HeroMockup() {
                 <div className="al-pipe-nodes">
                   {row.nodes.map((n, i) => (
                     <Fragment key={n.label}>
-                      <div
-                        className={`al-pnode${n.active ? " active" : ""}`}
-                      >
+                      <div className={`al-pnode${n.active ? " active" : ""}`}>
                         <div className="al-ndot" style={{ background: n.color }} />
                         {n.label}
                       </div>
-                      {i < row.nodes.length - 1 && (
-                        <span className="al-parr">→</span>
-                      )}
+                      {i < row.nodes.length - 1 && <span className="al-parr">→</span>}
                     </Fragment>
                   ))}
                 </div>
@@ -97,40 +82,27 @@ function HeroMockup() {
             ))}
           </div>
 
-          {/* Progress bar */}
+          {/* 정합성 스코어 */}
           <div className="al-mock-prog">
             <div className="al-mock-prog-lbl">
               <span>정합성 스코어</span>
-              <span style={{ fontWeight: 700, color: "#6B5CE7" }}>
-                {Math.round(progWidth)} / 100
+              <span style={{ fontWeight: 700, color: "#7d4cfc" }}>
+                {Math.round(prog)} / 100
               </span>
             </div>
             <div className="al-mock-prog-bar">
-              <div className="al-mock-prog-fill" style={{ width: `${progWidth}%` }} />
+              <div className="al-mock-prog-fill" style={{ width: `${prog}%` }} />
             </div>
           </div>
 
-          {/* Tags */}
+          {/* 기술 태그 */}
           <div className="al-mock-tags">
             {MOCK_TAGS.map((t) => (
-              <span
-                key={t.label}
-                className="al-mock-tag"
-                style={{ background: t.bg, color: t.color }}
-              >
+              <span key={t.label} className="al-mock-tag" style={{ background: t.bg, color: t.color }}>
                 {t.label}
               </span>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Floating badge — bottom */}
-      <div className="al-float-badge al-fb-bottom">
-        <div className="al-fb-icon" style={{ background: "#F0FDF4" }}>🔗</div>
-        <div>
-          <div className="al-fb-main">지식 그래프 연결</div>
-          <div className="al-fb-sub">23개 노드 · 48개 엣지</div>
         </div>
       </div>
     </div>
@@ -143,58 +115,63 @@ export function Hero() {
 
   return (
     <section className="al-hero" id="hero">
-      {/* Background floating nodes */}
+      {/* 배경 블롭 */}
       <div className="al-hero-bg">
-        {[...Array(5)].map((_, i) => <div key={i} className="al-hero-node" />)}
+        <div className="al-hero-blob b1" />
+        <div className="al-hero-blob b2" />
+        <div className="al-hero-blob b3" />
       </div>
 
-      <div className="al-container">
-        <div className="al-hero-inner">
-          {/* Left — copy */}
-          <div>
-            <div className="al-hero-badge al-anim">
-              <div className="al-badge-dot" />
-              2026 한이음 드림업 프로젝트
-            </div>
-            <h1 className="al-hero-title al-anim al-d1">
-              기획과 개발의<br />
-              <span className="al-grad-text">정합성,</span><br />
-              AI로 완성합니다
-            </h1>
-            <p className="al-hero-sub al-anim al-d2">
-              LLM과 지식 그래프를 결합한 오케스트레이션 플랫폼.
-              PRD부터 QA 시나리오까지, 멀티 에이전트가 전 주기의
-              설계 일관성을 실시간으로 검증합니다.
-            </p>
-            <div className="al-hero-actions al-anim al-d3">
-              {isLoggedIn ? (
-                <Button variant="primary" size="lg" href="/dashboard">
-                  대시보드로 이동 →
-                </Button>
-              ) : (
-                <Button variant="primary" size="lg" onClick={openAuthModal}>
-                  무료로 시작하기 →
-                </Button>
-              )}
-              <Button variant="outline" size="lg" href="#how" onClick={smoothScroll("#how")}>
-                작동방식 보기
-              </Button>
-            </div>
-            <div className="al-hero-stats al-anim al-d4">
-              {HERO_STATS.map((s) => (
-                <div className="al-stat-item" key={s.label}>
-                  <span className="al-stat-num">{s.num}</span>
-                  <span className="al-stat-lbl">{s.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right — mockup */}
-          <div className="al-hero-visual al-anim fade-only al-d2">
-            <HeroMockup />
-          </div>
+      {/* 중앙 콘텐츠 */}
+      <div className="al-hero-inner">
+        {/* 배지 */}
+        <div className="al-hero-badge al-anim">
+          <div className="al-badge-dot" />
+          2026 한이음 드림업 프로젝트
         </div>
+
+        {/* 헤드라인 */}
+        <h1 className="al-hero-title al-anim al-d1">
+          기획과 개발의<br />
+          <span className="al-hl-purple">정합성</span>을 자동으로
+        </h1>
+
+        {/* 서브텍스트 */}
+        <p className="al-hero-sub al-anim al-d2">
+          PRD부터 QA까지, <strong>6개의 전문 에이전트</strong>가 설계 일관성을 실시간으로 검증합니다.
+          기획·API·DB·QA 문서 파편화 문제를 AI로 근본적으로 해소합니다.
+        </p>
+
+        {/* CTA 버튼 */}
+        <div className="al-hero-actions al-anim al-d2">
+          {isLoggedIn ? (
+            <a href="/dashboard" className="al-pill-purple">
+              대시보드로 이동 →
+            </a>
+          ) : (
+            <button className="al-pill-purple" onClick={openAuthModal}>
+              무료로 시작하기 →
+            </button>
+          )}
+          <a href="#agents" className="al-pill-white" onClick={smoothScroll("#agents")}>
+            주요 기능 보기
+          </a>
+        </div>
+
+        {/* 통계 */}
+        <div className="al-hero-stats al-anim al-d3">
+          {HERO_STATS.map((s) => (
+            <div className="al-stat-item" key={s.label}>
+              <span className="al-stat-num">{s.num}</span>
+              <span className="al-stat-lbl">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 파이프라인 목업 */}
+      <div style={{ width: "100%", maxWidth: 900, margin: "0 auto 80px", padding: "0 40px", position: "relative", zIndex: 1 }}>
+        <PipelineMockup />
       </div>
     </section>
   );
