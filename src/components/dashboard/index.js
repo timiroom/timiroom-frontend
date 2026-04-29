@@ -1,4 +1,6 @@
 // components/dashboard/index.js
+export { ActivityBar }          from "./ActivityBar";
+export { ContextPanel }         from "./ContextPanel";
 export { AppSidebar }           from "./AppSidebar";
 export { AgentPanel }           from "./AgentPanel";
 export { CreateProjectWizard }  from "./CreateProjectWizard";

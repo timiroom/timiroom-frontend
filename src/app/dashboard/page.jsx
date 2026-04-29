@@ -1,58 +1,96 @@
 /**
  * app/dashboard/page.jsx
- * ----------------------
- * Claude 스타일 레이아웃.
  *
- * 구조:
- *   [AppSidebar 240px] [AgentPanel flex:1 — 풀스크린 LLM 채팅]
+ * 4패널 레이아웃 (피그마 Frame 9 기준):
+ *   [ActivityBar 56px] | [ContextPanel 260px] | [AgentPanel flex-1] | [RightPanel TBD]
  *
- * 프로젝트 목록은 백엔드 API (GET /api/projects) 에서 불러옵니다.
- * 백엔드 연동 전까지는 MOCK_PROJECTS 를 임시 사용합니다.
- * → projectApi.js 의 fetchProjects() 로 교체 예정
+ * ActivityBar 아이콘:
+ *   - projects → ContextPanel에 프로젝트 목록 표시
+ *   - commit   → ContextPanel에 커밋 히스토리 + 커밋 폼 표시
  */
 
 "use client";
 
 import { useState, useEffect } from "react";
-import { AppSidebar }    from "@/components/dashboard/AppSidebar";
-import { AgentPanel }    from "@/components/dashboard/AgentPanel";
-import { MOCK_PROJECTS } from "@/lib/projectData";
-// import { fetchProjects } from "@/lib/projectApi"; // ← 백엔드 연동 시 주석 해제
+import { ActivityBar }  from "@/components/dashboard/ActivityBar";
+import { ContextPanel } from "@/components/dashboard/ContextPanel";
+import { AgentPanel }   from "@/components/dashboard/AgentPanel";
+
+/* ── 임시 목업 프로젝트 데이터 ── */
+const MOCK_PROJECTS = [
+  {
+    id: "p1",
+    name: "Align-it MVP",
+    description: "LLM 기반 정합성 자동화 플랫폼",
+    status: "active",
+    consistencyScore: 87,
+    progress: 65,
+  },
+  {
+    id: "p2",
+    name: "커머스 플랫폼 리뉴얼",
+    description: "B2C 쇼핑몰 전면 재설계",
+    status: "active",
+    consistencyScore: 54,
+    progress: 40,
+  },
+  {
+    id: "p3",
+    name: "사내 예약 시스템",
+    description: "회의실·좌석 통합 관리",
+    status: "draft",
+    consistencyScore: 0,
+    progress: 0,
+  },
+  {
+    id: "p4",
+    name: "모바일 뱅킹 앱",
+    description: "핀테크 앱 API 설계 검증",
+    status: "completed",
+    consistencyScore: 95,
+    progress: 100,
+  },
+];
 
 export default function DashboardPage() {
+  const [activeMode,      setActiveMode]      = useState("projects");
   const [projects,        setProjects]        = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
-  /* 프로젝트 목록 로드 */
   useEffect(() => {
-    // TODO: 백엔드 연동 시 아래 주석 해제, MOCK_PROJECTS 라인 제거
-    // fetchProjects()
-    //   .then(setProjects)
-    //   .catch(console.error)
-    //   .finally(() => setIsLoadingProjects(false));
-
-    // 임시 mock 데이터
+    // TODO: fetchProjects() from Spring Boot API
     setProjects(MOCK_PROJECTS);
+    setSelectedProject(MOCK_PROJECTS[0]);
     setIsLoadingProjects(false);
   }, []);
 
   return (
     <div style={{
-      display: "flex", height: "100vh", overflow: "hidden",
+      display:    "flex",
+      height:     "100vh",
+      overflow:   "hidden",
       background: "#212121",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
-      {/* 좌측 사이드바 */}
-      <AppSidebar
+      {/* ① 아이콘 레일 (56px) */}
+      <ActivityBar
+        activeMode={activeMode}
+        onModeChange={setActiveMode}
+      />
+
+      {/* ② 컨텍스트 패널 (260px) */}
+      <ContextPanel
+        mode={activeMode}
         projects={projects}
         selectedProject={selectedProject}
         onSelectProject={setSelectedProject}
-        isLoading={isLoadingProjects}
       />
 
-      {/* 메인: 풀스크린 채팅 */}
+      {/* ③ 채팅 메인 (flex-1) */}
       <AgentPanel project={selectedProject} />
+
+      {/* ④ 우측 패널 — 추후 구현 */}
     </div>
   );
 }
