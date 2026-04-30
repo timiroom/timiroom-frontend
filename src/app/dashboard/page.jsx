@@ -56,6 +56,7 @@ export default function DashboardPage() {
   const [activeMode,      setActiveMode]      = useState("projects");
   const [projects,        setProjects]        = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedView,    setSelectedView]    = useState(null); // "prd" | "features" | "api" | "erd" | "qa" | null
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   useEffect(() => {
@@ -64,6 +65,12 @@ export default function DashboardPage() {
     setSelectedProject(MOCK_PROJECTS[0]);
     setIsLoadingProjects(false);
   }, []);
+
+  // 프로젝트가 바뀌면 뷰 초기화
+  function handleSelectProject(project) {
+    setSelectedProject(project);
+    setSelectedView(null);
+  }
 
   return (
     <div style={{
@@ -84,11 +91,13 @@ export default function DashboardPage() {
         mode={activeMode}
         projects={projects}
         selectedProject={selectedProject}
-        onSelectProject={setSelectedProject}
+        onSelectProject={handleSelectProject}
+        selectedView={selectedView}
+        onSelectView={setSelectedView}
       />
 
       {/* ③ 채팅 메인 (flex-1) */}
-      <AgentPanel project={selectedProject} />
+      <AgentPanel project={selectedProject} view={selectedView} />
 
       {/* ④ 우측 패널 — 추후 구현 */}
     </div>

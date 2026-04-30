@@ -333,7 +333,15 @@ function SettingsPanel({ config, onSave, onClose }) {
 /* ══════════════════════════════════════
    메인 컴포넌트
 ══════════════════════════════════════ */
-export function AgentPanel({ project }) {
+const VIEW_LABELS = {
+  prd:      "PRD",
+  features: "기능 명세서",
+  api:      "API 명세서",
+  erd:      "ERD 명세서",
+  qa:       "QA",
+};
+
+export function AgentPanel({ project, view }) {
   const [config,       setConfig]       = useState(null);
   const [messages,     setMessages]     = useState([]);
   const [input,        setInput]        = useState("");
@@ -461,6 +469,7 @@ export function AgentPanel({ project }) {
       {/* ── 상단 바 ── */}
       <TopBar
         project={project}
+        view={view}
         modelLabel={modelLabel}
         hasMessages={messages.length > 0}
         onClear={() => { setMessages([]); setStreamText(""); }}
@@ -534,7 +543,8 @@ export function AgentPanel({ project }) {
 }
 
 /* ── 상단 바 ── */
-function TopBar({ project, modelLabel, hasMessages, onClear, onOpenSettings }) {
+function TopBar({ project, view, modelLabel, hasMessages, onClear, onOpenSettings }) {
+  const viewLabel = view ? VIEW_LABELS[view] : null;
   return (
     <div style={{
       height: 52, flexShrink: 0,
@@ -544,8 +554,8 @@ function TopBar({ project, modelLabel, hasMessages, onClear, onOpenSettings }) {
       justifyContent: "space-between",
       background: C.topbar,
     }}>
-      {/* 왼쪽: 프로젝트명 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      {/* 왼쪽: 프로젝트명 + 브레드크럼 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {project ? (
           <>
             <div style={{
@@ -558,11 +568,27 @@ function TopBar({ project, modelLabel, hasMessages, onClear, onOpenSettings }) {
               {(project.name || "P").charAt(0).toUpperCase()}
             </div>
             <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
+
+            {/* 뷰 브레드크럼 */}
+            {viewLabel && (
+              <>
+                <span style={{ fontSize: 13, color: C.sub }}>›</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 500, color: C.accent,
+                  padding: "2px 8px", borderRadius: 6,
+                  background: "rgba(167,139,250,0.1)",
+                  border: "1px solid rgba(167,139,250,0.2)",
+                }}>
+                  {viewLabel}
+                </span>
+              </>
+            )}
+
             {modelLabel && (
               <span style={{
                 fontSize: 11, padding: "2px 8px", borderRadius: 20,
                 background: C.accentBg, border: `1px solid ${C.accentBdr}`,
-                color: C.accent,
+                color: C.accent, marginLeft: 2,
               }}>
                 {modelLabel}
               </span>
