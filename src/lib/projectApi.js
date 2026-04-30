@@ -88,7 +88,7 @@ function normalizeProject(raw) {
     name:             raw.name             ?? "",
     description:      raw.description      ?? "",
     status:           raw.status           ?? "draft",
-    color:            raw.color            ?? "#7C3AED",
+    color:            raw.color            ?? "var(--text-1)",
     // 백엔드 필드명: consistencyScore → 프론트 score
     score:            raw.consistencyScore ?? raw.score ?? 0,
     consistencyScore: raw.consistencyScore ?? raw.score ?? 0,

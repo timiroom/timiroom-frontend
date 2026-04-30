@@ -33,7 +33,7 @@ const EDGES = [
 ];
 
 const NODE_COLORS = {
-  prd:    { fill:"#7C3AED", glow:"rgba(26,25,22,.7)",  ring:"#6b6960" },
+  prd:    { fill:"var(--text-1)", glow:"rgba(26,25,22,.7)",  ring:"#6b6960" },
   design: { fill:"#4338CA", glow:"rgba(67,56,202,.6)",   ring:"#818CF8" },
   api:    { fill:"#0369A1", glow:"rgba(3,105,161,.6)",   ring:"#38BDF8" },
   db:     { fill:"#065F46", glow:"rgba(6,95,70,.6)",     ring:"#34D399" },
@@ -286,8 +286,8 @@ export function KnowledgeGraph() {
           <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>그래프 현황</div>
           {[
             { label:"노드",  value: visibleNodes.length, total: NODES.length,  color:"var(--db-purple-300)" },
-            { label:"엣지",  value: visibleEdges.length, total: EDGES.length,  color:"var(--db-blue)" },
-            { label:"클러스터", value:3,                total:3,               color:"var(--db-green)" },
+            { label:"엣지",  value: visibleEdges.length, total: EDGES.length,  color:"var(--text-1)" },
+            { label:"클러스터", value:3,                total:3,               color:"var(--text-2)" },
           ].map(s => (
             <div key={s.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--border)" }}>
               <span style={{ fontSize:12, color:"var(--text-2)" }}>{s.label}</span>

@@ -10,7 +10,7 @@ function GraphVisual() {
       <div className="vg-node" style={{ width:28,height:28,background:"#1a1916",top:"10%",left:"20%",fontSize:9 }}>API</div>
       <div className="vg-node" style={{ width:28,height:28,background:"#6b6960",top:"10%",right:"20%",fontSize:9 }}>DB</div>
       <div className="vg-node" style={{ width:28,height:28,background:"#1a1916",bottom:"10%",left:"20%",fontSize:9 }}>QA</div>
-      <div className="vg-node" style={{ width:28,height:28,background:"#7C3AED",bottom:"10%",right:"20%",fontSize:9 }}>UI</div>
+      <div className="vg-node" style={{ width:28,height:28,background:"var(--text-1)",bottom:"10%",right:"20%",fontSize:9 }}>UI</div>
       <svg className="vg-svg" viewBox="0 0 160 140">
         <line x1="80" y1="70" x2="36"  y2="20"  stroke="#d0cec6" strokeWidth="1.5"/>
         <line x1="80" y1="70" x2="124" y2="20"  stroke="#d0cec6" strokeWidth="1.5"/>

@@ -17,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 
 /* ── CSS-in-JS 토큰 (Claude 팔레트) ── */
 const C = {
-  sidebar:   "#171717",
+  sidebar:   "var(--surface)",
   border:    "rgba(0,0,0,0.07)",
   text:      "#1a1916",
   muted:     "var(--text-3)",
@@ -74,7 +74,7 @@ function SidebarItem({ icon, label, onClick, isActive, collapsed, danger }) {
         display: "flex", alignItems: "center",
         justifyContent: collapsed ? "center" : "flex-start",
         gap: 9,
-        color: danger ? (hovered ? "#f87171" : "#9ca3af") : isActive ? C.accent : hovered ? C.text : C.muted,
+        color: danger ? (hovered ? "#f87171" : "var(--text-3)") : isActive ? C.accent : hovered ? C.text : C.muted,
         fontSize: 13,
         transition: "all 0.12s",
         marginBottom: 2,
@@ -123,9 +123,7 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, is
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <div style={{
               width: 26, height: 26, borderRadius: 7,
-              background: "var(--text-1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 900, color: "var(--text-1)",
+              background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "var(--bg)",
               boxShadow: "0 2px 8px rgba(26,25,22,0.35)",
               flexShrink: 0,
             }}>A</div>
@@ -226,7 +224,7 @@ function SidebarToggle({ collapsed, onClick }) {
 function ProjectItem({ project, isSelected, collapsed, onClick }) {
   const [hovered, setHovered] = useState(false);
   const initial = (project.name || "P").charAt(0).toUpperCase();
-  const color   = project.color || "#7C3AED";
+  const color   = project.color || "var(--text-1)";
 
   return (
     <button
@@ -243,7 +241,7 @@ function ProjectItem({ project, isSelected, collapsed, onClick }) {
         display: "flex", alignItems: "center",
         justifyContent: collapsed ? "center" : "flex-start",
         gap: 9,
-        color: isSelected ? C.accent : hovered ? C.text : "#9ca3af",
+        color: isSelected ? C.accent : hovered ? C.text : "var(--text-3)",
         fontSize: 13,
         transition: "all 0.12s", marginBottom: 1,
         textAlign: "left", fontFamily: "inherit",
@@ -292,15 +290,13 @@ function UserProfile({ user, collapsed, onLogout }) {
       >
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
-          background: "var(--text-1)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11, fontWeight: 800, color: "var(--text-1)", flexShrink: 0,
+          background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "var(--bg)", flexShrink: 0,
         }}>
           {initial}
         </div>
         {!collapsed && (
           <span style={{
-            fontSize: 12, color: "#9ca3af",
+            fontSize: 12, color: "var(--text-3)",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
           }}>
             {user.name || user.email}
@@ -312,7 +308,7 @@ function UserProfile({ user, collapsed, onLogout }) {
       {open && !collapsed && (
         <div style={{
           position: "absolute", bottom: "100%", left: 0, right: 0,
-          background: "#222", border: `1px solid ${C.border}`,
+          background: "var(--surface)", border: `1px solid ${C.border}`,
           borderRadius: 8, overflow: "hidden",
           marginBottom: 4, boxShadow: "0 -4px 16px rgba(0,0,0,0.4)",
         }}>

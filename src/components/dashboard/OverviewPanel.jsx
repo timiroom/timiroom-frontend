@@ -55,7 +55,7 @@ function ScoreRing({ score=72 }) {
           <defs>
             <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#6b6960"/>
-              <stop offset="100%" stopColor="#7C3AED"/>
+              <stop offset="100%" stopColor="var(--text-1)"/>
             </linearGradient>
             <filter id="glow">
               <feGaussianBlur stdDeviation="2" result="blur"/>
@@ -111,8 +111,8 @@ function ActivityFeed() {
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
         {ACTIVITIES.map((a, i) => {
-          const colors = { green:"var(--db-green)", orange:"var(--db-orange)", purple:"var(--db-purple-300)", blue:"var(--db-blue)" };
-          const bgs    = { green:"var(--db-green-bg)", orange:"var(--db-orange-bg)", purple:"rgba(26,25,22,.12)", blue:"var(--db-blue-bg)" };
+          const colors = { green:"var(--text-2)", orange:"var(--text-3)", purple:"var(--db-purple-300)", blue:"var(--text-1)" };
+          const bgs    = { green:"var(--border)", orange:"var(--bg)", purple:"rgba(26,25,22,.12)", blue:"var(--border-2)" };
           return (
             <div key={i} style={{
               display:"flex", gap:12, padding:"10px 12px",
@@ -150,10 +150,10 @@ const AGENTS = [
 
 function AgentStatus() {
   const statusStyles = {
-    running: { color:"var(--db-green)",  bg:"var(--db-green-bg)",  label:"실행 중", dot:true },
+    running: { color:"var(--text-2)",  bg:"var(--border)",  label:"실행 중", dot:true },
     idle:    { color:"var(--text-3)", bg:"var(--border)", label:"대기",   dot:false },
-    done:    { color:"var(--db-blue)",   bg:"var(--db-blue-bg)",   label:"완료",   dot:false },
-    waiting: { color:"var(--db-orange)", bg:"var(--db-orange-bg)", label:"보류",   dot:false },
+    done:    { color:"var(--text-1)",   bg:"var(--border-2)",   label:"완료",   dot:false },
+    waiting: { color:"var(--text-3)", bg:"var(--bg)", label:"보류",   dot:false },
   };
 
   return (

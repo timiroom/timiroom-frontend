@@ -10,13 +10,13 @@ import { useAuth } from "@/context/AuthContext";
 
 /* ── 색상 토큰 ── */
 const C = {
-  bar:       "#111111",
+  bar:       "var(--surface)",
   border:    "rgba(0,0,0,0.06)",
   icon:      "var(--text-2)",
   iconHover: "#d4d4d4",
   iconActive:"#6b6960",
   activeBg:  "rgba(26,25,22,0.14)",
-  avatarBg:  "linear-gradient(135deg,#7d4cfc,#9b6dff)",
+  avatarBg:  "var(--text-1)",
 };
 
 /* ── 아이콘 SVG ── */
@@ -149,11 +149,11 @@ export function ActivityBar({ activeMode, onModeChange }) {
         width:          32,
         height:         32,
         borderRadius:   9,
-        background:     "linear-gradient(135deg,#7d4cfc,#9b6dff)",
+        background:     "var(--text-1)",
         display:        "flex",
         alignItems:     "center",
         justifyContent: "center",
-        color:          "white",
+        color:          "var(--bg)",
         fontSize:       15,
         fontWeight:     900,
         marginBottom:   12,
@@ -199,7 +199,7 @@ export function ActivityBar({ activeMode, onModeChange }) {
             justifyContent: "center",
             fontSize:       12,
             fontWeight:     700,
-            color:          "white",
+            color:          "var(--bg)",
             overflow:       "hidden",
             transition:     "border-color 0.15s",
             padding:        0,

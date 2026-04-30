@@ -168,7 +168,7 @@ const MOCK_DRAFTS = {
 | name | VARCHAR(200) | NOT NULL | 프로젝트 이름 |
 | description | TEXT | NULL | 설명 |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | 상태 |
-| color | VARCHAR(10) | DEFAULT '#7C3AED' | 대표 색상 |
+| color | VARCHAR(10) | DEFAULT "var(--text-1)" | 대표 색상 |
 | consistency_score | INT | DEFAULT 0 | 정합성 스코어 (0-100) |
 | progress | INT | DEFAULT 0 | 진행률 (0-100) |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | 생성일 |
@@ -581,8 +581,8 @@ export function DocPanel({ project, view }) {
             <>
               <div style={{
                 width: 20, height: 20, borderRadius: 5,
-                background: `${project.color || "#7C3AED"}22`,
-                border: `1px solid ${project.color || "#7C3AED"}44`,
+                background: `${project.color || "var(--text-1)"}22`,
+                border: `1px solid ${project.color || "var(--text-1)"}44`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 9, fontWeight: 900, color: project.color || "#6b6960",
               }}>

@@ -336,8 +336,8 @@ export function PrdPanel({ project }) {
             <>
               <div style={{
                 width: 20, height: 20, borderRadius: 5,
-                background: `${project.color || "#7C3AED"}22`,
-                border: `1px solid ${project.color || "#7C3AED"}44`,
+                background: `${project.color || "var(--text-1)"}22`,
+                border: `1px solid ${project.color || "var(--text-1)"}44`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 9, fontWeight: 900, color: project.color || "#6b6960",
               }}>

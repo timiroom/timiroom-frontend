@@ -256,9 +256,9 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         {[
           { icon: "📁", label: "전체 프로젝트", value: projects.length,                                                                                color: "var(--db-purple-300)" },
-          { icon: "⚡", label: "평균 정합성",   value: projects.length ? `${Math.round(projects.reduce((a,p)=>a+p.score,0)/projects.length)}%` : "0%", color: "var(--db-blue)"       },
-          { icon: "📄", label: "총 생성 명세서", value: projects.reduce((a,p)=>a+(p.specCount||0),0),                                                   color: "var(--db-green)"      },
-          { icon: "⚠️", label: "전체 이슈",     value: projects.reduce((a,p)=>a+(p.issueCount||0),0),                                                   color: "var(--db-orange)"     },
+          { icon: "⚡", label: "평균 정합성",   value: projects.length ? `${Math.round(projects.reduce((a,p)=>a+p.score,0)/projects.length)}%` : "0%", color: "var(--text-1)"       },
+          { icon: "📄", label: "총 생성 명세서", value: projects.reduce((a,p)=>a+(p.specCount||0),0),                                                   color: "var(--text-2)"      },
+          { icon: "⚠️", label: "전체 이슈",     value: projects.reduce((a,p)=>a+(p.issueCount||0),0),                                                   color: "var(--text-3)"     },
         ].map(s => (
           <div key={s.label} style={{
             background: "var(--surface)", border: "1px solid var(--border)",

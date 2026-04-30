@@ -20,7 +20,7 @@ export const MOCK_PROJECTS = [
     prdCount: 23,
     issueCount: 3,
     specCount: 47,
-    color: "#7C3AED",
+    color: "var(--text-1)",
   },
   {
     id: "proj-002",
@@ -36,7 +36,7 @@ export const MOCK_PROJECTS = [
     prdCount: 18,
     issueCount: 0,
     specCount: 62,
-    color: "#059669",
+    color: "#6b6960",
   },
   {
     id: "proj-003",
@@ -52,7 +52,7 @@ export const MOCK_PROJECTS = [
     prdCount: 15,
     issueCount: 7,
     specCount: 21,
-    color: "#0284C7",
+    color: "#a8a69f",
   },
   {
     id: "proj-004",
@@ -68,7 +68,7 @@ export const MOCK_PROJECTS = [
     prdCount: 8,
     issueCount: 2,
     specCount: 5,
-    color: "#B45309",
+    color: "#1a1916",
   },
   {
     id: "proj-005",
@@ -84,19 +84,19 @@ export const MOCK_PROJECTS = [
     prdCount: 11,
     issueCount: 1,
     specCount: 33,
-    color: "#6D28D9",
+    color: "#6b6960",
   },
 ];
 
 export const STATUS_META = {
-  running: { label: "진행 중", color: "var(--db-green)",  bg: "var(--db-green-bg)"  },
-  done:    { label: "완료",   color: "var(--db-blue)",   bg: "var(--db-blue-bg)"   },
-  draft:   { label: "초안",   color: "var(--db-orange)", bg: "var(--db-orange-bg)" },
+  running: { label: "진행 중", color: "var(--text-2)",  bg: "var(--border)"  },
+  done:    { label: "완료",   color: "var(--text-1)",   bg: "var(--border-2)"   },
+  draft:   { label: "초안",   color: "var(--text-3)", bg: "var(--bg)" },
   paused:  { label: "일시정지",color: "var(--db-text-muted)", bg: "var(--db-bg-elevated)" },
 };
 
 /** 유저 이니셜 → 색 매핑 */
 export const MEMBER_COLORS = {
-  M: "#7C3AED", J: "#0284C7", S: "#059669",
-  K: "#B45309", P: "#DB2777", L: "#0891B2",
+  M: "var(--text-1)", J: "#a8a69f", S: "#6b6960",
+  K: "#1a1916", P: "#a8a69f", L: "#1a1916",
 };

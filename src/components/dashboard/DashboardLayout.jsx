@@ -160,9 +160,9 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
       }}>
         <div style={{
           width: 30, height: 30, borderRadius: 9,
-          background: "var(--db-grad-purple)", flexShrink: 0,
+          background: "var(--text-1)", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 15, fontWeight: 900, color: "white",
+          fontSize: 15, fontWeight: 900, color: "var(--bg)",
           boxShadow: "var(--db-glow-md)",
         }}>A</div>
         {!collapsed && (
@@ -305,9 +305,9 @@ function Topbar({ view, project }) {
         </div>
         <div style={{
           width: 32, height: 32, borderRadius: "50%",
-          background: "var(--db-grad-purple)", boxShadow: "var(--db-glow-sm)",
+          background: "var(--text-1)", boxShadow: "var(--db-glow-sm)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 13, fontWeight: 800, color: "white", cursor: "pointer",
+          fontSize: 13, fontWeight: 800, color: "var(--bg)", cursor: "pointer",
         }}>M</div>
       </div>
     </header>

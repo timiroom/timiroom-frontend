@@ -149,7 +149,7 @@ export function AuthModal() {
         style={{
           position:   "fixed",
           inset:      0,
-          background: "rgba(10, 8, 24, 0.65)",
+          background: "rgba(26,25,22, 0.4)",
           backdropFilter: "blur(6px)",
           zIndex:     9000,
           display:    "flex",
@@ -169,7 +169,7 @@ export function AuthModal() {
             width:        "100%",
             maxWidth:     420,
             position:     "relative",
-            boxShadow:    "0 32px 80px rgba(107,92,231,0.2), 0 8px 32px rgba(0,0,0,0.12)",
+            boxShadow:    "0 32px 80px rgba(26,25,22, 0.1), 0 8px 32px rgba(0,0,0,0.12)",
             animation:    "auth-slide-up 0.2s cubic-bezier(0.34,1.56,0.64,1)",
           }}
         >
@@ -205,7 +205,7 @@ export function AuthModal() {
               width:          48,
               height:         48,
               borderRadius:   14,
-              background:     "linear-gradient(135deg,#6B5CE7 0%,#8B5CF6 100%)",
+              background:     "var(--text-1)",
               display:        "flex",
               alignItems:     "center",
               justifyContent: "center",
@@ -213,14 +213,14 @@ export function AuthModal() {
               fontWeight:     900,
               color:          "#fff",
               margin:         "0 auto 16px",
-              boxShadow:      "0 6px 20px rgba(107,92,231,0.35)",
+              boxShadow:      "0 6px 20px rgba(26,25,22, 0.15)",
             }}>
               A
             </div>
             <h2 style={{
               fontSize:   22,
               fontWeight: 800,
-              color:      "#1E1B4B",
+              color:      "var(--text-1)",
               marginBottom: 6,
             }}>
               Align-it 시작하기
@@ -264,11 +264,11 @@ export function AuthModal() {
             color:     "#9CA3AF",
             lineHeight: 1.6,
           }}>
-            <a href="/terms" style={{ color: "#6B5CE7", textDecoration: "underline" }}>
+            <a href="/terms" style={{ color: "var(--text-2)", textDecoration: "underline" }}>
               이용약관
             </a>{" "}
             및{" "}
-            <a href="/privacy" style={{ color: "#6B5CE7", textDecoration: "underline" }}>
+            <a href="/privacy" style={{ color: "var(--text-2)", textDecoration: "underline" }}>
               개인정보처리방침
             </a>
           </p>

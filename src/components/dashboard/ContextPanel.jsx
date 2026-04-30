@@ -16,7 +16,7 @@ import { useState } from "react";
 
 /* ── 색상 토큰 ── */
 const C = {
-  panel:      "#161616",
+  panel:      "var(--surface)",
   border:     "rgba(0,0,0,0.07)",
   text:       "#1a1916",
   muted:      "#7a7a7a",
@@ -28,13 +28,13 @@ const C = {
   accentDim:  "rgba(107,105,96,0.15)",
   input:      "var(--surface)",
   inputBdr:   "rgba(0,0,0,0.09)",
-  commit:     "#7d4cfc",
+  commit:     "var(--text-1)",
   itemHover:  "var(--surface)",
 };
 
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
-  active:    { label: "진행중", color: "#34d399" },
+  active:    { label: "진행중", color: "#a8a69f" },
   draft:     { label: "초안",   color: "#6b7280" },
   completed: { label: "완료",   color: "#6b6960" },
   archived:  { label: "보관",   color: "#4b5563" },
@@ -351,9 +351,9 @@ function CommitPanel({ selectedProject }) {
           style={{
             width: "100%", padding: "9px 0", borderRadius: 6, border: "none",
             background: committed
-              ? "#34d399"
+              ? "#a8a69f"
               : !summary.trim() || submitting ? "rgba(26,25,22,0.35)" : C.commit,
-            color:      committed ? "#064e3b" : "white",
+            color:      committed ? "#064e3b" : "var(--bg)",
             fontSize: 13, fontWeight: 700,
             cursor: !summary.trim() || submitting ? "not-allowed" : "pointer",
             transition: "all 0.2s",

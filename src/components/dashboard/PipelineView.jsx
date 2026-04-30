@@ -20,19 +20,19 @@ const STEPS = [
     id:"api",    label:"API 명세 생성", icon:"🔌", agent:"DBA + API Agent",
     status:"running", duration:"진행 중",
     outputs:["엔드포인트 14개 생성", "요청/응답 스키마 초안"],
-    color:"var(--db-blue)",
+    color:"var(--text-1)",
   },
   {
     id:"db",     label:"DB 스키마 생성", icon:"🗄️", agent:"DBA Agent",
     status:"waiting", duration:"—",
     outputs:[],
-    color:"var(--db-green)",
+    color:"var(--text-2)",
   },
   {
     id:"valid",  label:"정합성 검증", icon:"🔍", agent:"검증 엔진",
     status:"waiting", duration:"—",
     outputs:[],
-    color:"var(--db-orange)",
+    color:"var(--text-3)",
   },
   {
     id:"qa",     label:"QA 시나리오 생성", icon:"🧪", agent:"QA Agent",
@@ -49,8 +49,8 @@ const STEPS = [
 ];
 
 const STATUS_META = {
-  done:    { label:"완료",   color:"var(--db-green)",  bg:"var(--db-green-bg)",  icon:"✅" },
-  running: { label:"실행 중",color:"var(--db-blue)",   bg:"var(--db-blue-bg)",   icon:"⚡" },
+  done:    { label:"완료",   color:"var(--text-2)",  bg:"var(--border)",  icon:"✅" },
+  running: { label:"실행 중",color:"var(--text-1)",   bg:"var(--border-2)",   icon:"⚡" },
   waiting: { label:"대기",   color:"var(--text-3)", bg:"var(--border)", icon:"⏳" },
   error:   { label:"오류",   color:"var(--db-red)",    bg:"var(--db-red-bg)",    icon:"❌" },
 };
@@ -68,8 +68,8 @@ const LOG_LINES = [
 ];
 
 const LVL_COLORS = {
-  INFO:  "var(--db-green)",
-  WARN:  "var(--db-orange)",
+  INFO:  "var(--text-2)",
+  WARN:  "var(--text-3)",
   ERROR: "var(--db-red)",
   DEBUG: "var(--text-3)",
 };
@@ -109,10 +109,10 @@ function StepCard({ step, index, isSelected, onClick }) {
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
         <div style={{
           width:32, height:32, borderRadius:"50%", flexShrink:0,
-          background: step.status==="done" ? "var(--db-green-bg)" : step.status==="running" ? "var(--db-blue-bg)" : "var(--border)",
-          border:`2px solid ${step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--border)"}`,
+          background: step.status==="done" ? "var(--border)" : step.status==="running" ? "var(--border-2)" : "var(--border)",
+          border:`2px solid ${step.status==="done" ? "var(--text-2)" : step.status==="running" ? "var(--text-1)" : "var(--border)"}`,
           display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:14, color:step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--text-3)",
+          fontSize:14, color:step.status==="done" ? "var(--text-2)" : step.status==="running" ? "var(--text-1)" : "var(--text-3)",
           fontWeight:700,
           boxShadow: isRunning ? "0 0 10px rgba(107,105,96,.4)" : "none",
         }}>
@@ -170,9 +170,9 @@ export function PipelineView() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
         {[
           { label:"전체 진행률",  value:`${pct}%`,   icon:"📊", color:"var(--db-purple-300)" },
-          { label:"완료 스텝",    value:`${done}/${total}`, icon:"✅", color:"var(--db-green)"   },
-          { label:"실행 중",      value:running,     icon:"⚡", color:"var(--db-blue)"    },
-          { label:"소요 시간",    value:"25s",       icon:"⏱", color:"var(--db-orange)"  },
+          { label:"완료 스텝",    value:`${done}/${total}`, icon:"✅", color:"var(--text-2)"   },
+          { label:"실행 중",      value:running,     icon:"⚡", color:"var(--text-1)"    },
+          { label:"소요 시간",    value:"25s",       icon:"⏱", color:"var(--text-3)"  },
         ].map(s => (
           <div key={s.label} className="db-card" style={{ padding:"14px 18px", display:"flex", alignItems:"center", gap:12 }}>
             <span style={{ fontSize:22 }}>{s.icon}</span>
@@ -201,7 +201,7 @@ export function PipelineView() {
           {STEPS.map((s,i) => (
             <div key={s.id} style={{
               flex:1, height:3, borderRadius:100,
-              background: s.status==="done" ? "var(--db-green)" : s.status==="running" ? "var(--db-blue)" : "var(--border)",
+              background: s.status==="done" ? "var(--text-2)" : s.status==="running" ? "var(--text-1)" : "var(--border)",
               boxShadow: s.status==="running" ? "0 0 6px var(--db-blue)" : "none",
               transition:"background .3s",
             }}/>
@@ -228,8 +228,8 @@ export function PipelineView() {
             <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
               <div style={{ fontSize:13, fontWeight:700 }}>🖥 실행 로그</div>
               <div style={{ display:"flex", gap:8 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:"var(--db-green)" }}>
-                  <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--db-green)", animation:"db-pulse 1.5s infinite" }}/>
+                <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:"var(--text-2)" }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--text-2)", animation:"db-pulse 1.5s infinite" }}/>
                   SSE 스트리밍 중
                 </div>
                 <button onClick={() => setShowLog(false)} style={{ background:"none", border:"none", color:"var(--text-3)", cursor:"pointer", fontSize:14 }}>✕</button>
@@ -246,7 +246,7 @@ export function PipelineView() {
               {/* Blinking cursor */}
               <div style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, marginTop:4 }}>
                 <span style={{ color:"var(--text-3)" }}>00:00:28</span>
-                <span style={{ color:"var(--db-blue)", fontWeight:700, width:42 }}>INFO</span>
+                <span style={{ color:"var(--text-1)", fontWeight:700, width:42 }}>INFO</span>
                 <span style={{ color:"var(--text-2)" }}>
                   처리 중
                   <span style={{ animation:"db-pulse 1s infinite", marginLeft:4 }}>▌</span>

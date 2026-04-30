@@ -56,7 +56,7 @@ const PROBLEM_QS = [
 ];
 
 const MOSCOW_OPTIONS = [
-  { key: "Must",   color: "#7C3AED", bg: "rgba(26,25,22,0.18)"  },
+  { key: "Must",   color: "var(--text-1)", bg: "rgba(26,25,22,0.18)"  },
   { key: "Should", color: "#3B82F6", bg: "rgba(107,105,96,0.18)"  },
   { key: "Could",  color: "#10B981", bg: "rgba(16,185,129,0.18)"  },
   { key: "Won't",  color: "#475569", bg: "rgba(71,85,105,0.18)"   },
