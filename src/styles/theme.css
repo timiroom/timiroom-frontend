@@ -4,33 +4,44 @@
    ============================================================ */
 
 :root {
-  /* ── Background layers ── */
-  --db-bg-base:    #0A0818;   /* 가장 깊은 배경 */
-  --db-bg-primary: #0F0D1E;   /* 주 배경 */
-  --db-bg-surface: #171530;   /* 카드, 패널 */
-  --db-bg-elevated:#1E1B40;   /* 호버, 선택된 항목 */
-  --db-bg-glass:   rgba(23, 21, 48, 0.65); /* 글래스모피즘 */
+  /* ── New Base Palette ── */
+  --bg:        #f7f6f3;
+  --surface:   #ffffff;
+  --border:    #e4e2db;
+  --border-2:  #d0cec6;
+  --text-1:    #1a1916;
+  --text-2:    #6b6960;
+  --text-3:    #a8a69f;
+  --accent:    #1a1916;
+  --accent-fg: #ffffff;
 
-  /* ── Purple accent ── */
-  --db-purple-900: #2E1065;
-  --db-purple-800: #3B0764;
-  --db-purple-700: #4C1D95;
-  --db-purple-600: #5B21B6;
-  --db-purple-500: #7C3AED;
-  --db-purple-400: #8B5CF6;
-  --db-purple-300: #A78BFA;
-  --db-purple-200: #C4B5FD;
-  --db-purple-100: #EDE9FE;
+  /* ── Background layers (Mapped to new palette) ── */
+  --db-bg-base:    var(--bg);
+  --db-bg-primary: var(--bg);
+  --db-bg-surface: var(--surface);
+  --db-bg-elevated:#f2f0ea;   
+  --db-bg-glass:   rgba(247, 246, 243, 0.85);
+
+  /* ── Accent ── */
+  --db-purple-900: #1a1916;
+  --db-purple-800: #2b2a25;
+  --db-purple-700: #3c3a33;
+  --db-purple-600: #4d4a42;
+  --db-purple-500: var(--text-2);
+  --db-purple-400: var(--text-2);
+  --db-purple-300: var(--text-3);
+  --db-purple-200: #d0cec6;
+  --db-purple-100: #e4e2db;
 
   /* ── Glow & border ── */
-  --db-glow-sm:    0 0 8px  rgba(139, 92, 246, 0.4);
-  --db-glow-md:    0 0 20px rgba(139, 92, 246, 0.35);
-  --db-glow-lg:    0 0 40px rgba(139, 92, 246, 0.3);
-  --db-glow-node:  0 0 12px rgba(139, 92, 246, 0.7), 0 0 30px rgba(139, 92, 246, 0.3);
+  --db-glow-sm:    0 2px 8px rgba(0,0,0,0.05);
+  --db-glow-md:    0 4px 16px rgba(0,0,0,0.08);
+  --db-glow-lg:    0 8px 32px rgba(0,0,0,0.1);
+  --db-glow-node:  0 2px 12px rgba(0,0,0,0.1);
 
-  --db-border:        rgba(139, 92, 246, 0.12);
-  --db-border-mid:    rgba(139, 92, 246, 0.25);
-  --db-border-active: rgba(139, 92, 246, 0.55);
+  --db-border:        var(--border);
+  --db-border-mid:    var(--border-2);
+  --db-border-active: var(--text-2);
 
   /* ── Status colors ── */
   --db-green:   #10B981;  --db-green-bg:   rgba(16, 185, 129, 0.12);
@@ -40,16 +51,16 @@
   --db-pink:    #EC4899;  --db-pink-bg:    rgba(236, 72, 153, 0.12);
 
   /* ── Text ── */
-  --db-text-primary:   #E2E8F0;
-  --db-text-secondary: #94A3B8;
-  --db-text-muted:     #475569;
-  --db-text-accent:    #A78BFA;
+  --db-text-primary:   var(--text-1);
+  --db-text-secondary: var(--text-2);
+  --db-text-muted:     var(--text-3);
+  --db-text-accent:    var(--text-1);
 
   /* ── Gradient presets ── */
-  --db-grad-purple: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
-  --db-grad-glow:   linear-gradient(135deg, #6D28D9 0%, #4338CA 100%);
-  --db-grad-glass:  linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(67,56,202,0.08) 100%);
-  --db-grad-node:   radial-gradient(circle, #A78BFA 0%, #7C3AED 60%, #4C1D95 100%);
+  --db-grad-purple: linear-gradient(135deg, var(--text-2) 0%, var(--text-1) 100%);
+  --db-grad-glow:   linear-gradient(135deg, #f2f0ea 0%, #e4e2db 100%);
+  --db-grad-glass:  linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(247,246,243,0.5) 100%);
+  --db-grad-node:   radial-gradient(circle, #e4e2db 0%, #d0cec6 100%);
 
   /* ── Spacing & radius ── */
   --db-radius-sm: 8px;

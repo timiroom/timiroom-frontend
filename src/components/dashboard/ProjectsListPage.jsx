@@ -11,7 +11,7 @@ function ScoreMini({ score, color }) {
   const dash = (score / 100) * circ;
   return (
     <svg width="52" height="52" viewBox="0 0 52 52">
-      <circle cx="26" cy="26" r={r} fill="none" stroke="var(--db-bg-elevated)" strokeWidth="4"/>
+      <circle cx="26" cy="26" r={r} fill="none" stroke="var(--border)" strokeWidth="4"/>
       <circle
         cx="26" cy="26" r={r} fill="none"
         stroke={color} strokeWidth="4"
@@ -36,8 +36,8 @@ function MemberAvatars({ members }) {
       {show.map((m, i) => (
         <div key={m+i} style={{
           width: 24, height: 24, borderRadius: "50%",
-          background: MEMBER_COLORS[m] ?? "#555",
-          border: "2px solid var(--db-bg-surface)",
+          background: MEMBER_COLORS[m] ?? "var(--text-3)",
+          border: "2px solid var(--surface)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 10, fontWeight: 800, color: "white",
           marginLeft: i === 0 ? 0 : -6, zIndex: show.length - i,
@@ -47,10 +47,10 @@ function MemberAvatars({ members }) {
       {rest > 0 && (
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
-          background: "var(--db-bg-elevated)",
-          border: "2px solid var(--db-bg-surface)",
+          background: "var(--border)",
+          border: "2px solid var(--surface)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 9, color: "var(--db-text-muted)", marginLeft: -6,
+          fontSize: 9, color: "var(--text-3)", marginLeft: -6,
         }}>+{rest}</div>
       )}
     </div>
@@ -68,8 +68,8 @@ function ProjectCard({ project, onSelect }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: "var(--db-bg-surface)",
-        border: `1px solid ${hovered ? project.color + "55" : "var(--db-border)"}`,
+        background: "var(--surface)",
+        border: `1px solid ${hovered ? project.color + "55" : "var(--border)"}`,
         borderRadius: "var(--db-radius-lg)",
         padding: "22px 24px",
         cursor: "pointer",
@@ -104,12 +104,12 @@ function ProjectCard({ project, onSelect }) {
               )}
               {meta.label}
             </span>
-            <span style={{ fontSize: 11, color: "var(--db-text-muted)" }}>{project.lastActivity}</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{project.lastActivity}</span>
           </div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--db-text-primary)", letterSpacing: "-.02em", marginBottom: 4 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.02em", marginBottom: 4 }}>
             {project.name}
           </div>
-          <div style={{ fontSize: 12, color: "var(--db-text-muted)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {project.description}
           </div>
         </div>
@@ -118,11 +118,11 @@ function ProjectCard({ project, onSelect }) {
 
       {/* 진행 바 */}
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--db-text-muted)", marginBottom: 5 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-3)", marginBottom: 5 }}>
           <span>파이프라인 진행률</span>
-          <span style={{ color: "var(--db-text-secondary)", fontWeight: 600 }}>{project.progress}%</span>
+          <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{project.progress}%</span>
         </div>
-        <div style={{ height: 4, background: "var(--db-bg-elevated)", borderRadius: 100, overflow: "hidden" }}>
+        <div style={{ height: 4, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
           <div style={{
             height: "100%", width: `${project.progress}%`,
             background: `linear-gradient(90deg, ${project.color}, ${project.color}99)`,
@@ -138,14 +138,14 @@ function ProjectCard({ project, onSelect }) {
         {project.tags.map(tag => (
           <span key={tag} style={{
             fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
-            background: "var(--db-bg-elevated)", color: "var(--db-text-muted)",
-            border: "1px solid var(--db-border)",
+            background: "var(--border)", color: "var(--text-3)",
+            border: "1px solid var(--border)",
           }}>{tag}</span>
         ))}
       </div>
 
       {/* 푸터 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--db-border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
         <MemberAvatars members={project.members}/>
         <div style={{ display: "flex", gap: 14 }}>
           {[
@@ -153,7 +153,7 @@ function ProjectCard({ project, onSelect }) {
             { icon: "📄", val: project.specCount, tip: "명세서"   },
             { icon: "⚠️", val: project.issueCount, tip: "이슈"    },
           ].map(s => (
-            <div key={s.tip} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--db-text-muted)" }}>
+            <div key={s.tip} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-3)" }}>
               <span>{s.icon}</span>
               <span style={{ fontWeight: 600 }}>{s.val}</span>
             </div>
@@ -177,7 +177,7 @@ function NewProjectCard({ onClick }) {
         borderRadius: "var(--db-radius-lg)",
         padding: "22px 24px", cursor: "pointer",
         transition: "var(--db-transition)",
-        background: hovered ? "rgba(124,58,237,.06)" : "transparent",
+        background: hovered ? "rgba(26,25,22,.06)" : "transparent",
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         gap: 12, minHeight: 220,
@@ -185,17 +185,17 @@ function NewProjectCard({ onClick }) {
     >
       <div style={{
         width: 48, height: 48, borderRadius: 14,
-        background: hovered ? "rgba(124,58,237,.2)" : "var(--db-bg-elevated)",
-        border: `1px solid ${hovered ? "var(--db-purple-400)" : "var(--db-border)"}`,
+        background: hovered ? "rgba(26,25,22,.2)" : "var(--border)",
+        border: `1px solid ${hovered ? "var(--db-purple-400)" : "var(--border)"}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 22, transition: "var(--db-transition)",
         boxShadow: hovered ? "var(--db-glow-sm)" : "none",
       }}>+</div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: hovered ? "var(--db-purple-300)" : "var(--db-text-secondary)", marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: hovered ? "var(--db-purple-300)" : "var(--text-2)", marginBottom: 4 }}>
           새 프로젝트
         </div>
-        <div style={{ fontSize: 12, color: "var(--db-text-muted)" }}>
+        <div style={{ fontSize: 12, color: "var(--text-3)" }}>
           PRD를 입력하면 자동으로 시작돼요
         </div>
       </div>
@@ -234,7 +234,7 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
           <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-.03em", marginBottom: 6 }}>
             내 프로젝트
           </div>
-          <div style={{ fontSize: 14, color: "var(--db-text-muted)" }}>
+          <div style={{ fontSize: 14, color: "var(--text-3)" }}>
             총 {projects.length}개 프로젝트 · 진행 중 {projects.filter(p=>p.status==="running").length}개
           </div>
         </div>
@@ -261,14 +261,14 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
           { icon: "⚠️", label: "전체 이슈",     value: projects.reduce((a,p)=>a+(p.issueCount||0),0),                                                   color: "var(--db-orange)"     },
         ].map(s => (
           <div key={s.label} style={{
-            background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
+            background: "var(--surface)", border: "1px solid var(--border)",
             borderRadius: "var(--db-radius)", padding: "14px 18px",
             display: "flex", alignItems: "center", gap: 12,
           }}>
             <span style={{ fontSize: 20 }}>{s.icon}</span>
             <div>
               <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "var(--db-text-muted)" }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "var(--text-3)" }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -282,16 +282,16 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
             <button key={f.id} onClick={() => setFilter(f.id)} style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600,
-              border: `1px solid ${filter===f.id ? "var(--db-purple-400)" : "var(--db-border)"}`,
-              background: filter===f.id ? "rgba(139,92,246,.18)" : "var(--db-bg-surface)",
-              color: filter===f.id ? "var(--db-purple-300)" : "var(--db-text-muted)",
+              border: `1px solid ${filter===f.id ? "var(--db-purple-400)" : "var(--border)"}`,
+              background: filter===f.id ? "rgba(26,25,22,.18)" : "var(--surface)",
+              color: filter===f.id ? "var(--db-purple-300)" : "var(--text-3)",
               cursor: "pointer", transition: "var(--db-transition)",
             }}>
               {f.label}
               <span style={{
-                background: filter===f.id ? "rgba(139,92,246,.3)" : "var(--db-bg-elevated)",
+                background: filter===f.id ? "rgba(26,25,22,.3)" : "var(--border)",
                 borderRadius: 100, padding: "0 5px", fontSize: 10, fontWeight: 700,
-                color: filter===f.id ? "var(--db-purple-200)" : "var(--db-text-muted)",
+                color: filter===f.id ? "var(--db-purple-200)" : "var(--text-3)",
               }}>{f.count}</span>
             </button>
           ))}
@@ -301,25 +301,25 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
+            background: "var(--surface)", border: "1px solid var(--border)",
             borderRadius: "var(--db-radius-sm)", padding: "7px 14px",
           }}>
-            <span style={{ color: "var(--db-text-muted)" }}>🔍</span>
+            <span style={{ color: "var(--text-3)" }}>🔍</span>
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="프로젝트 검색..."
               style={{
                 background: "none", border: "none", outline: "none",
-                color: "var(--db-text-primary)", fontSize: 13, width: 160,
+                color: "var(--text-1)", fontSize: 13, width: 160,
               }}
             />
           </div>
           <select
             value={sortBy} onChange={e => setSortBy(e.target.value)}
             style={{
-              background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
+              background: "var(--surface)", border: "1px solid var(--border)",
               borderRadius: "var(--db-radius-sm)", padding: "7px 12px",
-              color: "var(--db-text-secondary)", fontSize: 12, cursor: "pointer",
+              color: "var(--text-2)", fontSize: 12, cursor: "pointer",
             }}
           >
             <option value="recent">최근 순</option>
@@ -338,7 +338,7 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--db-text-muted)" }}>
+        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-3)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
           <div style={{ fontSize: 14 }}>검색 결과가 없습니다</div>
         </div>

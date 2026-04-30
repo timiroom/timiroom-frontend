@@ -11,11 +11,11 @@ import { useAuth } from "@/context/AuthContext";
 /* ── 색상 토큰 ── */
 const C = {
   bar:       "#111111",
-  border:    "rgba(255,255,255,0.06)",
-  icon:      "#6b6b6b",
+  border:    "rgba(0,0,0,0.06)",
+  icon:      "var(--text-2)",
   iconHover: "#d4d4d4",
-  iconActive:"#a78bfa",
-  activeBg:  "rgba(139,92,246,0.14)",
+  iconActive:"#6b6960",
+  activeBg:  "rgba(26,25,22,0.14)",
   avatarBg:  "linear-gradient(135deg,#7d4cfc,#9b6dff)",
 };
 
@@ -63,7 +63,7 @@ function ActivityIcon({ id, icon: Icon, label, isActive, onClick }) {
           display:        "flex",
           alignItems:     "center",
           justifyContent: "center",
-          background:     active ? C.activeBg : hovered ? "rgba(255,255,255,0.06)" : "transparent",
+          background:     active ? C.activeBg : hovered ? "rgba(0,0,0,0.06)" : "transparent",
           border:         "none",
           cursor:         "pointer",
           color:          active ? C.iconActive : hovered ? C.iconHover : C.icon,
@@ -95,13 +95,13 @@ function ActivityIcon({ id, icon: Icon, label, isActive, onClick }) {
           left:         "calc(100% + 8px)",
           top:          "50%",
           transform:    "translateY(-50%)",
-          background:   "#2a2a2a",
-          border:       "1px solid rgba(255,255,255,0.1)",
+          background:   "var(--bg)",
+          border:       "1px solid rgba(0,0,0,0.1)",
           borderRadius: 6,
           padding:      "4px 10px",
           fontSize:     12,
           fontWeight:   500,
-          color:        "#ececec",
+          color:        "#1a1916",
           whiteSpace:   "nowrap",
           zIndex:       200,
           pointerEvents:"none",
@@ -192,7 +192,7 @@ export function ActivityBar({ activeMode, onModeChange }) {
             height:         32,
             borderRadius:   "50%",
             background:     user?.avatarUrl ? "none" : C.avatarBg,
-            border:         avatarHovered ? "2px solid #a78bfa" : "2px solid transparent",
+            border:         avatarHovered ? "2px solid #6b6960" : "2px solid transparent",
             cursor:         "pointer",
             display:        "flex",
             alignItems:     "center",
@@ -217,17 +217,17 @@ export function ActivityBar({ activeMode, onModeChange }) {
             position:     "absolute",
             bottom:       "calc(100% + 8px)",
             left:         "calc(100% + 8px)",
-            background:   "#1e1e1e",
-            border:       "1px solid rgba(255,255,255,0.1)",
+            background:   "var(--surface)",
+            border:       "1px solid rgba(0,0,0,0.1)",
             borderRadius: 10,
             minWidth:     180,
             overflow:     "hidden",
             boxShadow:    "0 8px 32px rgba(0,0,0,0.5)",
             zIndex:       200,
           }}>
-            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#ececec" }}>{user?.name || "사용자"}</div>
-              <div style={{ fontSize: 11, color: "#6b6b6b", marginTop: 2 }}>{user?.email}</div>
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1916" }}>{user?.name || "사용자"}</div>
+              <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 2 }}>{user?.email}</div>
             </div>
             <button
               onClick={() => { setShowMenu(false); logout(); }}

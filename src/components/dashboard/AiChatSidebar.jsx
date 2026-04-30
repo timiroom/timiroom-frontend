@@ -14,14 +14,14 @@
 import { useState, useRef, useEffect } from "react";
 
 const C = {
-  bg:      "#1a1a1a",
-  border:  "rgba(255,255,255,0.07)",
-  text:    "#ececec",
-  muted:   "#8b8b8b",
-  sub:     "#555",
-  accent:  "#a78bfa",
-  inputBg: "#2f2f2f",
-  inputBdr:"rgba(255,255,255,0.10)",
+  bg:      "#f7f6f3",
+  border:  "rgba(0,0,0,0.07)",
+  text:    "#1a1916",
+  muted:   "var(--text-3)",
+  sub:     "var(--text-3)",
+  accent:  "#6b6960",
+  inputBg: "var(--bg)",
+  inputBdr:"rgba(0,0,0,0.10)",
   commit:  "#7d4cfc",
 };
 
@@ -155,7 +155,7 @@ export function AiChatSidebar({ contextType = "prd", onApplyDraft }) {
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div style={{
                   maxWidth: "85%", padding: "9px 13px",
-                  background: "#2f2f2f",
+                  background: "var(--bg)",
                   borderRadius: "14px 14px 4px 14px",
                   fontSize: 13, color: C.text, lineHeight: 1.6,
                   whiteSpace: "pre-wrap",
@@ -254,7 +254,7 @@ export function AiChatSidebar({ contextType = "prd", onApplyDraft }) {
             disabled={!input.trim() || loading}
             style={{
               width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-              background: input.trim() && !loading ? C.commit : "rgba(125,76,252,0.25)",
+              background: input.trim() && !loading ? C.commit : "rgba(26,25,22,0.25)",
               border: "none",
               cursor: input.trim() && !loading ? "pointer" : "not-allowed",
               display: "flex", alignItems: "center", justifyContent: "center",

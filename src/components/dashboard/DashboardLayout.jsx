@@ -32,7 +32,7 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
   const meta = STATUS_META[project.status];
 
   return (
-    <div style={{ padding: collapsed ? "10px 0" : "10px 12px", borderBottom: "1px solid var(--db-border)", position: "relative" }}>
+    <div style={{ padding: collapsed ? "10px 0" : "10px 12px", borderBottom: "1px solid var(--border)", position: "relative" }}>
       {/* 목록으로 돌아가기 버튼 */}
       {!collapsed && (
         <button
@@ -40,12 +40,12 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
           style={{
             display: "flex", alignItems: "center", gap: 6,
             background: "none", border: "none", cursor: "pointer",
-            color: "var(--db-text-muted)", fontSize: 11, fontWeight: 600,
+            color: "var(--text-3)", fontSize: 11, fontWeight: 600,
             padding: "4px 0", marginBottom: 8, transition: "var(--db-transition)",
             letterSpacing: ".02em",
           }}
           onMouseEnter={e => e.currentTarget.style.color = "var(--db-purple-300)"}
-          onMouseLeave={e => e.currentTarget.style.color = "var(--db-text-muted)"}
+          onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
         >
           ← 프로젝트 목록
         </button>
@@ -56,7 +56,7 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
           title="프로젝트 목록"
           style={{
             width: "100%", padding: "8px 0", background: "none", border: "none",
-            cursor: "pointer", color: "var(--db-text-muted)", fontSize: 16,
+            cursor: "pointer", color: "var(--text-3)", fontSize: 16,
             display: "flex", justifyContent: "center",
           }}
         >←</button>
@@ -67,8 +67,8 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
         <div
           onClick={() => setOpen(o => !o)}
           style={{
-            background: "var(--db-bg-elevated)",
-            border: `1px solid ${open ? "var(--db-border-mid)" : "var(--db-border)"}`,
+            background: "var(--border)",
+            border: `1px solid ${open ? "var(--db-border-mid)" : "var(--border)"}`,
             borderRadius: "var(--db-radius-sm)", padding: "9px 11px",
             cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
             transition: "var(--db-transition)",
@@ -81,12 +81,12 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
             animation: project.status === "running" ? "db-pulse 2s infinite" : "none",
           }}/>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: "var(--db-text-muted)", letterSpacing: ".03em" }}>현재 프로젝트</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--db-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: ".03em" }}>현재 프로젝트</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {project.name}
             </div>
           </div>
-          <span style={{ color: "var(--db-text-muted)", fontSize: 11, transition: "transform .2s", transform: open ? "rotate(180deg)" : "" }}>▾</span>
+          <span style={{ color: "var(--text-3)", fontSize: 11, transition: "transform .2s", transform: open ? "rotate(180deg)" : "" }}>▾</span>
         </div>
       )}
 
@@ -94,13 +94,13 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
       {open && !collapsed && (
         <div style={{
           position: "absolute", top: "100%", left: 12, right: 12, zIndex: 100,
-          background: "var(--db-bg-surface)",
+          background: "var(--surface)",
           border: "1px solid var(--db-border-mid)",
           borderRadius: "var(--db-radius)", overflow: "hidden",
           boxShadow: "0 12px 32px rgba(0,0,0,.5)",
           animation: "db-fade-up .15s ease",
         }}>
-          <div style={{ padding: "8px 10px 4px", fontSize: 10, color: "var(--db-text-muted)", letterSpacing: ".06em", textTransform: "uppercase" }}>
+          <div style={{ padding: "8px 10px 4px", fontSize: 10, color: "var(--text-3)", letterSpacing: ".06em", textTransform: "uppercase" }}>
             프로젝트 전환
           </div>
           {(projects || MOCK_PROJECTS).map(p => {
@@ -110,23 +110,23 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
               <div key={p.id} style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "8px 10px", cursor: isCurrent ? "default" : "pointer",
-                background: isCurrent ? "rgba(139,92,246,.1)" : "transparent",
+                background: isCurrent ? "rgba(26,25,22,.1)" : "transparent",
                 transition: "var(--db-transition)",
               }}
-              onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--db-bg-elevated)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isCurrent ? "rgba(139,92,246,.1)" : "transparent"; }}
+              onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--border)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isCurrent ? "rgba(26,25,22,.1)" : "transparent"; }}
               onClick={() => setOpen(false)}
               >
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: m.color, flexShrink: 0 }}/>
-                <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? "var(--db-purple-200)" : "var(--db-text-secondary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? "var(--db-purple-200)" : "var(--text-2)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.name}
                 </span>
-                <span style={{ fontSize: 10, color: "var(--db-text-muted)" }}>{p.score}%</span>
+                <span style={{ fontSize: 10, color: "var(--text-3)" }}>{p.score}%</span>
                 {isCurrent && <span style={{ fontSize: 10, color: "var(--db-purple-300)" }}>●</span>}
               </div>
             );
           })}
-          <div style={{ borderTop: "1px solid var(--db-border)", margin: "4px 0" }}/>
+          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}/>
           <div
             onClick={() => { setOpen(false); onBackToList(); }}
             style={{ padding: "8px 10px 10px", fontSize: 12, color: "var(--db-purple-300)", cursor: "pointer", fontWeight: 600 }}
@@ -143,8 +143,8 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
     <aside style={{
       width: collapsed ? 64 : 224,
       minHeight: "100vh",
-      background: "var(--db-bg-surface)",
-      borderRight: "1px solid var(--db-border)",
+      background: "var(--surface)",
+      borderRight: "1px solid var(--border)",
       display: "flex", flexDirection: "column",
       transition: "width 0.3s cubic-bezier(.4,0,.2,1)",
       overflow: "hidden", flexShrink: 0,
@@ -154,7 +154,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
       <Link href="/dashboard" onClick={onBackToList} style={{
         padding: collapsed ? "18px 0" : "18px 18px",
         display: "flex", alignItems: "center", gap: 10,
-        borderBottom: "1px solid var(--db-border)",
+        borderBottom: "1px solid var(--border)",
         justifyContent: collapsed ? "center" : "flex-start",
         textDecoration: "none",
       }}>
@@ -188,15 +188,15 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
                 padding: collapsed ? "10px 0" : "10px 12px",
                 justifyContent: collapsed ? "center" : "flex-start",
                 borderRadius: "var(--db-radius-sm)", border: "none", cursor: "pointer", width: "100%",
-                background: isActive ? "rgba(139,92,246,.18)" : "transparent",
-                color: isActive ? "var(--db-purple-300)" : "var(--db-text-secondary)",
+                background: isActive ? "rgba(26,25,22,.18)" : "transparent",
+                color: isActive ? "var(--db-purple-300)" : "var(--text-2)",
                 fontWeight: isActive ? 700 : 500,
                 fontSize: 14, transition: "var(--db-transition)",
                 borderLeft: isActive && !collapsed ? "2px solid var(--db-purple-400)" : "2px solid transparent",
                 boxShadow: isActive ? "var(--db-glow-sm)" : "none",
               }}
               title={collapsed ? item.label : ""}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--db-bg-elevated)"; }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--border)"; }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
               <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
@@ -210,7 +210,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding: "10px 8px", borderTop: "1px solid var(--db-border)", display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ padding: "10px 8px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 2 }}>
         {BOTTOM_NAV.map(item => (
           <button
             key={item.id}
@@ -220,11 +220,11 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
               padding: collapsed ? "10px 0" : "10px 12px",
               justifyContent: collapsed ? "center" : "flex-start",
               borderRadius: "var(--db-radius-sm)", border: "none", cursor: "pointer", width: "100%",
-              background: "transparent", color: "var(--db-text-muted)", fontSize: 14, transition: "var(--db-transition)",
+              background: "transparent", color: "var(--text-3)", fontSize: 14, transition: "var(--db-transition)",
             }}
             title={collapsed ? item.label : ""}
-            onMouseEnter={e => e.currentTarget.style.color = "var(--db-text-secondary)"}
-            onMouseLeave={e => e.currentTarget.style.color = "var(--db-text-muted)"}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--text-2)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
           >
             <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
             {!collapsed && <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>}
@@ -235,8 +235,8 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
           style={{
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: 9, borderRadius: "var(--db-radius-sm)",
-            border: "1px solid var(--db-border)", cursor: "pointer",
-            background: "var(--db-bg-elevated)", color: "var(--db-text-muted)",
+            border: "1px solid var(--border)", cursor: "pointer",
+            background: "var(--border)", color: "var(--text-3)",
             fontSize: 12, marginTop: 4, transition: "var(--db-transition)",
           }}
           title={collapsed ? "펼치기" : "접기"}
@@ -255,24 +255,24 @@ function Topbar({ view, project }) {
     <header style={{
       height: 60, padding: "0 24px",
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      background: "var(--db-bg-surface)",
-      borderBottom: "1px solid var(--db-border)", flexShrink: 0,
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)", flexShrink: 0,
     }}>
       {/* 왼쪽: 뷰 제목 */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--db-text-primary)" }}>{title}</div>
-          <div style={{ fontSize: 11, color: "var(--db-text-muted)", marginTop: 1 }}>{sub}</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{sub}</div>
         </div>
         {/* 정합성 스코어 칩 */}
         <div style={{
           display: "flex", alignItems: "center", gap: 5,
-          background: "rgba(139,92,246,.12)", border: "1px solid var(--db-border-mid)",
+          background: "rgba(26,25,22,.12)", border: "1px solid var(--db-border-mid)",
           borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 700,
           color: "var(--db-purple-300)",
         }}>
           <span style={{ fontWeight: 900 }}>{project.score}</span>
-          <span style={{ color: "var(--db-text-muted)" }}>/ 100</span>
+          <span style={{ color: "var(--text-3)" }}>/ 100</span>
           <span style={{ marginLeft: 2, color: meta.color, fontSize: 10, fontWeight: 700,
             background: meta.bg, borderRadius: 100, padding: "1px 6px" }}>
             {meta.label}
@@ -284,23 +284,23 @@ function Topbar({ view, project }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 7,
-          background: "var(--db-bg-elevated)", border: "1px solid var(--db-border)",
+          background: "var(--border)", border: "1px solid var(--border)",
           borderRadius: "var(--db-radius-sm)", padding: "6px 12px",
-          color: "var(--db-text-muted)", fontSize: 12, cursor: "pointer",
+          color: "var(--text-3)", fontSize: 12, cursor: "pointer",
         }}>
           <span>🔍</span><span>검색...</span>
-          <span style={{ background: "var(--db-bg-surface)", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>⌘K</span>
+          <span style={{ background: "var(--surface)", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>⌘K</span>
         </div>
         <div style={{ position: "relative", cursor: "pointer" }}>
           <div style={{
             width: 34, height: 34, borderRadius: "var(--db-radius-sm)",
-            background: "var(--db-bg-elevated)", border: "1px solid var(--db-border)",
+            background: "var(--border)", border: "1px solid var(--border)",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15,
           }}>🔔</div>
           <div style={{
             position: "absolute", top: -3, right: -3, width: 9, height: 9,
             borderRadius: "50%", background: "var(--db-purple-500)",
-            border: "2px solid var(--db-bg-surface)",
+            border: "2px solid var(--surface)",
           }}/>
         </div>
         <div style={{
@@ -339,7 +339,7 @@ export function DashboardLayout({ children, activeView, onViewChange, project, p
         <Topbar view={activeView} project={project}/>
         <main style={{
           flex: 1, overflow: "auto", padding: 28,
-          background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--db-bg-base) 100%)",
+          background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)",
         }}>
           {children}
         </main>

@@ -10,32 +10,32 @@ const PIPE_ROWS = [
   {
     label: "수집",
     nodes: [
-      { label: "Search Agent", active: true,  color: "#7d4cfc" },
-      { label: "PM Agent",     active: true,  color: "#8962ed" },
+      { label: "Search Agent", active: true,  color: "#1a1916" },
+      { label: "PM Agent",     active: true,  color: "#6b6960" },
     ],
   },
   {
     label: "생성",
     nodes: [
-      { label: "PRD Agent",    active: true,  color: "#6545b7" },
-      { label: "API Agent",    active: false, color: "#3b82f6" },
-      { label: "DB Agent",     active: false, color: "#10b981" },
+      { label: "PRD Agent",    active: true,  color: "#1a1916" },
+      { label: "API Agent",    active: false, color: "#6b6960" },
+      { label: "DB Agent",     active: false, color: "#a8a69f" },
     ],
   },
   {
     label: "검증",
     nodes: [
-      { label: "QA Agent",     active: false, color: "#f59e0b" },
-      { label: "정합성 스코어", active: true,  color: "#7d4cfc" },
+      { label: "QA Agent",     active: false, color: "#a8a69f" },
+      { label: "정합성 스코어", active: true,  color: "#1a1916" },
     ],
   },
 ];
 
 const MOCK_TAGS = [
-  { bg: "#ede9fe", color: "#7d4cfc", label: "Claude 3.5" },
-  { bg: "#eff6ff", color: "#3b82f6", label: "LangGraph"  },
-  { bg: "#f0fdf4", color: "#16a34a", label: "Neo4j"      },
-  { bg: "#fff7ed", color: "#ea580c", label: "Spring Boot" },
+  { bg: "#e4e2db", color: "#1a1916", label: "Claude 3.5" },
+  { bg: "#f7f6f3", color: "#6b6960", label: "LangGraph"  },
+  { bg: "#f7f6f3", color: "#6b6960", label: "Neo4j"      },
+  { bg: "#f7f6f3", color: "#a8a69f", label: "Spring Boot" },
 ];
 
 const HERO_STATS = [
@@ -86,7 +86,7 @@ function PipelineMockup() {
           <div className="al-mock-prog">
             <div className="al-mock-prog-lbl">
               <span>정합성 스코어</span>
-              <span style={{ fontWeight: 700, color: "#7d4cfc" }}>
+              <span style={{ fontWeight: 700, color: "#1a1916" }}>
                 {Math.round(prog)} / 100
               </span>
             </div>

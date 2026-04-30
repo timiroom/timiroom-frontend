@@ -6,16 +6,16 @@ import { SectionHeader } from "@/components/ui";
 function GraphVisual() {
   return (
     <div className="vg-wrap">
-      <div className="vg-node" style={{ width:40,height:40,background:"#6B5CE7",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:12 }}>PRD</div>
-      <div className="vg-node" style={{ width:28,height:28,background:"#8B5CF6",top:"10%",left:"20%",fontSize:9 }}>API</div>
-      <div className="vg-node" style={{ width:28,height:28,background:"#A78BFA",top:"10%",right:"20%",fontSize:9 }}>DB</div>
-      <div className="vg-node" style={{ width:28,height:28,background:"#6B5CE7",bottom:"10%",left:"20%",fontSize:9 }}>QA</div>
+      <div className="vg-node" style={{ width:40,height:40,background:"#1a1916",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:12 }}>PRD</div>
+      <div className="vg-node" style={{ width:28,height:28,background:"#1a1916",top:"10%",left:"20%",fontSize:9 }}>API</div>
+      <div className="vg-node" style={{ width:28,height:28,background:"#6b6960",top:"10%",right:"20%",fontSize:9 }}>DB</div>
+      <div className="vg-node" style={{ width:28,height:28,background:"#1a1916",bottom:"10%",left:"20%",fontSize:9 }}>QA</div>
       <div className="vg-node" style={{ width:28,height:28,background:"#7C3AED",bottom:"10%",right:"20%",fontSize:9 }}>UI</div>
       <svg className="vg-svg" viewBox="0 0 160 140">
-        <line x1="80" y1="70" x2="36"  y2="20"  stroke="#C4B5FD" strokeWidth="1.5"/>
-        <line x1="80" y1="70" x2="124" y2="20"  stroke="#C4B5FD" strokeWidth="1.5"/>
-        <line x1="80" y1="70" x2="36"  y2="120" stroke="#C4B5FD" strokeWidth="1.5"/>
-        <line x1="80" y1="70" x2="124" y2="120" stroke="#C4B5FD" strokeWidth="1.5"/>
+        <line x1="80" y1="70" x2="36"  y2="20"  stroke="#d0cec6" strokeWidth="1.5"/>
+        <line x1="80" y1="70" x2="124" y2="20"  stroke="#d0cec6" strokeWidth="1.5"/>
+        <line x1="80" y1="70" x2="36"  y2="120" stroke="#d0cec6" strokeWidth="1.5"/>
+        <line x1="80" y1="70" x2="124" y2="120" stroke="#d0cec6" strokeWidth="1.5"/>
       </svg>
     </div>
   );
@@ -25,19 +25,19 @@ function PipelineVisual() {
   return (
     <div className="pm-wrap">
       <div className="pm-row">
-        <div className="pm-box" style={{ background:"#EFF6FF",borderColor:"#BFDBFE",color:"#3B82F6" }}>PRD 변경</div>
+        <div className="pm-box" style={{ background:"#f7f6f3",borderColor:"#e4e2db",color:"#6b6960" }}>PRD 변경</div>
         <div className="pm-arr">→</div>
         <div className="pm-box">영향도 분석</div>
       </div>
       <div className="pm-row"><div className="pm-arr" style={{ marginLeft:40 }}>↓</div></div>
       <div className="pm-row">
-        <div className="pm-box" style={{ background:"#EFF6FF",borderColor:"#BFDBFE",color:"#3B82F6" }}>API 재생성</div>
+        <div className="pm-box" style={{ background:"#f7f6f3",borderColor:"#e4e2db",color:"#6b6960" }}>API 재생성</div>
         <div className="pm-arr">+</div>
-        <div className="pm-box" style={{ background:"#EFF6FF",borderColor:"#BFDBFE",color:"#3B82F6" }}>DB 재검토</div>
+        <div className="pm-box" style={{ background:"#f7f6f3",borderColor:"#e4e2db",color:"#6b6960" }}>DB 재검토</div>
       </div>
       <div className="pm-row"><div className="pm-arr" style={{ marginLeft:40 }}>↓</div></div>
       <div className="pm-row">
-        <div className="pm-box" style={{ background:"#F0FDF4",borderColor:"#BBF7D0",color:"#16A34A",flex:2 }}>✅ 무결성 확인</div>
+        <div className="pm-box" style={{ background:"#f7f6f3",borderColor:"#e4e2db",color:"#6b6960",flex:2 }}>✅ 무결성 확인</div>
       </div>
     </div>
   );
@@ -45,8 +45,8 @@ function PipelineVisual() {
 
 function VersionVisual() {
   const rows = [
-    { color:"#6B5CE7", label:"v1.3.0 — PRD 업데이트",  badge:"현재", badgeBg:"#EDE9FE", badgeColor:"#6B5CE7" },
-    { color:"#10B981", label:"v1.2.1 — API 명세 수정",  badge:"안정", badgeBg:"#F0FDF4", badgeColor:"#16A34A" },
+    { color:"#1a1916", label:"v1.3.0 — PRD 업데이트",  badge:"현재", badgeBg:"#e4e2db", badgeColor:"#1a1916" },
+    { color:"#a8a69f", label:"v1.2.1 — API 명세 수정",  badge:"안정", badgeBg:"#f7f6f3", badgeColor:"#6b6960" },
     { color:"#9CA3AF", label:"v1.1.0 — DB 스키마 초안", badge:"이전", badgeBg:"#F9FAFB", badgeColor:"#9CA3AF" },
     { color:"#9CA3AF", label:"v1.0.0 — 최초 PRD",       badge:"이전", badgeBg:"#F9FAFB", badgeColor:"#9CA3AF" },
   ];

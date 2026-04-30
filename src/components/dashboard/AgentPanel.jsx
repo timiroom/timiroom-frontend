@@ -27,21 +27,21 @@ import {
    디자인 토큰
 ══════════════════════════════════════ */
 const C = {
-  bg:         "#212121",
-  topbar:     "#1a1a1a",
-  border:     "rgba(255,255,255,0.07)",
-  text:       "#ececec",
-  muted:      "#8b8b8b",
-  subtle:     "#6b6b6b",
-  userBg:     "#2a2a2a",
-  inputBg:    "#2f2f2f",
-  inputBdr:   "rgba(255,255,255,0.10)",
-  hover:      "rgba(255,255,255,0.05)",
-  accent:     "#a78bfa",
-  accentBg:   "rgba(139,92,246,0.14)",
-  accentBdr:  "rgba(139,92,246,0.28)",
-  sendBg:     "#6B5CE7",
-  sendHover:  "#7C6FF0",
+  bg:         "var(--surface)",
+  topbar:     "#f7f6f3",
+  border:     "rgba(0,0,0,0.07)",
+  text:       "#1a1916",
+  muted:      "var(--text-3)",
+  subtle:     "var(--text-2)",
+  userBg:     "var(--bg)",
+  inputBg:    "var(--bg)",
+  inputBdr:   "rgba(0,0,0,0.10)",
+  hover:      "rgba(0,0,0,0.05)",
+  accent:     "#6b6960",
+  accentBg:   "rgba(26,25,22,0.14)",
+  accentBdr:  "rgba(26,25,22,0.28)",
+  sendBg:     "var(--text-1)",
+  sendHover:  "var(--text-2)",
 };
 
 const MAX_W = 680;
@@ -127,11 +127,11 @@ function MessageBubble({ msg }) {
       {/* 아바타 */}
       <div style={{
         width: 30, height: 30, borderRadius: 9,
-        background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+        background: "var(--text-1)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 13, fontWeight: 900, color: "#fff",
+        fontSize: 13, fontWeight: 900, color: "var(--bg)",
         flexShrink: 0, marginTop: 2,
-        boxShadow: "0 2px 8px rgba(107,92,231,0.3)",
+        boxShadow: "0 2px 8px rgba(26,25,22,0.3)",
       }}>A</div>
 
       {/* 텍스트 */}
@@ -196,7 +196,7 @@ function SettingsPanel({ config, onSave, onClose }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        width: 440, background: "#1e1e1e",
+        width: 440, background: "var(--surface)",
         border: `1px solid ${C.border}`,
         borderRadius: 14,
         boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
@@ -316,7 +316,7 @@ function SettingsPanel({ config, onSave, onClose }) {
           </button>
           <button onClick={handleSave} disabled={!apiKey.trim()} style={{
             padding: "8px 20px", borderRadius: 8, cursor: apiKey.trim() ? "pointer" : "not-allowed",
-            background: apiKey.trim() ? C.sendBg : "#333",
+            background: apiKey.trim() ? C.sendBg : "var(--border-2)",
             border: "none",
             color: apiKey.trim() ? "#fff" : C.muted,
             fontSize: 13, fontWeight: 700, fontFamily: "inherit",
@@ -504,9 +504,9 @@ export function AgentPanel({ project, view }) {
               <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
                 <div style={{
                   width: 30, height: 30, borderRadius: 9,
-                  background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+                  background: "var(--text-1)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 900, color: "#fff", flexShrink: 0, marginTop: 2,
+                  fontSize: 13, fontWeight: 900, color: "var(--bg)", flexShrink: 0, marginTop: 2,
                 }}>A</div>
                 <TypingDots />
               </div>
@@ -563,7 +563,7 @@ function TopBar({ project, view, modelLabel, hasMessages, onClear, onOpenSetting
               background: `${project.color || "#7C3AED"}22`,
               border: `1px solid ${project.color || "#7C3AED"}44`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#a78bfa",
+              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
             }}>
               {(project.name || "P").charAt(0).toUpperCase()}
             </div>
@@ -576,8 +576,8 @@ function TopBar({ project, view, modelLabel, hasMessages, onClear, onOpenSetting
                 <span style={{
                   fontSize: 13, fontWeight: 500, color: C.accent,
                   padding: "2px 8px", borderRadius: 6,
-                  background: "rgba(167,139,250,0.1)",
-                  border: "1px solid rgba(167,139,250,0.2)",
+                  background: "rgba(107,105,96,0.1)",
+                  border: "1px solid rgba(107,105,96,0.2)",
                 }}>
                   {viewLabel}
                 </span>
@@ -653,10 +653,10 @@ function EmptyState({ project, hasConfig, onOpenSettings, onSelectSuggestion }) 
       {/* 로고 */}
       <div style={{
         width: 56, height: 56, borderRadius: 16,
-        background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+        background: "var(--text-1)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 24, fontWeight: 900, color: "#fff",
-        boxShadow: "0 8px 28px rgba(107,92,231,0.35)",
+        fontSize: 24, fontWeight: 900, color: "var(--bg)",
+        boxShadow: "0 8px 28px rgba(26,25,22,0.35)",
         marginBottom: 20,
       }}>A</div>
 
@@ -674,10 +674,10 @@ function EmptyState({ project, hasConfig, onOpenSettings, onSelectSuggestion }) 
           onClick={onOpenSettings}
           style={{
             padding: "10px 22px", borderRadius: 10,
-            background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+            background: "var(--text-1)",
             border: "none", cursor: "pointer",
-            color: "#fff", fontSize: 13, fontWeight: 700,
-            boxShadow: "0 4px 16px rgba(107,92,231,0.35)",
+            color: "var(--bg)", fontSize: 13, fontWeight: 700,
+            boxShadow: "0 4px 16px rgba(26,25,22,0.35)",
             marginBottom: 32, fontFamily: "inherit",
           }}
         >
@@ -715,8 +715,8 @@ function SuggestionChip({ icon, text, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         padding: "11px 14px",
-        background: hovered ? "#2a2a2a" : "#232323",
-        border: `1px solid ${hovered ? "rgba(255,255,255,0.12)" : C.border}`,
+        background: hovered ? "var(--bg)" : "var(--surface)",
+        border: `1px solid ${hovered ? "rgba(0,0,0,0.12)" : C.border}`,
         borderRadius: 10, cursor: "pointer",
         display: "flex", alignItems: "center", gap: 10,
         color: hovered ? C.text : "#9ca3af",
@@ -743,7 +743,7 @@ function ChatInput({ input, setInput, isLoading, config, onSend, onKeyDown, onIn
       <div style={{
         maxWidth: MAX_W, margin: "0 auto",
         background: C.inputBg,
-        border: `1px solid ${focused ? "rgba(139,92,246,0.35)" : C.inputBdr}`,
+        border: `1px solid ${focused ? "rgba(26,25,22,0.35)" : C.inputBdr}`,
         borderRadius: 14,
         transition: "border-color 0.15s",
         overflow: "hidden",
@@ -812,11 +812,11 @@ function SendButton({ onClick, disabled }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         width: 34, height: 34, borderRadius: 9,
-        background: disabled ? "#333" : hovered ? C.sendHover : C.sendBg,
+        background: disabled ? "var(--border-2)" : hovered ? C.sendHover : C.sendBg,
         border: "none", cursor: disabled ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "background 0.12s",
-        boxShadow: disabled ? "none" : "0 2px 8px rgba(107,92,231,0.3)",
+        boxShadow: disabled ? "none" : "0 2px 8px rgba(26,25,22,0.3)",
       }}
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={disabled ? C.muted : "#fff"} strokeWidth="2.2" strokeLinecap="round">
@@ -836,7 +836,7 @@ function StopButton({ onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         width: 34, height: 34, borderRadius: 9,
-        background: hovered ? "#3a3a3a" : "#2e2e2e",
+        background: hovered ? "var(--border)" : "var(--bg)",
         border: `1px solid ${C.border}`, cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "background 0.12s",

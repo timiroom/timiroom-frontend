@@ -33,7 +33,7 @@ const EDGES = [
 ];
 
 const NODE_COLORS = {
-  prd:    { fill:"#7C3AED", glow:"rgba(124,58,237,.7)",  ring:"#A78BFA" },
+  prd:    { fill:"#7C3AED", glow:"rgba(26,25,22,.7)",  ring:"#6b6960" },
   design: { fill:"#4338CA", glow:"rgba(67,56,202,.6)",   ring:"#818CF8" },
   api:    { fill:"#0369A1", glow:"rgba(3,105,161,.6)",   ring:"#38BDF8" },
   db:     { fill:"#065F46", glow:"rgba(6,95,70,.6)",     ring:"#34D399" },
@@ -92,16 +92,16 @@ export function KnowledgeGraph() {
               onClick={() => setFilter(f.id)}
               style={{
                 padding:"6px 14px", borderRadius:100, fontSize:12, fontWeight:600,
-                border:`1px solid ${filter===f.id ? "var(--db-purple-400)" : "var(--db-border)"}`,
-                background: filter===f.id ? "rgba(139,92,246,.2)" : "var(--db-bg-surface)",
-                color: filter===f.id ? "var(--db-purple-300)" : "var(--db-text-muted)",
+                border:`1px solid ${filter===f.id ? "var(--db-purple-400)" : "var(--border)"}`,
+                background: filter===f.id ? "rgba(26,25,22,.2)" : "var(--surface)",
+                color: filter===f.id ? "var(--db-purple-300)" : "var(--text-3)",
                 cursor:"pointer", transition:"var(--db-transition)",
               }}
             >{f.label}</button>
           ))}
           <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
-            <button style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--db-border)", background:"var(--db-bg-surface)", color:"var(--db-text-muted)", fontSize:12, cursor:"pointer" }}>레이아웃 ⟳</button>
-            <button style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--db-border)", background:"var(--db-bg-surface)", color:"var(--db-text-muted)", fontSize:12, cursor:"pointer" }}>내보내기 ↗</button>
+            <button style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--surface)", color:"var(--text-3)", fontSize:12, cursor:"pointer" }}>레이아웃 ⟳</button>
+            <button style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--surface)", color:"var(--text-3)", fontSize:12, cursor:"pointer" }}>내보내기 ↗</button>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ export function KnowledgeGraph() {
           <svg width="100%" height="100%" style={{ position:"absolute", inset:0 }}>
             <defs>
               <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(139,92,246,.05)" strokeWidth="1"/>
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(26,25,22,.05)" strokeWidth="1"/>
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)"/>
@@ -129,10 +129,10 @@ export function KnowledgeGraph() {
               ))}
               {/* Arrow marker */}
               <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="rgba(139,92,246,.4)"/>
+                <path d="M0,0 L0,6 L8,3 z" fill="rgba(26,25,22,.4)"/>
               </marker>
               <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="#A78BFA"/>
+                <path d="M0,0 L0,6 L8,3 z" fill="#6b6960"/>
               </marker>
             </defs>
 
@@ -154,7 +154,7 @@ export function KnowledgeGraph() {
                 <g key={`${edge.from}-${edge.to}`}>
                   {/* Base edge */}
                   <path d={d} fill="none"
-                    stroke={isActive ? "rgba(167,139,250,.5)" : "rgba(139,92,246,.15)"}
+                    stroke={isActive ? "rgba(107,105,96,.5)" : "rgba(26,25,22,.15)"}
                     strokeWidth={isActive ? 2 : 1.5}
                     markerEnd={isActive ? "url(#arrow-active)" : "url(#arrow)"}
                   />
@@ -206,7 +206,7 @@ export function KnowledgeGraph() {
                   <circle r={node.size + 6} fill={c.glow} opacity={isSelected ? 0.5 : 0.2} filter={`url(#glow-${node.type})`}/>
                   {/* Main circle */}
                   <circle r={node.size} fill={c.fill}
-                    stroke={isSelected ? c.ring : "rgba(255,255,255,.15)"}
+                    stroke={isSelected ? c.ring : "rgba(0,0,0,.15)"}
                     strokeWidth={isSelected ? 2 : 1}
                   />
                   {/* Icon */}
@@ -216,7 +216,7 @@ export function KnowledgeGraph() {
                   {/* Label */}
                   <text y={node.size + 14} textAnchor="middle"
                     fontSize="10" fontWeight="600"
-                    fill={isSelected ? c.ring : "var(--db-text-secondary)"}
+                    fill={isSelected ? c.ring : "var(--text-2)"}
                     style={{ userSelect:"none" }}>
                     {node.label}
                   </text>
@@ -231,7 +231,7 @@ export function KnowledgeGraph() {
             display:"flex", gap:10, flexWrap:"wrap",
           }}>
             {Object.entries(NODE_COLORS).slice(0,6).map(([type, c]) => (
-              <div key={type} style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, color:"var(--db-text-muted)" }}>
+              <div key={type} style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, color:"var(--text-3)" }}>
                 <div style={{ width:8, height:8, borderRadius:"50%", background:c.ring }}/>
                 {type}
               </div>
@@ -248,25 +248,25 @@ export function KnowledgeGraph() {
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
               <div style={{
                 width:40, height:40, borderRadius:10,
-                background:NODE_COLORS[selectedNode.type]?.fill || "#333",
+                background:NODE_COLORS[selectedNode.type]?.fill || "var(--border-2)",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:20, boxShadow:`0 0 14px ${NODE_COLORS[selectedNode.type]?.glow}`,
               }}>{selectedNode.icon}</div>
               <div>
                 <div style={{ fontWeight:700 }}>{selectedNode.label}</div>
-                <div style={{ fontSize:11, color:"var(--db-text-muted)" }}>{selectedNode.type} 노드</div>
+                <div style={{ fontSize:11, color:"var(--text-3)" }}>{selectedNode.type} 노드</div>
               </div>
             </div>
-            <div style={{ fontSize:12, color:"var(--db-text-secondary)", lineHeight:1.7 }}>
+            <div style={{ fontSize:12, color:"var(--text-2)", lineHeight:1.7 }}>
               연결된 엣지: {EDGES.filter(e => e.from===selectedNode.id||e.to===selectedNode.id).length}개
             </div>
             <div style={{ marginTop:12 }}>
               {EDGES.filter(e => e.from===selectedNode.id||e.to===selectedNode.id).map((e,i) => {
                 const other = getNode(e.from===selectedNode.id ? e.to : e.from);
                 return (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:"1px solid var(--db-border)", fontSize:12 }}>
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:"1px solid var(--border)", fontSize:12 }}>
                     <span style={{ fontSize:14 }}>{other?.icon}</span>
-                    <span style={{ color:"var(--db-text-secondary)" }}>{other?.label}</span>
+                    <span style={{ color:"var(--text-2)" }}>{other?.label}</span>
                     <span style={{ marginLeft:"auto", color:"var(--db-purple-200)", fontSize:10 }}>{e.label}</span>
                   </div>
                 );
@@ -277,7 +277,7 @@ export function KnowledgeGraph() {
           <div className="db-card" style={{ padding:20, textAlign:"center" }}>
             <div style={{ fontSize:32, marginBottom:12 }}>🕸️</div>
             <div style={{ fontSize:13, fontWeight:600, marginBottom:6 }}>노드를 선택하세요</div>
-            <div style={{ fontSize:12, color:"var(--db-text-muted)", lineHeight:1.7 }}>그래프에서 노드를 클릭하면 연결 관계와 상세 정보를 확인할 수 있습니다.</div>
+            <div style={{ fontSize:12, color:"var(--text-3)", lineHeight:1.7 }}>그래프에서 노드를 클릭하면 연결 관계와 상세 정보를 확인할 수 있습니다.</div>
           </div>
         )}
 
@@ -289,9 +289,9 @@ export function KnowledgeGraph() {
             { label:"엣지",  value: visibleEdges.length, total: EDGES.length,  color:"var(--db-blue)" },
             { label:"클러스터", value:3,                total:3,               color:"var(--db-green)" },
           ].map(s => (
-            <div key={s.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--db-border)" }}>
-              <span style={{ fontSize:12, color:"var(--db-text-secondary)" }}>{s.label}</span>
-              <span style={{ fontSize:14, fontWeight:700, color:s.color }}>{s.value}<span style={{ fontSize:11, color:"var(--db-text-muted)" }}>/{s.total}</span></span>
+            <div key={s.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--border)" }}>
+              <span style={{ fontSize:12, color:"var(--text-2)" }}>{s.label}</span>
+              <span style={{ fontSize:14, fontWeight:700, color:s.color }}>{s.value}<span style={{ fontSize:11, color:"var(--text-3)" }}>/{s.total}</span></span>
             </div>
           ))}
         </div>
@@ -307,12 +307,12 @@ export function KnowledgeGraph() {
             <button key={a.label} style={{
               display:"flex", alignItems:"center", gap:8, width:"100%",
               padding:"8px 10px", borderRadius:"var(--db-radius-sm)",
-              border:"1px solid var(--db-border)", background:"var(--db-bg-elevated)",
-              color:"var(--db-text-secondary)", fontSize:12, cursor:"pointer", marginBottom:6,
+              border:"1px solid var(--border)", background:"var(--border)",
+              color:"var(--text-2)", fontSize:12, cursor:"pointer", marginBottom:6,
               transition:"var(--db-transition)",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor="var(--db-border-mid)"; e.currentTarget.style.color="var(--db-text-primary)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor="var(--db-border)"; e.currentTarget.style.color="var(--db-text-secondary)"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor="var(--db-border-mid)"; e.currentTarget.style.color="var(--text-1)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor="var(--border)"; e.currentTarget.style.color="var(--text-2)"; }}
             ><span>{a.icon}</span>{a.label}</button>
           ))}
         </div>

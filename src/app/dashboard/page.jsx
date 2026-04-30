@@ -79,7 +79,7 @@ export default function DashboardPage() {
       display:    "flex",
       height:     "100vh",
       overflow:   "hidden",
-      background: "#212121",
+      background: "var(--surface)",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
       {/* ① 아이콘 레일 (56px) */}

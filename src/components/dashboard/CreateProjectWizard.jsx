@@ -56,8 +56,8 @@ const PROBLEM_QS = [
 ];
 
 const MOSCOW_OPTIONS = [
-  { key: "Must",   color: "#7C3AED", bg: "rgba(124,58,237,0.18)"  },
-  { key: "Should", color: "#3B82F6", bg: "rgba(59,130,246,0.18)"  },
+  { key: "Must",   color: "#7C3AED", bg: "rgba(26,25,22,0.18)"  },
+  { key: "Should", color: "#3B82F6", bg: "rgba(107,105,96,0.18)"  },
   { key: "Could",  color: "#10B981", bg: "rgba(16,185,129,0.18)"  },
   { key: "Won't",  color: "#475569", bg: "rgba(71,85,105,0.18)"   },
 ];
@@ -87,11 +87,11 @@ function initialData() {
 const T = {
   input: {
     width: "100%",
-    background: "var(--db-bg-elevated)",
-    border: "1px solid var(--db-border)",
+    background: "var(--border)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "9px 13px",
-    color: "var(--db-text-primary)",
+    color: "var(--text-1)",
     fontSize: 13,
     outline: "none",
     fontFamily: "inherit",
@@ -100,11 +100,11 @@ const T = {
   },
   textarea: {
     width: "100%",
-    background: "var(--db-bg-elevated)",
-    border: "1px solid var(--db-border)",
+    background: "var(--border)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "9px 13px",
-    color: "var(--db-text-primary)",
+    color: "var(--text-1)",
     fontSize: 13,
     outline: "none",
     fontFamily: "inherit",
@@ -116,27 +116,27 @@ const T = {
   label: {
     fontSize: 12,
     fontWeight: 600,
-    color: "var(--db-text-secondary)",
+    color: "var(--text-2)",
     letterSpacing: "0.04em",
     marginBottom: 6,
     display: "block",
   },
   card: {
-    background: "var(--db-bg-surface)",
-    border: "1px solid var(--db-border)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
     padding: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 700,
-    color: "var(--db-text-primary)",
+    color: "var(--text-1)",
     marginBottom: 20,
   },
 };
 
 function focusStyle(e) { e.target.style.borderColor = "var(--db-border-active)"; }
-function blurStyle(e)  { e.target.style.borderColor = "var(--db-border)"; }
+function blurStyle(e)  { e.target.style.borderColor = "var(--border)"; }
 
 /* ═══════════════════════════════════════════
    StepIndicator
@@ -161,10 +161,10 @@ function StepIndicator({ current }) {
                           :          "transparent",
                 border: done   ? "none"
                       : active ? "2px solid var(--db-purple-400)"
-                      :          "2px solid var(--db-border)",
+                      :          "2px solid var(--border)",
                 color: done   ? "#fff"
                      : active ? "var(--db-purple-300)"
-                     :          "var(--db-text-muted)",
+                     :          "var(--text-3)",
                 boxShadow: active ? "var(--db-glow-sm)" : "none",
                 transition: "all 0.2s",
               }}>
@@ -172,7 +172,7 @@ function StepIndicator({ current }) {
               </div>
               <span style={{
                 fontSize: 11, fontWeight: active ? 600 : 400,
-                color: active ? "var(--db-purple-300)" : done ? "var(--db-text-secondary)" : "var(--db-text-muted)",
+                color: active ? "var(--db-purple-300)" : done ? "var(--text-2)" : "var(--text-3)",
                 whiteSpace: "nowrap",
               }}>
                 {step.label}
@@ -182,7 +182,7 @@ function StepIndicator({ current }) {
             {idx < STEPS.length - 1 && (
               <div style={{
                 flex: 1, height: 1, margin: "0 8px", marginTop: -18,
-                background: done ? "var(--db-purple-500)" : "var(--db-border)",
+                background: done ? "var(--db-purple-500)" : "var(--border)",
                 transition: "background 0.3s",
               }}/>
             )}
@@ -262,7 +262,7 @@ function Step1({ data, onChange }) {
             style={{
               width: 140, height: 140, borderRadius: 12,
               border: "1.5px dashed var(--db-border-mid)",
-              background: "var(--db-bg-surface)",
+              background: "var(--surface)",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               cursor: "pointer", gap: 8, overflow: "hidden",
@@ -276,12 +276,12 @@ function Step1({ data, onChange }) {
                 style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               <>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--db-text-muted)" strokeWidth="1.5">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="1.5">
                   <rect x="3" y="3" width="18" height="18" rx="3"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <path d="m21 15-5-5L5 21"/>
                 </svg>
-                <span style={{ fontSize: 11, color: "var(--db-text-muted)" }}>이미지 추가</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>이미지 추가</span>
               </>
             )}
           </div>
@@ -290,7 +290,7 @@ function Step1({ data, onChange }) {
             <button
               onClick={() => onChange({ image: null, imagePreview: null })}
               style={{ marginTop: 6, width: "100%", background: "none", border: "none",
-                       color: "var(--db-text-muted)", fontSize: 11, cursor: "pointer" }}>
+                       color: "var(--text-3)", fontSize: 11, cursor: "pointer" }}>
               삭제
             </button>
           )}
@@ -335,15 +335,15 @@ function Step1({ data, onChange }) {
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "10px 20px", borderRadius: 8, cursor: "pointer",
                   fontSize: 14, fontWeight: active ? 600 : 400,
-                  border: active ? "1.5px solid var(--db-purple-400)" : "1.5px solid var(--db-border)",
-                  background: active ? "rgba(139,92,246,0.12)" : "var(--db-bg-surface)",
-                  color: active ? "var(--db-purple-300)" : "var(--db-text-secondary)",
+                  border: active ? "1.5px solid var(--db-purple-400)" : "1.5px solid var(--border)",
+                  background: active ? "rgba(26,25,22,0.12)" : "var(--surface)",
+                  color: active ? "var(--db-purple-300)" : "var(--text-2)",
                   transition: "all 0.15s",
                 }}
               >
                 <div style={{
                   width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
-                  border: active ? "4px solid var(--db-purple-400)" : "2px solid var(--db-border)",
+                  border: active ? "4px solid var(--db-purple-400)" : "2px solid var(--border)",
                   background: "transparent",
                 }}/>
                 {type}
@@ -363,13 +363,13 @@ function Step1({ data, onChange }) {
               <span key={tag} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "4px 10px", borderRadius: 20,
-                background: "rgba(139,92,246,0.15)", border: "1px solid var(--db-border-mid)",
+                background: "rgba(26,25,22,0.15)", border: "1px solid var(--db-border-mid)",
                 fontSize: 12, color: "var(--db-purple-300)",
               }}>
                 {tag}
                 <button onClick={() => removeStack(tag)} style={{
                   background: "none", border: "none", cursor: "pointer",
-                  color: "var(--db-text-muted)", fontSize: 14, lineHeight: 1,
+                  color: "var(--text-3)", fontSize: 14, lineHeight: 1,
                   padding: 0,
                 }}>×</button>
               </span>
@@ -391,7 +391,7 @@ function Step1({ data, onChange }) {
           {suggestions.length > 0 && (
             <div style={{
               position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10,
-              background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
+              background: "var(--surface)", border: "1px solid var(--border)",
               borderRadius: 8, overflow: "hidden",
             }}>
               {suggestions.map(s => (
@@ -399,10 +399,10 @@ function Step1({ data, onChange }) {
                   onMouseDown={e => { e.preventDefault(); addStack(s); }}
                   style={{
                     padding: "9px 13px", fontSize: 13, cursor: "pointer",
-                    color: "var(--db-text-primary)",
-                    borderBottom: "1px solid var(--db-border)",
+                    color: "var(--text-1)",
+                    borderBottom: "1px solid var(--border)",
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--db-bg-elevated)"}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--border)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >{s}</div>
               ))}
@@ -415,11 +415,11 @@ function Step1({ data, onChange }) {
           {COMMON_STACKS.filter(s => !data.techStack.includes(s)).slice(0, 10).map(s => (
             <button key={s} onClick={() => addStack(s)} style={{
               padding: "4px 10px", borderRadius: 20, cursor: "pointer",
-              border: "1px solid var(--db-border)", background: "var(--db-bg-surface)",
-              fontSize: 11, color: "var(--db-text-muted)", transition: "all 0.12s",
+              border: "1px solid var(--border)", background: "var(--surface)",
+              fontSize: 11, color: "var(--text-3)", transition: "all 0.12s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--db-text-secondary)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border)"; e.currentTarget.style.color = "var(--db-text-muted)"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--text-2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-3)"; }}
             >+ {s}</button>
           ))}
         </div>
@@ -490,7 +490,7 @@ function Step3({ data, onChange }) {
   return (
     <div>
       <div style={T.sectionTitle}>레퍼런스</div>
-      <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginBottom: 20, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20, lineHeight: 1.6 }}>
         기획서, 와이어프레임, 경쟁사 스크린샷, 기존 API 문서 등<br/>
         LLM이 참고할 파일을 업로드하세요. (선택 사항)
       </p>
@@ -504,7 +504,7 @@ function Step3({ data, onChange }) {
         style={{
           border: `2px dashed ${isDragging ? "var(--db-purple-400)" : "var(--db-border-mid)"}`,
           borderRadius: 12,
-          background: isDragging ? "rgba(139,92,246,0.08)" : "var(--db-bg-surface)",
+          background: isDragging ? "rgba(26,25,22,0.08)" : "var(--surface)",
           padding: "48px 24px",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
@@ -512,16 +512,16 @@ function Step3({ data, onChange }) {
         }}
       >
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-          stroke={isDragging ? "var(--db-purple-400)" : "var(--db-text-muted)"} strokeWidth="1.5">
+          stroke={isDragging ? "var(--db-purple-400)" : "var(--text-3)"} strokeWidth="1.5">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="17 8 12 3 7 8"/>
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: 14, color: "var(--db-text-secondary)", fontWeight: 500 }}>
+          <p style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>
             파일을 드래그하거나 클릭하여 업로드
           </p>
-          <p style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 4 }}>
+          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4 }}>
             PDF, 이미지, 문서 등 모든 형식 지원
           </p>
         </div>
@@ -536,20 +536,20 @@ function Step3({ data, onChange }) {
             <div key={idx} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "10px 14px", borderRadius: 8,
-              background: "var(--db-bg-surface)", border: "1px solid var(--db-border)",
+              background: "var(--surface)", border: "1px solid var(--border)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 18 }}>📄</span>
                 <div>
-                  <p style={{ fontSize: 13, color: "var(--db-text-primary)", fontWeight: 500 }}>{file.name}</p>
-                  <p style={{ fontSize: 11, color: "var(--db-text-muted)" }}>
+                  <p style={{ fontSize: 13, color: "var(--text-1)", fontWeight: 500 }}>{file.name}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-3)" }}>
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
               </div>
               <button onClick={() => removeFile(idx)} style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "var(--db-text-muted)", fontSize: 18,
+                color: "var(--text-3)", fontSize: 18,
               }}>×</button>
             </div>
           ))}
@@ -595,11 +595,11 @@ function Step4({ data, onChange }) {
                 타겟유저 #{idx + 1}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "var(--db-text-muted)", cursor: "help" }} title="페르소나: 실제 사용자를 대표하는 가상의 인물">ⓘ</span>
+                <span style={{ fontSize: 13, color: "var(--text-3)", cursor: "help" }} title="페르소나: 실제 사용자를 대표하는 가상의 인물">ⓘ</span>
                 {data.personas.length > 1 && (
                   <button onClick={() => removePersona(persona.id)} style={{
                     background: "none", border: "none", cursor: "pointer",
-                    color: "var(--db-text-muted)", fontSize: 16,
+                    color: "var(--text-3)", fontSize: 16,
                     display: "flex", alignItems: "center",
                   }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -652,11 +652,11 @@ function Step4({ data, onChange }) {
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           padding: "12px", borderRadius: 10,
           border: "1.5px dashed var(--db-border-mid)", background: "transparent",
-          color: "var(--db-text-muted)", fontSize: 13, cursor: "pointer",
+          color: "var(--text-3)", fontSize: 13, cursor: "pointer",
           transition: "all 0.15s",
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--db-border-active)"; e.currentTarget.style.color = "var(--db-purple-300)"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--db-text-muted)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--text-3)"; }}
         >
           + 유저 추가
         </button>
@@ -714,7 +714,7 @@ function Step5({ data, onChange }) {
           style={{
             display: "flex", alignItems: "center", gap: 8, width: "100%",
             background: "none", border: "none", cursor: "pointer",
-            color: "var(--db-text-primary)", fontSize: 14, fontWeight: 600,
+            color: "var(--text-1)", fontSize: 14, fontWeight: 600,
             padding: 0,
           }}
         >
@@ -734,9 +734,9 @@ function Step5({ data, onChange }) {
               const state = data.commonFeatures[feat.id];
               return (
                 <div key={feat.id} style={{
-                  border: "1px solid var(--db-border)",
+                  border: "1px solid var(--border)",
                   borderRadius: 10, padding: "14px 16px",
-                  background: state.checked ? "rgba(139,92,246,0.06)" : "transparent",
+                  background: state.checked ? "rgba(26,25,22,0.06)" : "transparent",
                   transition: "background 0.15s",
                 }}>
                   <div
@@ -752,12 +752,12 @@ function Step5({ data, onChange }) {
                       transition: "all 0.15s",
                     }}>
                       {state.checked && (
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2">
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--text-1)" strokeWidth="2">
                           <polyline points="2 6 5 9 10 3"/>
                         </svg>
                       )}
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: state.checked ? "var(--db-text-primary)" : "var(--db-text-secondary)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: state.checked ? "var(--text-1)" : "var(--text-2)" }}>
                       {feat.label}
                     </span>
                   </div>
@@ -792,12 +792,12 @@ function Step5({ data, onChange }) {
                 function #{idx + 1}
               </span>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "var(--db-text-muted)", cursor: "help" }}
+                <span style={{ fontSize: 13, color: "var(--text-3)", cursor: "help" }}
                   title="MoSCoW: Must(필수) / Should(권장) / Could(선택) / Won't(이번 범위 제외)">ⓘ</span>
                 {data.customFeatures.length > 1 && (
                   <button onClick={() => removeCustom(feat.id)} style={{
                     background: "none", border: "none", cursor: "pointer",
-                    color: "var(--db-text-muted)",
+                    color: "var(--text-3)",
                     display: "flex", alignItems: "center",
                   }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -823,9 +823,9 @@ function Step5({ data, onChange }) {
                         flex: 1, minWidth: 70,
                         display: "flex", alignItems: "center", gap: 6,
                         padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                        border: active ? `1.5px solid ${opt.color}` : "1.5px solid var(--db-border)",
+                        border: active ? `1.5px solid ${opt.color}` : "1.5px solid var(--border)",
                         background: active ? opt.bg : "transparent",
-                        color: active ? opt.color : "var(--db-text-muted)",
+                        color: active ? opt.color : "var(--text-3)",
                         fontSize: 13, fontWeight: active ? 600 : 400,
                         transition: "all 0.15s",
                       }}
@@ -872,11 +872,11 @@ function Step5({ data, onChange }) {
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           padding: "12px", borderRadius: 10,
           border: "1.5px dashed var(--db-border-mid)", background: "transparent",
-          color: "var(--db-text-muted)", fontSize: 13, cursor: "pointer",
+          color: "var(--text-3)", fontSize: 13, cursor: "pointer",
           transition: "all 0.15s",
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--db-border-active)"; e.currentTarget.style.color = "var(--db-purple-300)"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--db-text-muted)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--text-3)"; }}
         >
           + 기능 추가
         </button>
@@ -945,18 +945,18 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
     }}>
       {/* 상단 탭 바 (VS Code 스타일) */}
       <div style={{
-        height: 36, background: "var(--db-bg-base)",
-        borderBottom: "1px solid var(--db-border)",
+        height: 36, background: "var(--bg)",
+        borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", paddingLeft: 16,
         flexShrink: 0,
       }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "0 14px", height: "100%",
-          borderRight: "1px solid var(--db-border)",
+          borderRight: "1px solid var(--border)",
           borderBottom: "2px solid var(--db-purple-400)",
           background: "var(--db-bg-primary)",
-          fontSize: 12, color: "var(--db-text-secondary)",
+          fontSize: 12, color: "var(--text-2)",
         }}>
           <span style={{ fontSize: 14 }}>✦</span>
           프로젝트 생성하기
@@ -974,8 +974,8 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
       {/* 하단 네비게이션 바 */}
       <div style={{
         position: "sticky", bottom: 0,
-        background: "var(--db-bg-base)",
-        borderTop: "1px solid var(--db-border)",
+        background: "var(--bg)",
+        borderTop: "1px solid var(--border)",
         padding: "16px 40px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         flexShrink: 0,
@@ -987,8 +987,8 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
               onClick={onCancel}
               style={{
                 padding: "9px 20px", borderRadius: 8, cursor: "pointer",
-                background: "none", border: "1px solid var(--db-border)",
-                color: "var(--db-text-muted)", fontSize: 13,
+                background: "none", border: "1px solid var(--border)",
+                color: "var(--text-3)", fontSize: 13,
               }}
             >
               취소
@@ -999,8 +999,8 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 20px", borderRadius: 8, cursor: "pointer",
-                background: "none", border: "1px solid var(--db-border)",
-                color: "var(--db-text-secondary)", fontSize: 13,
+                background: "none", border: "1px solid var(--border)",
+                color: "var(--text-2)", fontSize: 13,
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1013,7 +1013,7 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
 
         {/* 오른쪽: 단계 표시 + 다음/생성 */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 12, color: "var(--db-text-muted)" }}>
+          <span style={{ fontSize: 12, color: "var(--text-3)" }}>
             {step} / {STEPS.length}
           </span>
 
@@ -1024,8 +1024,8 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 24px", borderRadius: 8, cursor: canNext() ? "pointer" : "not-allowed",
-                background: canNext() ? "var(--db-grad-purple)" : "var(--db-bg-elevated)",
-                border: "none", color: canNext() ? "#fff" : "var(--db-text-muted)",
+                background: canNext() ? "var(--db-grad-purple)" : "var(--border)",
+                border: "none", color: canNext() ? "#fff" : "var(--text-3)",
                 fontSize: 13, fontWeight: 600,
                 boxShadow: canNext() ? "var(--db-glow-sm)" : "none",
                 transition: "all 0.15s",
@@ -1043,8 +1043,8 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "9px 28px", borderRadius: 8, cursor: isSubmitting ? "not-allowed" : "pointer",
-                background: isSubmitting ? "var(--db-bg-elevated)" : "var(--db-grad-purple)",
-                border: "none", color: isSubmitting ? "var(--db-text-muted)" : "#fff",
+                background: isSubmitting ? "var(--border)" : "var(--db-grad-purple)",
+                border: "none", color: isSubmitting ? "var(--text-3)" : "#fff",
                 fontSize: 13, fontWeight: 700,
                 boxShadow: isSubmitting ? "none" : "var(--db-glow-md)",
                 transition: "all 0.15s",

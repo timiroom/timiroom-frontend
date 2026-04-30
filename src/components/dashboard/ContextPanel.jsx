@@ -17,26 +17,26 @@ import { useState } from "react";
 /* ── 색상 토큰 ── */
 const C = {
   panel:      "#161616",
-  border:     "rgba(255,255,255,0.07)",
-  text:       "#ececec",
+  border:     "rgba(0,0,0,0.07)",
+  text:       "#1a1916",
   muted:      "#7a7a7a",
-  sub:        "#555555",
-  hover:      "rgba(255,255,255,0.04)",
-  active:     "rgba(139,92,246,0.12)",
-  activeBdr:  "rgba(139,92,246,0.25)",
-  accent:     "#a78bfa",
-  accentDim:  "rgba(167,139,250,0.15)",
-  input:      "#232323",
-  inputBdr:   "rgba(255,255,255,0.09)",
+  sub:        "var(--text-3)",
+  hover:      "rgba(0,0,0,0.04)",
+  active:     "rgba(26,25,22,0.12)",
+  activeBdr:  "rgba(26,25,22,0.25)",
+  accent:     "#6b6960",
+  accentDim:  "rgba(107,105,96,0.15)",
+  input:      "var(--surface)",
+  inputBdr:   "rgba(0,0,0,0.09)",
   commit:     "#7d4cfc",
-  itemHover:  "#232323",
+  itemHover:  "var(--surface)",
 };
 
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
   active:    { label: "진행중", color: "#34d399" },
   draft:     { label: "초안",   color: "#6b7280" },
-  completed: { label: "완료",   color: "#a78bfa" },
+  completed: { label: "완료",   color: "#6b6960" },
   archived:  { label: "보관",   color: "#4b5563" },
 };
 
@@ -325,7 +325,7 @@ function CommitPanel({ selectedProject }) {
             borderRadius: 6, fontSize: 12, color: C.text,
             outline: "none", boxSizing: "border-box", marginBottom: 6,
           }}
-          onFocus={e => e.target.style.borderColor = "rgba(167,139,250,0.4)"}
+          onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
           onBlur={e => e.target.style.borderColor = C.inputBdr}
         />
 
@@ -341,7 +341,7 @@ function CommitPanel({ selectedProject }) {
             outline: "none", resize: "none", boxSizing: "border-box",
             marginBottom: 8, lineHeight: "1.6", fontFamily: "inherit",
           }}
-          onFocus={e => e.target.style.borderColor = "rgba(167,139,250,0.4)"}
+          onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
           onBlur={e => e.target.style.borderColor = C.inputBdr}
         />
 
@@ -352,7 +352,7 @@ function CommitPanel({ selectedProject }) {
             width: "100%", padding: "9px 0", borderRadius: 6, border: "none",
             background: committed
               ? "#34d399"
-              : !summary.trim() || submitting ? "rgba(125,76,252,0.35)" : C.commit,
+              : !summary.trim() || submitting ? "rgba(26,25,22,0.35)" : C.commit,
             color:      committed ? "#064e3b" : "white",
             fontSize: 13, fontWeight: 700,
             cursor: !summary.trim() || submitting ? "not-allowed" : "pointer",
@@ -399,8 +399,8 @@ function CommitItem({ commit, isLatest }) {
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
         <div style={{
           width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4,
-          background: isLatest ? C.commit : "rgba(255,255,255,0.15)",
-          border: isLatest ? "2px solid rgba(125,76,252,0.4)" : "none",
+          background: isLatest ? C.commit : "rgba(0,0,0,0.15)",
+          border: isLatest ? "2px solid rgba(26,25,22,0.4)" : "none",
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -412,7 +412,7 @@ function CommitItem({ commit, isLatest }) {
             </span>
             <span style={{ fontSize: 10, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "rgba(255,255,255,0.04)", borderRadius: 4, padding: "2px 7px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "rgba(0,0,0,0.04)", borderRadius: 4, padding: "2px 7px" }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="1.8" strokeLinecap="round">
               <line x1="12" y1="2" x2="12" y2="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="16" x2="12" y2="22"/>
             </svg>

@@ -47,7 +47,7 @@ function UserMenu({ user, onLogout }) {
           cursor:         "pointer",
           transition:     "all 0.15s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#6B5CE7")}
+        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#1a1916")}
         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border, #E5E7EB)")}
       >
         {user.avatarUrl ? (
@@ -61,7 +61,7 @@ function UserMenu({ user, onLogout }) {
             width:          28,
             height:         28,
             borderRadius:   "50%",
-            background:     "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+            background:     "linear-gradient(135deg,#1a1916,#1a1916)",
             display:        "flex",
             alignItems:     "center",
             justifyContent: "center",
@@ -72,7 +72,7 @@ function UserMenu({ user, onLogout }) {
             {initials}
           </div>
         )}
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#1E1B4B" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1916" }}>
           {user.name || user.email.split("@")[0]}
         </span>
         <svg
@@ -100,7 +100,7 @@ function UserMenu({ user, onLogout }) {
         }}>
           {/* 유저 정보 */}
           <div style={{ padding: "12px 16px", borderBottom: "1px solid #F3F4F6" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1E1B4B" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1916" }}>
               {user.name || "사용자"}
             </div>
             <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>

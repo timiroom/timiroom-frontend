@@ -12,17 +12,17 @@ import { AiChatSidebar } from "./AiChatSidebar";
 
 /* ── 색상 토큰 ── */
 const C = {
-  bg:        "#212121",
-  surface:   "#1a1a1a",
-  editor:    "#1e1e1e",
-  border:    "rgba(255,255,255,0.07)",
-  text:      "#ececec",
-  muted:     "#8b8b8b",
-  sub:       "#555",
-  accent:    "#a78bfa",
-  accentBg:  "rgba(167,139,250,0.1)",
-  accentBdr: "rgba(167,139,250,0.25)",
-  code:      "#c4b5fd",
+  bg:        "var(--surface)",
+  surface:   "#f7f6f3",
+  editor:    "var(--surface)",
+  border:    "rgba(0,0,0,0.07)",
+  text:      "#1a1916",
+  muted:     "var(--text-3)",
+  sub:       "var(--text-3)",
+  accent:    "#6b6960",
+  accentBg:  "rgba(107,105,96,0.1)",
+  accentBdr: "rgba(107,105,96,0.25)",
+  code:      "#a8a69f",
   commit:    "#7d4cfc",
 };
 
@@ -108,8 +108,8 @@ function inlineFormat(text) {
   return esc(text)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g,     "<em>$1</em>")
-    .replace(/`(.+?)`/g,       `<code style="background:rgba(167,139,250,0.15);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.9em;color:#c4b5fd;">$1</code>`)
-    .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:#a78bfa;">$1</a>`);
+    .replace(/`(.+?)`/g,       `<code style="background:rgba(107,105,96,0.15);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.9em;color:#a8a69f;">$1</code>`)
+    .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:#6b6960;">$1</a>`);
 }
 function renderMarkdown(raw) {
   const lines  = raw.split("\n");
@@ -130,7 +130,7 @@ function renderMarkdown(raw) {
     /* 코드 블록 토글 */
     if (line.startsWith("```")) {
       if (!inCode) { closeList(); inCode = true; codeBuf = []; continue; }
-      out.push(`<pre style="background:#1a1a1a;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);overflow-x:auto;margin:12px 0;"><code style="font-family:monospace;font-size:13px;color:#c4b5fd;">${esc(codeBuf.join("\n"))}</code></pre>`);
+      out.push(`<pre style="background:#f7f6f3;padding:12px 16px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);overflow-x:auto;margin:12px 0;"><code style="font-family:monospace;font-size:13px;color:#a8a69f;">${esc(codeBuf.join("\n"))}</code></pre>`);
       inCode = false; codeBuf = []; continue;
     }
     if (inCode) { codeBuf.push(line); continue; }
@@ -138,7 +138,7 @@ function renderMarkdown(raw) {
     /* 구분선 */
     if (/^---+$/.test(line.trim())) {
       closeList();
-      out.push(`<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:20px 0;"/>`);
+      out.push(`<hr style="border:none;border-top:1px solid rgba(0,0,0,0.1);margin:20px 0;"/>`);
       continue;
     }
 
@@ -147,13 +147,13 @@ function renderMarkdown(raw) {
 
     /* 제목 */
     if (line.startsWith("### ")) { closeList(); out.push(`<h3 style="font-size:16px;font-weight:600;color:#d4d4d4;margin:16px 0 6px;">${inlineFormat(line.slice(4))}</h3>`); continue; }
-    if (line.startsWith("## "))  { closeList(); out.push(`<h2 style="font-size:20px;font-weight:700;color:#ececec;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.07);">${inlineFormat(line.slice(3))}</h2>`); continue; }
-    if (line.startsWith("# "))   { closeList(); out.push(`<h1 style="font-size:28px;font-weight:900;color:#ececec;margin:0 0 12px;line-height:1.25;">${inlineFormat(line.slice(2))}</h1>`); continue; }
+    if (line.startsWith("## "))  { closeList(); out.push(`<h2 style="font-size:20px;font-weight:700;color:#1a1916;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.07);">${inlineFormat(line.slice(3))}</h2>`); continue; }
+    if (line.startsWith("# "))   { closeList(); out.push(`<h1 style="font-size:28px;font-weight:900;color:#1a1916;margin:0 0 12px;line-height:1.25;">${inlineFormat(line.slice(2))}</h1>`); continue; }
 
     /* 인용 */
     if (line.startsWith("> ")) {
       closeList();
-      out.push(`<blockquote style="border-left:3px solid #a78bfa;margin:8px 0;padding:8px 14px;background:rgba(167,139,250,0.07);border-radius:0 6px 6px 0;font-style:italic;color:#9ca3af;">${inlineFormat(line.slice(2))}</blockquote>`);
+      out.push(`<blockquote style="border-left:3px solid #6b6960;margin:8px 0;padding:8px 14px;background:rgba(107,105,96,0.07);border-radius:0 6px 6px 0;font-style:italic;color:#9ca3af;">${inlineFormat(line.slice(2))}</blockquote>`);
       continue;
     }
 
@@ -225,7 +225,7 @@ function MarkdownEditor({ value, onChange }) {
         display: "flex", alignItems: "center",
         padding: "0 16px", gap: 2,
         borderBottom: `1px solid ${C.border}`,
-        background: "#1a1a1a",
+        background: "#f7f6f3",
       }}>
         {toolbarBtns.map((btn, i) => (
           <button
@@ -241,7 +241,7 @@ function MarkdownEditor({ value, onChange }) {
               padding: "0 4px",
               transition: "all 0.1s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = C.text; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.07)"; e.currentTarget.style.color = C.text; }}
             onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.muted; }}
           >
             {btn.label}
@@ -258,7 +258,7 @@ function MarkdownEditor({ value, onChange }) {
           onClick={() => setPreview(v => !v)}
           style={{
             padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-            background: preview ? C.accentBg : "rgba(255,255,255,0.05)",
+            background: preview ? C.accentBg : "rgba(0,0,0,0.05)",
             border: `1px solid ${preview ? C.accentBdr : C.border}`,
             color: preview ? C.accent : C.muted,
             cursor: "pointer", transition: "all 0.15s",
@@ -339,7 +339,7 @@ export function PrdPanel({ project }) {
                 background: `${project.color || "#7C3AED"}22`,
                 border: `1px solid ${project.color || "#7C3AED"}44`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 9, fontWeight: 900, color: project.color || "#a78bfa",
+                fontSize: 9, fontWeight: 900, color: project.color || "#6b6960",
               }}>
                 {(project.name || "P").charAt(0).toUpperCase()}
               </div>

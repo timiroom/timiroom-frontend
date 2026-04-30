@@ -12,16 +12,16 @@ import { AiChatSidebar } from "./AiChatSidebar";
 
 /* ── 색상 토큰 ── */
 const C = {
-  bg:       "#212121",
-  surface:  "#1a1a1a",
-  card:     "#252525",
-  cardOpen: "#2a2a2a",
-  border:   "rgba(255,255,255,0.07)",
-  text:     "#ececec",
-  muted:    "#8b8b8b",
-  sub:      "#555",
-  accent:   "#a78bfa",
-  code:     "#1e1e1e",
+  bg:       "var(--surface)",
+  surface:  "#f7f6f3",
+  card:     "var(--surface)",
+  cardOpen: "var(--bg)",
+  border:   "rgba(0,0,0,0.07)",
+  text:     "#1a1916",
+  muted:    "var(--text-3)",
+  sub:      "var(--text-3)",
+  accent:   "#6b6960",
+  code:     "var(--surface)",
 };
 
 /* ── HTTP 메서드 색상 ── */
@@ -320,7 +320,7 @@ function EndpointCard({ endpoint }) {
   return (
     <div style={{
       borderRadius: 8,
-      border: `1px solid ${open ? "rgba(167,139,250,0.2)" : C.border}`,
+      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
       background: open ? C.cardOpen : C.card,
       marginBottom: 6,
       overflow: "hidden",
@@ -490,7 +490,7 @@ function SchemaBlock({ data }) {
       margin: 0, padding: "10px 12px",
       background: C.code, borderRadius: 6,
       border: `1px solid ${C.border}`,
-      fontSize: 11.5, color: "#c4b5fd",
+      fontSize: 11.5, color: "#a8a69f",
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       lineHeight: 1.7, overflowX: "auto",
       whiteSpace: "pre-wrap", wordBreak: "break-word",
@@ -546,7 +546,7 @@ function TagGroup({ tag }) {
         <span style={{
           marginLeft: "auto", fontSize: 11, color: C.sub,
           padding: "2px 7px", borderRadius: 10,
-          background: "rgba(255,255,255,0.05)",
+          background: "rgba(0,0,0,0.05)",
         }}>
           {tag.endpoints.length}
         </span>
@@ -600,7 +600,7 @@ export function ApiSpecPanel({ project }) {
               background: `${project.color || "#7C3AED"}22`,
               border: `1px solid ${project.color || "#7C3AED"}44`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#a78bfa",
+              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
             }}>
               {(project.name || "P").charAt(0).toUpperCase()}
             </div>
@@ -619,14 +619,14 @@ export function ApiSpecPanel({ project }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{
             fontSize: 11, color: C.sub, padding: "3px 8px", borderRadius: 5,
-            background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`,
+            background: "rgba(0,0,0,0.05)", border: `1px solid ${C.border}`,
             fontFamily: "monospace",
           }}>
             {API_SPEC.baseUrl}
           </span>
           <span style={{
             fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 5,
-            background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)",
+            background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.25)",
             color: C.accent,
           }}>
             {API_SPEC.version}
@@ -650,11 +650,11 @@ export function ApiSpecPanel({ project }) {
             placeholder="엔드포인트 검색 (경로, 메서드, 요약)"
             style={{
               width: "100%", padding: "8px 12px 8px 32px",
-              background: "#2a2a2a", border: `1px solid ${C.border}`,
+              background: "var(--bg)", border: `1px solid ${C.border}`,
               borderRadius: 8, fontSize: 13, color: C.text,
               outline: "none", boxSizing: "border-box",
             }}
-            onFocus={e => e.target.style.borderColor = "rgba(167,139,250,0.4)"}
+            onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
             onBlur={e => e.target.style.borderColor = C.border}
           />
         </div>

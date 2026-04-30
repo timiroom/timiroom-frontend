@@ -6,30 +6,30 @@ function PurpleIllus() {
     <div className="al-pipe-illus">
       <svg width="320" height="240" viewBox="0 0 320 240" fill="none" xmlns="http://www.w3.org/2000/svg">
         {/* PRD 문서 카드 */}
-        <rect x="20" y="60" width="110" height="120" rx="12" fill="white" stroke="#c4b5fd" strokeWidth="1.5"/>
-        <rect x="36" y="82" width="78" height="9" rx="4" fill="#ede9fe"/>
-        <rect x="36" y="100" width="58" height="9" rx="4" fill="#ede9fe"/>
-        <rect x="36" y="118" width="68" height="9" rx="4" fill="#ede9fe"/>
-        <rect x="36" y="136" width="50" height="9" rx="4" fill="#ede9fe"/>
-        <rect x="36" y="154" width="62" height="9" rx="4" fill="#ede9fe"/>
-        <text x="75" y="78" fontSize="10" fontWeight="700" fill="#8962ed" textAnchor="middle" fontFamily="sans-serif">PRD</text>
+        <rect x="20" y="60" width="110" height="120" rx="12" fill="white" stroke="#d0cec6" strokeWidth="1.5"/>
+        <rect x="36" y="82" width="78" height="9" rx="4" fill="#e4e2db"/>
+        <rect x="36" y="100" width="58" height="9" rx="4" fill="#e4e2db"/>
+        <rect x="36" y="118" width="68" height="9" rx="4" fill="#e4e2db"/>
+        <rect x="36" y="136" width="50" height="9" rx="4" fill="#e4e2db"/>
+        <rect x="36" y="154" width="62" height="9" rx="4" fill="#e4e2db"/>
+        <text x="75" y="78" fontSize="10" fontWeight="700" fill="#6b6960" textAnchor="middle" fontFamily="sans-serif">PRD</text>
 
         {/* 화살표 */}
-        <path d="M136 118 L162 118" stroke="#8962ed" strokeWidth="2" strokeDasharray="4 3"/>
-        <polygon points="162,113 174,118 162,123" fill="#8962ed"/>
+        <path d="M136 118 L162 118" stroke="#6b6960" strokeWidth="2" strokeDasharray="4 3"/>
+        <polygon points="162,113 174,118 162,123" fill="#6b6960"/>
 
         {/* MoSCoW 우선순위 */}
-        <rect x="178" y="44" width="122" height="34" rx="8" fill="#7d4cfc" opacity="0.15"/>
-        <rect x="188" y="55" width="50" height="7" rx="3" fill="#7d4cfc" opacity="0.7"/>
-        <text x="260" y="64" fontSize="9" fontWeight="800" fill="#7d4cfc" fontFamily="sans-serif">Must</text>
+        <rect x="178" y="44" width="122" height="34" rx="8" fill="#1a1916" opacity="0.15"/>
+        <rect x="188" y="55" width="50" height="7" rx="3" fill="#1a1916" opacity="0.7"/>
+        <text x="260" y="64" fontSize="9" fontWeight="800" fill="#1a1916" fontFamily="sans-serif">Must</text>
 
-        <rect x="178" y="86" width="122" height="34" rx="8" fill="#8962ed" opacity="0.12"/>
-        <rect x="188" y="97" width="65" height="7" rx="3" fill="#8962ed" opacity="0.6"/>
-        <text x="260" y="106" fontSize="9" fontWeight="800" fill="#8962ed" fontFamily="sans-serif">Should</text>
+        <rect x="178" y="86" width="122" height="34" rx="8" fill="#6b6960" opacity="0.12"/>
+        <rect x="188" y="97" width="65" height="7" rx="3" fill="#6b6960" opacity="0.6"/>
+        <text x="260" y="106" fontSize="9" fontWeight="800" fill="#6b6960" fontFamily="sans-serif">Should</text>
 
-        <rect x="178" y="128" width="122" height="34" rx="8" fill="#6545b7" opacity="0.1"/>
-        <rect x="188" y="139" width="48" height="7" rx="3" fill="#6545b7" opacity="0.5"/>
-        <text x="260" y="148" fontSize="9" fontWeight="800" fill="#6545b7" fontFamily="sans-serif">Could</text>
+        <rect x="178" y="128" width="122" height="34" rx="8" fill="#1a1916" opacity="0.1"/>
+        <rect x="188" y="139" width="48" height="7" rx="3" fill="#1a1916" opacity="0.5"/>
+        <text x="260" y="148" fontSize="9" fontWeight="800" fill="#1a1916" fontFamily="sans-serif">Could</text>
 
         <rect x="178" y="170" width="122" height="34" rx="8" fill="#9ca3af" opacity="0.12"/>
         <rect x="188" y="181" width="58" height="7" rx="3" fill="#9ca3af" opacity="0.5"/>
@@ -44,30 +44,30 @@ function BlueIllus() {
     <div className="al-pipe-illus">
       <svg width="320" height="240" viewBox="0 0 320 240" fill="none" xmlns="http://www.w3.org/2000/svg">
         {/* API 명세 박스 */}
-        <rect x="20" y="28" width="130" height="80" rx="10" fill="white" stroke="#bfdbfe" strokeWidth="1.5"/>
-        <text x="32" y="50" fontSize="10" fontWeight="800" fill="#3b82f6" fontFamily="monospace">GET /features</text>
+        <rect x="20" y="28" width="130" height="80" rx="10" fill="white" stroke="#e4e2db" strokeWidth="1.5"/>
+        <text x="32" y="50" fontSize="10" fontWeight="800" fill="#6b6960" fontFamily="monospace">GET /features</text>
         <text x="32" y="67" fontSize="9" fill="#6b7280" fontFamily="monospace">200 OK → Feature[]</text>
-        <text x="32" y="84" fontSize="10" fontWeight="800" fill="#10b981" fontFamily="monospace">POST /pipeline</text>
+        <text x="32" y="84" fontSize="10" fontWeight="800" fill="#a8a69f" fontFamily="monospace">POST /pipeline</text>
         <text x="32" y="100" fontSize="9" fill="#6b7280" fontFamily="monospace">201 Created</text>
 
         {/* DB 스키마 박스 */}
-        <rect x="20" y="132" width="130" height="80" rx="10" fill="white" stroke="#bbf7d0" strokeWidth="1.5"/>
-        <text x="32" y="154" fontSize="9" fontWeight="700" fill="#16a34a" fontFamily="monospace">TABLE features</text>
-        <rect x="32" y="162" width="45" height="6" rx="3" fill="#bbf7d0"/>
+        <rect x="20" y="132" width="130" height="80" rx="10" fill="white" stroke="#e4e2db" strokeWidth="1.5"/>
+        <text x="32" y="154" fontSize="9" fontWeight="700" fill="#6b6960" fontFamily="monospace">TABLE features</text>
+        <rect x="32" y="162" width="45" height="6" rx="3" fill="#e4e2db"/>
         <rect x="82" y="162" width="55" height="6" rx="3" fill="#d1fae5"/>
-        <text x="32" y="182" fontSize="9" fontWeight="700" fill="#16a34a" fontFamily="monospace">TABLE api_specs</text>
-        <rect x="32" y="190" width="40" height="6" rx="3" fill="#bbf7d0"/>
+        <text x="32" y="182" fontSize="9" fontWeight="700" fill="#6b6960" fontFamily="monospace">TABLE api_specs</text>
+        <rect x="32" y="190" width="40" height="6" rx="3" fill="#e4e2db"/>
         <rect x="78" y="190" width="50" height="6" rx="3" fill="#d1fae5"/>
 
         {/* 연결선 */}
         <path d="M155 68 L192 68 L192 120 M155 172 L192 172 L192 120" stroke="#93c5fd" strokeWidth="1.5" strokeDasharray="4 3"/>
-        <circle cx="192" cy="120" r="7" fill="#3b82f6" opacity="0.25"/>
-        <circle cx="192" cy="120" r="3.5" fill="#3b82f6"/>
+        <circle cx="192" cy="120" r="7" fill="#6b6960" opacity="0.25"/>
+        <circle cx="192" cy="120" r="3.5" fill="#6b6960"/>
 
         {/* 정합성 체크 */}
-        <rect x="210" y="100" width="90" height="40" rx="10" fill="#eff6ff"/>
-        <text x="255" y="118" fontSize="9" fontWeight="700" fill="#3b82f6" textAnchor="middle" fontFamily="sans-serif">정합성 연결</text>
-        <text x="255" y="130" fontSize="11" fontWeight="800" fill="#3b82f6" textAnchor="middle" fontFamily="sans-serif">✓ 확인됨</text>
+        <rect x="210" y="100" width="90" height="40" rx="10" fill="#f7f6f3"/>
+        <text x="255" y="118" fontSize="9" fontWeight="700" fill="#6b6960" textAnchor="middle" fontFamily="sans-serif">정합성 연결</text>
+        <text x="255" y="130" fontSize="11" fontWeight="800" fill="#6b6960" textAnchor="middle" fontFamily="sans-serif">✓ 확인됨</text>
       </svg>
     </div>
   );
@@ -88,9 +88,9 @@ function GreenIllus() {
         <text x="230" y="93"  fontSize="8" fill="#1e3a8a" textAnchor="middle" fontFamily="sans-serif">POST /auth</text>
 
         {/* ERD 노드 */}
-        <circle cx="155" cy="180" r="34" fill="#ede9fe" stroke="#c4b5fd" strokeWidth="1.5"/>
-        <text x="155" y="175" fontSize="9" fontWeight="700" fill="#4c1d95" textAnchor="middle" fontFamily="sans-serif">ERD</text>
-        <text x="155" y="188" fontSize="8" fill="#4c1d95" textAnchor="middle" fontFamily="sans-serif">users</text>
+        <circle cx="155" cy="180" r="34" fill="#e4e2db" stroke="#d0cec6" strokeWidth="1.5"/>
+        <text x="155" y="175" fontSize="9" fontWeight="700" fill="#1a1916" textAnchor="middle" fontFamily="sans-serif">ERD</text>
+        <text x="155" y="188" fontSize="8" fill="#1a1916" textAnchor="middle" fontFamily="sans-serif">users</text>
 
         {/* 엣지 */}
         <line x1="114" y1="85" x2="196" y2="85" stroke="#6ee7b7" strokeWidth="2"/>
@@ -99,11 +99,11 @@ function GreenIllus() {
         <line x1="98"  y1="112" x2="134" y2="154" stroke="#93c5fd" strokeWidth="2"/>
         <text x="100" y="140" fontSize="8" fill="#1e3a8a" fontFamily="sans-serif">STORES</text>
 
-        <line x1="212" y1="112" x2="176" y2="154" stroke="#c4b5fd" strokeWidth="2"/>
-        <text x="200" y="140" fontSize="8" fill="#4c1d95" fontFamily="sans-serif">USES</text>
+        <line x1="212" y1="112" x2="176" y2="154" stroke="#d0cec6" strokeWidth="2"/>
+        <text x="200" y="140" fontSize="8" fill="#1a1916" fontFamily="sans-serif">USES</text>
 
         {/* 스코어 뱃지 */}
-        <rect x="240" y="175" width="70" height="38" rx="10" fill="#7d4cfc"/>
+        <rect x="240" y="175" width="70" height="38" rx="10" fill="#1a1916"/>
         <text x="275" y="192" fontSize="9" fontWeight="800" fill="white" textAnchor="middle" fontFamily="sans-serif">Score</text>
         <text x="275" y="205" fontSize="11" fontWeight="800" fill="white" textAnchor="middle" fontFamily="sans-serif">92 / 100</text>
       </svg>

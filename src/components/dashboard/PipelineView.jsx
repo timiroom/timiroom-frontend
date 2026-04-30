@@ -51,7 +51,7 @@ const STEPS = [
 const STATUS_META = {
   done:    { label:"완료",   color:"var(--db-green)",  bg:"var(--db-green-bg)",  icon:"✅" },
   running: { label:"실행 중",color:"var(--db-blue)",   bg:"var(--db-blue-bg)",   icon:"⚡" },
-  waiting: { label:"대기",   color:"var(--db-text-muted)", bg:"var(--db-bg-elevated)", icon:"⏳" },
+  waiting: { label:"대기",   color:"var(--text-3)", bg:"var(--border)", icon:"⏳" },
   error:   { label:"오류",   color:"var(--db-red)",    bg:"var(--db-red-bg)",    icon:"❌" },
 };
 
@@ -71,7 +71,7 @@ const LVL_COLORS = {
   INFO:  "var(--db-green)",
   WARN:  "var(--db-orange)",
   ERROR: "var(--db-red)",
-  DEBUG: "var(--db-text-muted)",
+  DEBUG: "var(--text-3)",
 };
 
 /* ── Animated progress bar ── */
@@ -82,7 +82,7 @@ function RunningBar({ color }) {
     return () => clearInterval(id);
   }, []);
   return (
-    <div style={{ height:3, background:"var(--db-bg-elevated)", borderRadius:100, overflow:"hidden", marginTop:6 }}>
+    <div style={{ height:3, background:"var(--border)", borderRadius:100, overflow:"hidden", marginTop:6 }}>
       <div style={{ height:"100%", width:`${w}%`, background:color, borderRadius:100, transition:"width .05s", boxShadow:`0 0 8px ${color}` }}/>
     </div>
   );
@@ -99,22 +99,22 @@ function StepCard({ step, index, isSelected, onClick }) {
       style={{
         display:"flex", gap:14, padding:"14px 16px",
         borderRadius:"var(--db-radius)",
-        border:`1px solid ${isSelected ? "var(--db-border-active)" : isRunning ? "rgba(59,130,246,.25)" : "var(--db-border)"}`,
-        background: isSelected ? "rgba(139,92,246,.1)" : isRunning ? "rgba(59,130,246,.06)" : "var(--db-bg-surface)",
+        border:`1px solid ${isSelected ? "var(--db-border-active)" : isRunning ? "rgba(107,105,96,.25)" : "var(--border)"}`,
+        background: isSelected ? "rgba(26,25,22,.1)" : isRunning ? "rgba(107,105,96,.06)" : "var(--surface)",
         cursor:"pointer", transition:"var(--db-transition)",
-        boxShadow: isRunning ? "0 0 16px rgba(59,130,246,.15)" : "none",
+        boxShadow: isRunning ? "0 0 16px rgba(107,105,96,.15)" : "none",
       }}
     >
       {/* Step index & connector */}
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
         <div style={{
           width:32, height:32, borderRadius:"50%", flexShrink:0,
-          background: step.status==="done" ? "var(--db-green-bg)" : step.status==="running" ? "var(--db-blue-bg)" : "var(--db-bg-elevated)",
-          border:`2px solid ${step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--db-border)"}`,
+          background: step.status==="done" ? "var(--db-green-bg)" : step.status==="running" ? "var(--db-blue-bg)" : "var(--border)",
+          border:`2px solid ${step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--border)"}`,
           display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:14, color:step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--db-text-muted)",
+          fontSize:14, color:step.status==="done" ? "var(--db-green)" : step.status==="running" ? "var(--db-blue)" : "var(--text-3)",
           fontWeight:700,
-          boxShadow: isRunning ? "0 0 10px rgba(59,130,246,.4)" : "none",
+          boxShadow: isRunning ? "0 0 10px rgba(107,105,96,.4)" : "none",
         }}>
           {step.status === "done" ? "✓" : step.status === "running" ? <span style={{ animation:"db-spin 1s linear infinite", display:"block" }}>↻</span> : index+1}
         </div>
@@ -124,12 +124,12 @@ function StepCard({ step, index, isSelected, onClick }) {
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
           <span style={{ fontSize:16 }}>{step.icon}</span>
-          <span style={{ fontSize:14, fontWeight:700, color:"var(--db-text-primary)" }}>{step.label}</span>
+          <span style={{ fontSize:14, fontWeight:700, color:"var(--text-1)" }}>{step.label}</span>
           <span style={{ marginLeft:"auto", fontSize:10, fontWeight:600, padding:"2px 8px", borderRadius:100, background:meta.bg, color:meta.color }}>
             {meta.label}
           </span>
         </div>
-        <div style={{ fontSize:11, color:"var(--db-text-muted)", marginBottom:4 }}>
+        <div style={{ fontSize:11, color:"var(--text-3)", marginBottom:4 }}>
           {step.agent} · {step.duration}
         </div>
         {isRunning && <RunningBar color={step.color}/>}
@@ -138,8 +138,8 @@ function StepCard({ step, index, isSelected, onClick }) {
             {step.outputs.map((o,i) => (
               <span key={i} style={{
                 fontSize:10, padding:"2px 8px", borderRadius:100,
-                background:"rgba(139,92,246,.12)", color:"var(--db-purple-200)",
-                border:"1px solid var(--db-border)",
+                background:"rgba(26,25,22,.12)", color:"var(--db-purple-200)",
+                border:"1px solid var(--border)",
               }}>{o}</span>
             ))}
           </div>
@@ -178,7 +178,7 @@ export function PipelineView() {
             <span style={{ fontSize:22 }}>{s.icon}</span>
             <div>
               <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
-              <div style={{ fontSize:11, color:"var(--db-text-muted)" }}>{s.label}</div>
+              <div style={{ fontSize:11, color:"var(--text-3)" }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -186,11 +186,11 @@ export function PipelineView() {
 
       {/* Overall progress bar */}
       <div className="db-card" style={{ padding:"14px 20px" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--db-text-secondary)", marginBottom:8 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--text-2)", marginBottom:8 }}>
           <span>파이프라인 진행</span>
           <span style={{ color:"var(--db-purple-300)", fontWeight:700 }}>{pct}%</span>
         </div>
-        <div style={{ height:6, background:"var(--db-bg-elevated)", borderRadius:100, overflow:"hidden" }}>
+        <div style={{ height:6, background:"var(--border)", borderRadius:100, overflow:"hidden" }}>
           <div style={{
             height:"100%", width:`${pct}%`,
             background:"linear-gradient(90deg, var(--db-purple-600), var(--db-purple-400))",
@@ -201,7 +201,7 @@ export function PipelineView() {
           {STEPS.map((s,i) => (
             <div key={s.id} style={{
               flex:1, height:3, borderRadius:100,
-              background: s.status==="done" ? "var(--db-green)" : s.status==="running" ? "var(--db-blue)" : "var(--db-bg-elevated)",
+              background: s.status==="done" ? "var(--db-green)" : s.status==="running" ? "var(--db-blue)" : "var(--border)",
               boxShadow: s.status==="running" ? "0 0 6px var(--db-blue)" : "none",
               transition:"background .3s",
             }}/>
@@ -225,29 +225,29 @@ export function PipelineView() {
         {/* Log panel */}
         {showLog && (
           <div className="db-card" style={{ display:"flex", flexDirection:"column", minHeight:0 }}>
-            <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--db-border)", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+            <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
               <div style={{ fontSize:13, fontWeight:700 }}>🖥 실행 로그</div>
               <div style={{ display:"flex", gap:8 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:"var(--db-green)" }}>
                   <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--db-green)", animation:"db-pulse 1.5s infinite" }}/>
                   SSE 스트리밍 중
                 </div>
-                <button onClick={() => setShowLog(false)} style={{ background:"none", border:"none", color:"var(--db-text-muted)", cursor:"pointer", fontSize:14 }}>✕</button>
+                <button onClick={() => setShowLog(false)} style={{ background:"none", border:"none", color:"var(--text-3)", cursor:"pointer", fontSize:14 }}>✕</button>
               </div>
             </div>
             <div ref={logRef} style={{ flex:1, overflowY:"auto", padding:"12px 16px", fontFamily:"'JetBrains Mono', 'Fira Code', monospace" }}>
               {LOG_LINES.map((line, i) => (
-                <div key={i} style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, borderBottom:"1px solid rgba(139,92,246,.05)", paddingBottom:2 }}>
-                  <span style={{ color:"var(--db-text-muted)", flexShrink:0 }}>{line.t}</span>
+                <div key={i} style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, borderBottom:"1px solid rgba(26,25,22,.05)", paddingBottom:2 }}>
+                  <span style={{ color:"var(--text-3)", flexShrink:0 }}>{line.t}</span>
                   <span style={{ color:LVL_COLORS[line.lvl], fontWeight:700, flexShrink:0, width:42 }}>{line.lvl}</span>
-                  <span style={{ color:"var(--db-text-secondary)" }}>{line.msg}</span>
+                  <span style={{ color:"var(--text-2)" }}>{line.msg}</span>
                 </div>
               ))}
               {/* Blinking cursor */}
               <div style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, marginTop:4 }}>
-                <span style={{ color:"var(--db-text-muted)" }}>00:00:28</span>
+                <span style={{ color:"var(--text-3)" }}>00:00:28</span>
                 <span style={{ color:"var(--db-blue)", fontWeight:700, width:42 }}>INFO</span>
-                <span style={{ color:"var(--db-text-secondary)" }}>
+                <span style={{ color:"var(--text-2)" }}>
                   처리 중
                   <span style={{ animation:"db-pulse 1s infinite", marginLeft:4 }}>▌</span>
                 </span>

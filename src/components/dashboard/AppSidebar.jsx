@@ -18,14 +18,14 @@ import { useAuth } from "@/context/AuthContext";
 /* ── CSS-in-JS 토큰 (Claude 팔레트) ── */
 const C = {
   sidebar:   "#171717",
-  border:    "rgba(255,255,255,0.07)",
-  text:      "#ececec",
-  muted:     "#8b8b8b",
-  hover:     "rgba(255,255,255,0.05)",
-  active:    "rgba(139,92,246,0.12)",
-  activeBdr: "rgba(139,92,246,0.22)",
-  accent:    "#a78bfa",
-  accentDim: "rgba(139,92,246,0.18)",
+  border:    "rgba(0,0,0,0.07)",
+  text:      "#1a1916",
+  muted:     "var(--text-3)",
+  hover:     "rgba(0,0,0,0.05)",
+  active:    "rgba(26,25,22,0.12)",
+  activeBdr: "rgba(26,25,22,0.22)",
+  accent:    "#6b6960",
+  accentDim: "rgba(26,25,22,0.18)",
 };
 
 /* ── 아이콘 SVG ── */
@@ -123,10 +123,10 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, is
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <div style={{
               width: 26, height: 26, borderRadius: 7,
-              background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+              background: "var(--text-1)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 900, color: "#fff",
-              boxShadow: "0 2px 8px rgba(107,92,231,0.35)",
+              fontSize: 12, fontWeight: 900, color: "var(--text-1)",
+              boxShadow: "0 2px 8px rgba(26,25,22,0.35)",
               flexShrink: 0,
             }}>A</div>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>
@@ -143,7 +143,7 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, is
       {!collapsed && (
         <div style={{
           padding: "12px 14px 6px",
-          fontSize: 10, color: "#555", fontWeight: 700,
+          fontSize: 10, color: "var(--text-3)", fontWeight: 700,
           letterSpacing: ".07em", textTransform: "uppercase",
           flexShrink: 0,
         }}>
@@ -292,9 +292,9 @@ function UserProfile({ user, collapsed, onLogout }) {
       >
         <div style={{
           width: 24, height: 24, borderRadius: "50%",
-          background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
+          background: "var(--text-1)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0,
+          fontSize: 11, fontWeight: 800, color: "var(--text-1)", flexShrink: 0,
         }}>
           {initial}
         </div>
