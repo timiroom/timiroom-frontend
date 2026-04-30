@@ -16,6 +16,7 @@ import { ActivityBar }   from "@/components/dashboard/ActivityBar";
 import { ContextPanel }  from "@/components/dashboard/ContextPanel";
 import { AgentPanel }    from "@/components/dashboard/AgentPanel";
 import { ApiSpecPanel }  from "@/components/dashboard/ApiSpecPanel";
+import { PrdPanel }      from "@/components/dashboard/PrdPanel";
 
 /* ── 임시 목업 프로젝트 데이터 ── */
 const MOCK_PROJECTS = [
@@ -98,9 +99,11 @@ export default function DashboardPage() {
       />
 
       {/* ③ 메인 콘텐츠 — view에 따라 전환 */}
-      {selectedView === "api"
-        ? <ApiSpecPanel project={selectedProject} />
-        : <AgentPanel project={selectedProject} view={selectedView} />
+      {selectedView === "prd"
+        ? <PrdPanel     project={selectedProject} />
+        : selectedView === "api"
+          ? <ApiSpecPanel project={selectedProject} />
+          : <AgentPanel   project={selectedProject} view={selectedView} />
       }
 
       {/* ④ 우측 패널 — 추후 구현 */}

@@ -8,6 +8,7 @@
  */
 
 import { useState } from "react";
+import { AiChatSidebar } from "./AiChatSidebar";
 
 /* ── 색상 토큰 ── */
 const C = {
