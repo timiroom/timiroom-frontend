@@ -34,7 +34,7 @@
  * └──────────────────────────────────────────────────────────┘
  */
 
-import { API_BASE_URL } from "@/lib/authConfig";
+import { API_BASE_URL, getToken } from "@/lib/authConfig";
 
 /* ── 상수 ── */
 export const AGENT_CONFIG_KEY = "align_agent_config";
@@ -106,6 +106,7 @@ Align-it은 LLM과 지식 그래프를 활용해 PRD·API 명세·DB 스키마·
 export async function sendMessage({ messages, config, projectContext }) {
   const { provider, apiKey, model } = config;
 
+  const token = getToken();
   const res = await fetch(`${API_BASE_URL}/api/agent/chat`, {
     method: "POST",
     headers: {
@@ -113,6 +114,7 @@ export async function sendMessage({ messages, config, projectContext }) {
       "X-LLM-Provider":  provider,
       "X-LLM-Api-Key":   apiKey,
       "X-LLM-Model":     model,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       messages,
@@ -144,6 +146,7 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
   const { provider, apiKey, model } = config;
 
   try {
+    const streamToken = getToken();
     const res = await fetch(`${API_BASE_URL}/api/agent/chat/stream`, {
       method: "POST",
       headers: {
@@ -151,6 +154,7 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
         "X-LLM-Provider":  provider,
         "X-LLM-Api-Key":   apiKey,
         "X-LLM-Model":     model,
+        ...(streamToken ? { Authorization: `Bearer ${streamToken}` } : {}),
       },
       body: JSON.stringify({
         messages,
