@@ -12,9 +12,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ActivityBar }  from "@/components/dashboard/ActivityBar";
-import { ContextPanel } from "@/components/dashboard/ContextPanel";
-import { AgentPanel }   from "@/components/dashboard/AgentPanel";
+import { ActivityBar }   from "@/components/dashboard/ActivityBar";
+import { ContextPanel }  from "@/components/dashboard/ContextPanel";
+import { AgentPanel }    from "@/components/dashboard/AgentPanel";
+import { ApiSpecPanel }  from "@/components/dashboard/ApiSpecPanel";
 
 /* ── 임시 목업 프로젝트 데이터 ── */
 const MOCK_PROJECTS = [
@@ -96,8 +97,11 @@ export default function DashboardPage() {
         onSelectView={setSelectedView}
       />
 
-      {/* ③ 채팅 메인 (flex-1) */}
-      <AgentPanel project={selectedProject} view={selectedView} />
+      {/* ③ 메인 콘텐츠 — view에 따라 전환 */}
+      {selectedView === "api"
+        ? <ApiSpecPanel project={selectedProject} />
+        : <AgentPanel project={selectedProject} view={selectedView} />
+      }
 
       {/* ④ 우측 패널 — 추후 구현 */}
     </div>
