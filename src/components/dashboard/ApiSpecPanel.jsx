@@ -581,9 +581,14 @@ export function ApiSpecPanel({ project }) {
 
   return (
     <div style={{
+      flex: 1, display: "flex", height: "100vh", overflow: "hidden",
+      fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+    }}>
+
+    {/* ── 왼쪽: Swagger 뷰어 ── */}
+    <div style={{
       flex: 1, display: "flex", flexDirection: "column",
       height: "100vh", background: C.bg, overflow: "hidden",
-      fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
       {/* 상단 헤더 */}
       <div style={{
@@ -680,6 +685,9 @@ export function ApiSpecPanel({ project }) {
           filteredTags.map(tag => <TagGroup key={tag.name} tag={tag} />)
         )}
       </div>
+    </div>{/* ── 오른쪽: AI 채팅 ── */}
+    <AiChatSidebar contextType="api" />
+
     </div>
   );
 }
