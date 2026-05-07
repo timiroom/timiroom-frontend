@@ -27,8 +27,9 @@ import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
 export async function fetchProjects() {
   const res = await apiFetch(`${API_BASE_URL}/api/projects`);
   if (!res || !res.ok) return [];
-  const data = await res.json();
-  return normalizeProjects(data);
+  const body = await res.json();
+  // 백엔드 ApiResponse 래퍼: { success, code, data: [...] }
+  return normalizeProjects(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
@@ -38,8 +39,8 @@ export async function fetchProjects() {
 export async function fetchProject(id) {
   const res = await apiFetch(`${API_BASE_URL}/api/projects/${id}`);
   if (!res || !res.ok) return null;
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
@@ -52,8 +53,8 @@ export async function createProject(payload) {
     body: JSON.stringify(payload),
   });
   if (!res || !res.ok) throw new Error(`프로젝트 생성 실패 (HTTP ${res?.status})`);
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
@@ -66,8 +67,8 @@ export async function updateProject(id, patch) {
     body: JSON.stringify(patch),
   });
   if (!res || !res.ok) throw new Error(`프로젝트 수정 실패 (HTTP ${res?.status})`);
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
@@ -89,7 +90,6 @@ function normalizeProject(raw) {
     description:      raw.description      ?? "",
     status:           raw.status           ?? "draft",
     color:            raw.color            ?? "var(--text-1)",
-    // 백엔드 필드명: consistencyScore → 프론트 score
     score:            raw.consistencyScore ?? raw.score ?? 0,
     consistencyScore: raw.consistencyScore ?? raw.score ?? 0,
     progress:         raw.progress         ?? 0,
@@ -100,6 +100,11 @@ function normalizeProject(raw) {
     prdCount:         raw.prdCount         ?? 0,
     issueCount:       raw.issueCount       ?? 0,
     specCount:        raw.specCount        ?? 0,
+    // 파이프라인 결과물
+    prdDocument:      raw.prdDocument      ?? null,
+    dbSchema:         raw.dbSchema         ?? null,
+    apiSpec:          raw.apiSpec          ?? null,
+    featureList:      raw.featureList      ?? [],
   };
 }
 

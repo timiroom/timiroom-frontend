@@ -214,9 +214,11 @@ export function Navbar() {
             <Button variant="outline" onClick={openAuthModal}>
               로그인
             </Button>
-            <Button variant="primary" onClick={openAuthModal}>
-              무료로 시작하기 →
-            </Button>
+            <Link href="/dashboard">
+              <Button variant="primary">
+                무료로 시작하기 →
+              </Button>
+            </Link>
           </>
         )}
       </div>

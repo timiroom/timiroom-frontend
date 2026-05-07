@@ -104,7 +104,7 @@ Align-it은 LLM과 지식 그래프를 활용해 PRD·API 명세·DB 스키마·
 
 /* ── 일반 응답 전송 ── */
 export async function sendMessage({ messages, config, projectContext }) {
-  const { provider, apiKey, model } = config;
+  const { provider, model } = config;
 
   const token = getToken();
   const res = await fetch(`${API_BASE_URL}/api/agent/chat`, {
@@ -112,7 +112,6 @@ export async function sendMessage({ messages, config, projectContext }) {
     headers: {
       "Content-Type":    "application/json",
       "X-LLM-Provider":  provider,
-      "X-LLM-Api-Key":   apiKey,
       "X-LLM-Model":     model,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -142,8 +141,8 @@ export async function sendMessage({ messages, config, projectContext }) {
  * @param {function} [opts.onError]       - 오류 콜백 (message: string)
  * @param {AbortSignal} [opts.signal]     - 취소 신호 (AbortController.signal)
  */
-export async function sendMessageStream({ messages, config, projectContext, onChunk, onDone, onError, signal }) {
-  const { provider, apiKey, model } = config;
+export async function sendMessageStream({ messages, config, projectContext, systemPrompt, onChunk, onDone, onError, signal }) {
+  const { provider, model } = config;
 
   try {
     const streamToken = getToken();
@@ -151,14 +150,15 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
       method: "POST",
       headers: {
         "Content-Type":    "application/json",
+        "Accept":          "text/event-stream",
+        "Cache-Control":   "no-cache",
         "X-LLM-Provider":  provider,
-        "X-LLM-Api-Key":   apiKey,
         "X-LLM-Model":     model,
         ...(streamToken ? { Authorization: `Bearer ${streamToken}` } : {}),
       },
       body: JSON.stringify({
         messages,
-        systemPrompt:   buildSystemPrompt(projectContext),
+        systemPrompt:   systemPrompt || buildSystemPrompt(projectContext),
         projectContext,
       }),
       signal,  // AbortController.signal 연결
@@ -199,21 +199,20 @@ export async function sendMessageStream({ messages, config, projectContext, onCh
   }
 }
 
-/* ── API 키 유효성 빠른 테스트 ── */
-export async function testApiKey({ provider, apiKey, model }) {
+/* ── 백엔드 연결 테스트 ── */
+export async function testApiKey({ provider, model }) {
   const res = await fetch(`${API_BASE_URL}/api/agent/test`, {
     method: "POST",
     headers: {
       "Content-Type":   "application/json",
       "X-LLM-Provider": provider,
-      "X-LLM-Api-Key":  apiKey,
       "X-LLM-Model":    model,
     },
     body: JSON.stringify({ prompt: "Hello" }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "API 키 검증 실패");
+    throw new Error(err.message || "연결 실패");
   }
   return true;
 }

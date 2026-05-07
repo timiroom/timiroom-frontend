@@ -60,7 +60,7 @@ const MOCK_COMMITS = [
 /* ══════════════════════════════════════
    PROJECTS PANEL
 ══════════════════════════════════════ */
-function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView }) {
+function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject }) {
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
 
@@ -89,11 +89,28 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
 
       {/* 헤더 */}
       <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, color: C.muted,
-          letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10,
-        }}>
-          프로젝트
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            letterSpacing: "0.07em", textTransform: "uppercase",
+          }}>
+            프로젝트
+          </div>
+          {onCreateProject && (
+            <button
+              onClick={onCreateProject}
+              title="새 프로젝트"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 22, height: 22, borderRadius: 6,
+                background: "none", border: `1px solid ${C.inputBdr}`,
+                color: C.muted, fontSize: 16, cursor: "pointer",
+                transition: "all 0.12s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.color = C.accent; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.muted; }}
+            >+</button>
+          )}
         </div>
 
         {/* 검색 */}
@@ -427,7 +444,7 @@ function CommitItem({ commit, isLatest }) {
 /* ══════════════════════════════════════
    CONTEXT PANEL (exported)
 ══════════════════════════════════════ */
-export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView }) {
+export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject }) {
   return (
     <div style={{
       width: 260, flexShrink: 0, height: "100vh",
@@ -441,6 +458,7 @@ export function ContextPanel({ mode, projects, selectedProject, onSelectProject,
           onSelectProject={onSelectProject}
           selectedView={selectedView}
           onSelectView={onSelectView}
+          onCreateProject={onCreateProject}
         />
       ) : (
         <CommitPanel selectedProject={selectedProject} />

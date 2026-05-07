@@ -29,10 +29,10 @@ export function FooterCTA() {
               대시보드로 이동
             </a>
           ) : (
-            <button className="al-pill-glass" onClick={openAuthModal}>
+            <a href="/dashboard" className="al-pill-glass">
               <span>⚡</span>
               무료로 시작하기
-            </button>
+            </a>
           )}
         </div>
       </div>
