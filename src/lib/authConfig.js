@@ -25,10 +25,17 @@ export const OAUTH_ENDPOINTS = {
 
 /** 백엔드 REST API 경로 */
 export const AUTH_API = {
+<<<<<<< HEAD
   /** 현재 로그인 유저 정보 조회 (GET, Authorization 헤더 필요) */
   me:     `${API_BASE_URL}/api/auth/me`,
   /** 로그아웃 (POST, Authorization 헤더 필요) */
   logout: `${API_BASE_URL}/api/auth/logout`,
+=======
+  /** 현재 로그인 유저 정보 조회 (GET) */
+  me:     `${API_BASE_URL}/auth/me`,
+  /** 로그아웃 (POST) */
+  logout: `${API_BASE_URL}/auth/logout`,
+>>>>>>> backup
 };
 
 /** localStorage 키 */
@@ -54,6 +61,7 @@ export function removeToken() {
   }
 }
 
+<<<<<<< HEAD
 /** ── API 요청 헬퍼 (JWT 자동 첨부) ── */
 export async function apiFetch(url, options = {}) {
   const token = getToken();
@@ -69,6 +77,23 @@ export async function apiFetch(url, options = {}) {
     window.location.href = "/";
     return null;
   }
+=======
+/** ── API 요청 헬퍼 (세션 쿠키 포함) ── */
+export async function apiFetch(url, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+  
+  const res = await fetch(url, { 
+    ...options, 
+    headers,
+    credentials: "include", // 세션 쿠키를 서버로 전송
+  });
+
+  // 401 처리는 호출하는 쪽(Context 등)에서 하도록 res를 그대로 반환하거나
+  // 공통 에러 처리가 필요한 경우에만 제한적으로 수행합니다.
+>>>>>>> backup
   return res;
 }
 

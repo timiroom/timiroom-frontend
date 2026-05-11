@@ -40,6 +40,7 @@ export function AuthProvider({ children }) {
   const [isLoading,     setIsLoading]     = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
+<<<<<<< HEAD
   /** 앱 시작 시: localStorage 토큰 확인 → 유저 정보 복원 */
   useEffect(() => {
     const token = getToken();
@@ -47,30 +48,57 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
       return;
     }
+=======
+  /** 앱 시작 시: 세션 확인 → 유저 정보 복원 */
+  useEffect(() => {
+>>>>>>> backup
     // 캐시된 유저 정보 즉시 복원 (UX 개선)
     const cached = localStorage.getItem(USER_KEY);
     if (cached) {
       try { setUser(JSON.parse(cached)); } catch {}
     }
+<<<<<<< HEAD
     // 백엔드에서 최신 유저 정보 재검증
     apiFetch(AUTH_API.me)
       .then((res) => res && res.ok ? res.json() : null)
+=======
+
+    // 백엔드에서 세션 유효성 및 최신 유저 정보 확인
+    apiFetch(AUTH_API.me)
+      .then((res) => {
+        if (res && res.status === 401) {
+          // 세션 없음 - 정상적인 비로그인 상태
+          return null;
+        }
+        return res && res.ok ? res.json() : null;
+      })
+>>>>>>> backup
       .then((data) => {
         if (data) {
           setUser(data);
           localStorage.setItem(USER_KEY, JSON.stringify(data));
         } else {
+<<<<<<< HEAD
           removeToken();
           setUser(null);
         }
       })
       .catch(() => {
         // 네트워크 에러 시 캐시 유저 유지 (오프라인 대응)
+=======
+          setUser(null);
+          localStorage.removeItem(USER_KEY);
+        }
+      })
+      .catch(() => {
+        // 네트워크 에러 등
+>>>>>>> backup
       })
       .finally(() => setIsLoading(false));
   }, []);
 
   /**
+<<<<<<< HEAD
    * OAuth 콜백에서 호출.
    * token: 백엔드가 전달한 JWT
    */
@@ -85,6 +113,23 @@ export function AuthProvider({ children }) {
       }
     } catch {
       // /me 실패해도 토큰은 저장된 상태 — 다음 요청에서 재시도
+=======
+   * 로그인 처리
+   */
+  const login = useCallback(async () => {
+    try {
+      const res  = await apiFetch(AUTH_API.me);
+      if (res && res.ok) {
+        const data = await res.json();
+        setUser(data);
+        localStorage.setItem(USER_KEY, JSON.stringify(data));
+      } else {
+        setUser(null);
+        localStorage.removeItem(USER_KEY);
+      }
+    } catch {
+      setUser(null);
+>>>>>>> backup
     }
   }, []);
 
@@ -93,8 +138,14 @@ export function AuthProvider({ children }) {
     try {
       await apiFetch(AUTH_API.logout, { method: "POST" });
     } catch {}
+<<<<<<< HEAD
     removeToken();
     setUser(null);
+=======
+    setUser(null);
+    localStorage.removeItem(USER_KEY);
+    // 로그아웃 후에는 명시적으로 홈으로 리다이렉트
+>>>>>>> backup
     window.location.href = "/";
   }, []);
 
