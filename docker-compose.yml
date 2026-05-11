@@ -1,0 +1,97 @@
+##############################################################
+# Align-it 로컬 개발 환경
+#
+# 사용법:
+#   docker compose up -d          # 전체 시작
+#   docker compose down           # 전체 중지
+#   docker compose down -v        # 볼륨까지 삭제 (초기화)
+#   docker compose logs -f postgres  # 특정 서비스 로그
+#
+# 필수 설치:
+#   Docker Desktop  https://www.docker.com/products/docker-desktop/
+##############################################################
+
+services:
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL 16  — 메인 관계형 DB
+  # ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: alignit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-alignit}
+      POSTGRES_USER:     ${POSTGRES_USER:-alignit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-alignit1234}
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 컨테이너 첫 실행 시 스키마 자동 적용
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alignit} -d ${POSTGRES_DB:-alignit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Neo4j 5  — 지식 그래프 (feature ↔ api ↔ erd)
+  # ──────────────────────────────────────────────
+  neo4j:
+    image: neo4j:5-community
+    container_name: alignit-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH:                              neo4j/${NEO4J_PASSWORD:-alignit1234}
+      NEO4J_PLUGINS:                           '["apoc"]'
+      NEO4J_dbms_memory_pagecache_size:        512M
+      NEO4J_dbms_memory_heap_initial__size:    512M
+      NEO4J_dbms_memory_heap_max__size:        1G
+      # CORS — 로컬 브라우저에서 Neo4j Browser 접근 허용
+      NEO4J_dbms_connector_bolt_listen__address: 0.0.0.0:7687
+      TZ: Asia/Seoul
+    ports:
+      - "7474:7474"   # Neo4j Browser  http://localhost:7474
+      - "7687:7687"   # Bolt 프로토콜 (Spring Data Neo4j 연결)
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Redis 7  — 파이프라인 상태 Pub/Sub + 세션 캐시
+  # ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: alignit-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-alignit1234}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-alignit1234}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
+  redis_data:
