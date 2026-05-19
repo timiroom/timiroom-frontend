@@ -25,10 +25,10 @@ import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
    GET /api/projects
 ══════════════════════════════════════ */
 export async function fetchProjects() {
-  const res = await apiFetch(`${API_BASE_URL}/api/projects`);
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects`);
   if (!res || !res.ok) return [];
-  const data = await res.json();
-  return normalizeProjects(data);
+  const body = await res.json();
+  return normalizeProjects(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
@@ -36,60 +36,68 @@ export async function fetchProjects() {
    GET /api/projects/{id}
 ══════════════════════════════════════ */
 export async function fetchProject(id) {
-  const res = await apiFetch(`${API_BASE_URL}/api/projects/${id}`);
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${id}`);
   if (!res || !res.ok) return null;
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
    프로젝트 생성
-   POST /api/projects
+   POST /api/v1/projects
 ══════════════════════════════════════ */
 export async function createProject(payload) {
-  const res = await apiFetch(`${API_BASE_URL}/api/projects`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
   if (!res || !res.ok) throw new Error(`프로젝트 생성 실패 (HTTP ${res?.status})`);
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
    프로젝트 수정
-   PATCH /api/projects/{id}
+   PATCH /api/v1/projects/{id}
 ══════════════════════════════════════ */
 export async function updateProject(id, patch) {
-  const res = await apiFetch(`${API_BASE_URL}/api/projects/${id}`, {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${id}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
   if (!res || !res.ok) throw new Error(`프로젝트 수정 실패 (HTTP ${res?.status})`);
-  const data = await res.json();
-  return normalizeProject(data);
+  const body = await res.json();
+  return normalizeProject(body?.data ?? body);
 }
 
 /* ══════════════════════════════════════
    프로젝트 삭제
-   DELETE /api/projects/{id}
+   DELETE /api/v1/projects/{id}
 ══════════════════════════════════════ */
 export async function deleteProject(id) {
-  await apiFetch(`${API_BASE_URL}/api/projects/${id}`, { method: "DELETE" });
+  await apiFetch(`${API_BASE_URL}/api/v1/projects/${id}`, { method: "DELETE" });
 }
 
 /* ══════════════════════════════════════
    응답 정규화
    백엔드 ProjectResponse → 프론트 Project 객체
 ══════════════════════════════════════ */
+function normalizeStatus(s) {
+  if (!s) return "draft";
+  const upper = String(s).toUpperCase();
+  if (upper === "PLANNING")    return "draft";
+  if (upper === "IN_PROGRESS") return "active";
+  if (upper === "COMPLETED")   return "completed";
+  return String(s).toLowerCase();
+}
+
 function normalizeProject(raw) {
   return {
-    id:               String(raw.id),
-    name:             raw.name             ?? "",
+    id:               String(raw.projectId  ?? raw.id  ?? ""),
+    name:             raw.projectName ?? raw.name ?? "",
     description:      raw.description      ?? "",
-    status:           raw.status           ?? "draft",
+    status:           normalizeStatus(raw.status),
     color:            raw.color            ?? "var(--text-1)",
-    // 백엔드 필드명: consistencyScore → 프론트 score
     score:            raw.consistencyScore ?? raw.score ?? 0,
     consistencyScore: raw.consistencyScore ?? raw.score ?? 0,
     progress:         raw.progress         ?? 0,
@@ -100,6 +108,11 @@ function normalizeProject(raw) {
     prdCount:         raw.prdCount         ?? 0,
     issueCount:       raw.issueCount       ?? 0,
     specCount:        raw.specCount        ?? 0,
+    // 파이프라인 결과물
+    prdDocument:      raw.prdDocument      ?? null,
+    dbSchema:         raw.dbSchema         ?? null,
+    apiSpec:          raw.apiSpec          ?? null,
+    featureList:      raw.featureList      ?? [],
   };
 }
 
