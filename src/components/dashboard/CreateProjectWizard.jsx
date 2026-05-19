@@ -9,11 +9,19 @@
  * Step 1 — 프로젝트 개요  (이름, 설명, 구현방식, 기술스택)
  * Step 2 — 문제 정의     (6개 질문)
  * Step 3 — 레퍼런스      (파일 업로드)
- * Step 4 — 타겟 유저     (페르소나 카드)
- * Step 5 — 기능 정의     (공통기능 체크 + 커스텀 MoSCoW 카드)
+ * Step 4 — 타겟 유저     (페르소나 카드, AI 추천)
+ * Step 5 — 기능 정의     (공통기능 체크 + 커스텀 MoSCoW 카드, AI 추천)
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { API_BASE_URL, RAG_PIPELINE_URL } from "@/lib/authConfig";
+import {
+  fetchTechStackRecommendation,
+  fetchPersonaRecommendation,
+  fetchFeatureRecommendation,
+} from "@/lib/recommendationApi";
+import { getOrCreateDefaultTeam } from "@/lib/teamApi";
+import { createProject } from "@/lib/projectApi";
 
 /* ═══════════════════════════════════════════
    상수
@@ -61,6 +69,8 @@ const MOSCOW_OPTIONS = [
   { key: "Could",  color: "#10B981", bg: "rgba(16,185,129,0.18)"  },
   { key: "Won't",  color: "#475569", bg: "rgba(71,85,105,0.18)"   },
 ];
+
+const PRIORITY_MAP = { MUST: "Must", SHOULD: "Should", COULD: "Could", WONT: "Won't" };
 
 /* ═══════════════════════════════════════════
    초기 상태
@@ -196,7 +206,7 @@ function StepIndicator({ current }) {
 /* ═══════════════════════════════════════════
    Step 1 — 프로젝트 개요
 ════════════════════════════════════════════ */
-function Step1({ data, onChange }) {
+function Step1({ data, onChange, aiTechStack, aiTechStackLoading }) {
   const fileRef = useRef(null);
   const [stackInput, setStackInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -242,12 +252,19 @@ function Step1({ data, onChange }) {
     }
   };
 
-  /* 클릭 안 된 suggestion 닫기 */
   useEffect(() => {
     const handler = () => setSuggestions([]);
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, []);
+
+  const AI_STACK_LABELS = [
+    { key: "frontend", label: "프론트엔드" },
+    { key: "backend",  label: "백엔드"     },
+    { key: "database", label: "DB"         },
+    { key: "devops",   label: "서버/인프라" },
+    { key: "mobile",   label: "모바일"     },
+  ];
 
   return (
     <div>
@@ -423,6 +440,53 @@ function Step1({ data, onChange }) {
             >+ {s}</button>
           ))}
         </div>
+
+        {/* AI 추천 기술 스택 */}
+        {(aiTechStackLoading || aiTechStack) && (
+          <div style={{
+            marginTop: 16, padding: 14, borderRadius: 10,
+            background: "rgba(139,92,246,0.04)", border: "1px solid rgba(139,92,246,0.2)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: aiTechStack ? 12 : 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-purple-300)" }}>✨ AI 추천 기술 스택</span>
+              {aiTechStackLoading && (
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>불러오는 중...</span>
+              )}
+            </div>
+            {aiTechStack && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {AI_STACK_LABELS.filter(({ key }) => aiTechStack[key]?.length > 0).map(({ key, label }) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, color: "var(--text-3)", minWidth: 64, flexShrink: 0 }}>{label}</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {aiTechStack[key].map(tag => {
+                        const selected = data.techStack.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            onClick={() => selected ? removeStack(tag) : addStack(tag)}
+                            style={{
+                              padding: "3px 10px", borderRadius: 20, cursor: "pointer", fontSize: 11,
+                              border: selected ? "1px solid var(--db-purple-400)" : "1px solid rgba(139,92,246,0.3)",
+                              background: selected ? "rgba(139,92,246,0.15)" : "transparent",
+                              color: selected ? "var(--db-purple-300)" : "var(--text-2)",
+                              transition: "all 0.12s",
+                            }}
+                          >
+                            {selected ? "✓ " : ""}{tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
+                  클릭하여 선택 · 이미 선택된 항목은 체크 표시됩니다
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -591,9 +655,18 @@ function Step4({ data, onChange }) {
               display: "flex", alignItems: "center", justifyContent: "space-between",
               marginBottom: 16,
             }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-purple-300)", letterSpacing: "0.06em" }}>
-                타겟유저 #{idx + 1}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-purple-300)", letterSpacing: "0.06em" }}>
+                  타겟유저 #{idx + 1}
+                </span>
+                {persona.aiGenerated && (
+                  <span style={{
+                    fontSize: 10, padding: "2px 7px", borderRadius: 10,
+                    background: "rgba(139,92,246,0.12)", color: "var(--db-purple-300)",
+                    border: "1px solid rgba(139,92,246,0.2)", fontWeight: 600,
+                  }}>AI 추천</span>
+                )}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "var(--text-3)", cursor: "help" }} title="페르소나: 실제 사용자를 대표하는 가상의 인물">ⓘ</span>
                 {data.personas.length > 1 && (
@@ -788,9 +861,18 @@ function Step5({ data, onChange }) {
               display: "flex", alignItems: "center", justifyContent: "space-between",
               marginBottom: 14,
             }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-purple-300)", letterSpacing: "0.06em" }}>
-                function #{idx + 1}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--db-purple-300)", letterSpacing: "0.06em" }}>
+                  function #{idx + 1}
+                </span>
+                {feat.aiGenerated && (
+                  <span style={{
+                    fontSize: 10, padding: "2px 7px", borderRadius: 10,
+                    background: "rgba(139,92,246,0.12)", color: "var(--db-purple-300)",
+                    border: "1px solid rgba(139,92,246,0.2)", fontWeight: 600,
+                  }}>AI 추천</span>
+                )}
+              </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "var(--text-3)", cursor: "help" }}
                   title="MoSCoW: Must(필수) / Should(권장) / Could(선택) / Won't(이번 범위 제외)">ⓘ</span>
@@ -886,13 +968,400 @@ function Step5({ data, onChange }) {
 }
 
 /* ═══════════════════════════════════════════
+   파이프라인 진행 화면 (SSE 실시간 연동)
+════════════════════════════════════════════ */
+const PIPELINE_STEPS = [
+  { key: "PHASE1",  label: "RAG 준비",      icon: "📚" },
+  { key: "SEARCH",  label: "시장 조사",      icon: "🔍" },
+  { key: "PM",      label: "기능 분석",      icon: "📋" },
+  { key: "PRD",     label: "PRD 작성",       icon: "📝" },
+  { key: "DBA_API", label: "DB · API 설계", icon: "🔌" },
+  { key: "QA",      label: "QA 검수",        icon: "🧪" },
+  { key: "PHASE3",  label: "최종 검증",      icon: "✅" },
+  { key: "PHASE4",  label: "결과 저장",      icon: "💾" },
+];
+
+const SSE_TO_STEP = {
+  PHASE1_START: "PHASE1", PHASE1_DONE: "PHASE1",
+  SEARCH: "SEARCH", PM: "PM",
+  PRD: "PRD", PRD_ROLLBACK: "PRD",
+  DBA_API: "DBA_API",
+  QA: "QA", QA_RETRY: "QA",
+  PHASE3: "PHASE3",
+  PHASE4: "PHASE4",
+};
+
+const ROW1   = PIPELINE_STEPS.slice(0, 4); // PHASE1 SEARCH PM PRD
+const ROW2   = PIPELINE_STEPS.slice(4);    // DBA_API QA PHASE3 PHASE4
+const NODE_W  = 110;
+const ARROW_W = 36;
+const ROW_W   = ROW1.length * NODE_W + (ROW1.length - 1) * ARROW_W; // 548
+
+/* ── 흐름 화살표 (→) — flip=true 시 ← 방향 */
+function FlowArrow({ active, flip }) {
+  const col  = active ? "var(--db-purple-400)" : "var(--border)";
+  const dash = active ? undefined : "5 4";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", flexShrink: 0, width: ARROW_W,
+      transform: flip ? "scaleX(-1)" : undefined,
+    }}>
+      <svg width={ARROW_W} height="18" viewBox={`0 0 ${ARROW_W} 18`} fill="none">
+        <line x1="2" y1="9" x2="26" y2="9" stroke={col} strokeWidth="2"
+          strokeDasharray={dash} strokeLinecap="round"/>
+        <polyline points="18,3 28,9 18,15" stroke={col} strokeWidth="2"
+          fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+  );
+}
+
+/* ── 꺾임 커넥터 ↓ (Row1 끝 → Row2 시작) */
+function FlowDown({ active }) {
+  const col  = active ? "var(--db-purple-400)" : "var(--border)";
+  const dash = active ? undefined : "5 4";
+  const rightPad = NODE_W / 2 - 9; // 18px 화살표를 마지막 노드 중앙에 맞춤
+  return (
+    <div style={{ width: ROW_W, display: "flex", justifyContent: "flex-end", paddingRight: rightPad }}>
+      <svg width="18" height="36" viewBox="0 0 18 36" fill="none">
+        <line x1="9" y1="2" x2="9" y2="26" stroke={col} strokeWidth="2"
+          strokeDasharray={dash} strokeLinecap="round"/>
+        <polyline points="3,18 9,28 15,18" stroke={col} strokeWidth="2"
+          fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+  );
+}
+
+/* ── 파이프라인 노드 박스 */
+function FlowNode({ step, status }) {
+  const isDone    = status === "done";
+  const isRunning = status === "running";
+  return (
+    <div style={{ width: NODE_W, flexShrink: 0 }}>
+      <div style={{
+        width: "100%", padding: "12px 6px 10px",
+        background: isDone    ? "rgba(52,211,153,0.07)"
+                  : isRunning ? "rgba(107,85,220,0.12)"
+                  : "var(--surface)",
+        border: `2px solid ${isDone ? "rgba(52,211,153,0.5)" : isRunning ? "var(--db-purple-400)" : "var(--border)"}`,
+        borderRadius: 12,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+        transition: "all 0.4s",
+        boxShadow: isRunning ? "0 0 20px rgba(107,85,220,0.28)" : "none",
+        position: "relative",
+      }}>
+        {/* 완료 배지 */}
+        {isDone && (
+          <div style={{
+            position: "absolute", top: -8, right: -8,
+            width: 20, height: 20, borderRadius: "50%",
+            background: "#34d399", display: "flex", alignItems: "center", justifyContent: "center",
+            border: "2px solid var(--db-bg-primary)",
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="white" strokeWidth="3.5" strokeLinecap="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        )}
+        {/* 실행 중 스피너 배지 */}
+        {isRunning && (
+          <div style={{
+            position: "absolute", top: -8, right: -8,
+            width: 20, height: 20, borderRadius: "50%",
+            background: "var(--db-purple-600)", display: "flex", alignItems: "center", justifyContent: "center",
+            border: "2px solid var(--db-bg-primary)",
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="white" strokeWidth="2.5"
+              style={{ animation: "prog-spin 0.9s linear infinite" }}>
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+              <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+            </svg>
+          </div>
+        )}
+        <span style={{ fontSize: 22, opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s" }}>
+          {step.icon}
+        </span>
+        <span style={{
+          fontSize: 10, fontWeight: 700, textAlign: "center", lineHeight: 1.35,
+          color: isDone ? "var(--text-2)" : isRunning ? "var(--text-1)" : "var(--text-3)",
+          transition: "color 0.3s",
+        }}>
+          {step.label}
+        </span>
+        <span style={{
+          fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+          background: isDone    ? "rgba(52,211,153,0.15)"
+                    : isRunning ? "rgba(107,85,220,0.2)"
+                    : "rgba(255,255,255,0.04)",
+          color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)",
+          transition: "all 0.3s",
+        }}>
+          {isDone ? "완료" : isRunning ? "실행 중" : "대기"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ProgressScreen({ pipelineId, onComplete, onCancel }) {
+  const [percent,    setPercent]    = useState(5);
+  const [phase,      setPhase]      = useState("running");
+  const [errMsg,     setErrMsg]     = useState(null);
+  const [statuses,   setStatuses]   = useState(() =>
+    Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
+  );
+  const [currentMsg, setCurrentMsg] = useState("파이프라인 준비 중...");
+  const currentKeyRef = useRef(null);
+  const doneRef       = useRef(false);
+
+  useEffect(() => {
+    const es = new EventSource(`${RAG_PIPELINE_URL}/api/v1/orchestration/progress/${pipelineId}`);
+
+    es.addEventListener("progress", (e) => {
+      const d      = JSON.parse(e.data);
+      const newKey = SSE_TO_STEP[d.step];
+      setPercent(d.percent || 0);
+      setCurrentMsg(d.message || "");
+      if (newKey && newKey !== currentKeyRef.current) {
+        const prevKey = currentKeyRef.current;
+        currentKeyRef.current = newKey;
+        setStatuses(prev => {
+          const next = { ...prev };
+          if (prevKey) next[prevKey] = "done";
+          next[newKey] = "running";
+          return next;
+        });
+      }
+    });
+
+    es.addEventListener("complete", (e) => {
+      doneRef.current = true;
+      const d = JSON.parse(e.data);
+      setPercent(100);
+      setPhase("done");
+      setCurrentMsg("모든 단계 완료!");
+      setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
+      es.close();
+      setTimeout(() => onComplete(d.result), 1500);
+    });
+
+    es.addEventListener("error", (e) => {
+      doneRef.current = true;
+      try { setErrMsg(JSON.parse(e.data).message); }
+      catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
+      setPhase("error");
+      es.close();
+    });
+
+    es.onerror = () => {
+      if (doneRef.current || es.readyState === EventSource.CLOSED) return;
+      setErrMsg("서버 연결이 끊어졌습니다.");
+      setPhase("error");
+      es.close();
+    };
+
+    return () => es.close();
+  }, [pipelineId]);
+
+  const isAct       = (key) => statuses[key] === "done";
+  const accentColor = phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "var(--db-purple-400)";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
+
+      {/* 탭 바 */}
+      <div style={{
+        height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", paddingLeft: 16, flexShrink: 0,
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "0 14px", height: "100%",
+          borderRight: "1px solid var(--border)",
+          borderBottom: `2px solid ${accentColor}`,
+          background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)",
+        }}>
+          <span style={{ fontSize: 14 }}>✦</span>
+          {phase === "done" ? "생성 완료" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
+        </div>
+      </div>
+
+      {/* 본문 */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "32px 40px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+
+          {/* 진행 바 */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 12, padding: "18px 22px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                {phase === "done" ? "✅ 생성 완료! 잠시 후 이동합니다..." : phase === "error" ? "❌ 생성 실패" : "파이프라인 실행 중..."}
+              </span>
+              <span style={{
+                fontSize: 20, fontWeight: 900, color: accentColor,
+                fontVariantNumeric: "tabular-nums", transition: "color 0.3s",
+              }}>
+                {percent}%
+              </span>
+            </div>
+            <div style={{ height: 6, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", width: `${percent}%`,
+                background: phase === "error" ? "#f87171" : phase === "done" ? "#34d399"
+                          : "linear-gradient(90deg, var(--db-purple-600), var(--db-purple-400))",
+                borderRadius: 100, transition: "width 0.6s ease, background 0.3s",
+                boxShadow: phase === "running" ? "0 0 8px var(--db-purple-400)" : "none",
+              }} />
+            </div>
+            {phase === "error" && errMsg && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#f87171" }}>{errMsg}</div>
+            )}
+          </div>
+
+          {/* 플로우 다이어그램 */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 14, padding: "28px 24px 32px",
+            display: "flex", flexDirection: "column", alignItems: "center",
+          }}>
+            {/* Row 1: PHASE1 → SEARCH → PM → PRD (좌→우) */}
+            <div style={{ display: "flex", alignItems: "center", width: ROW_W }}>
+              {ROW1.flatMap((step, idx) => {
+                const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
+                if (idx < ROW1.length - 1)
+                  nodes.push(<FlowArrow key={`r1-${idx}`} active={isAct(ROW1[idx].key)} />);
+                return nodes;
+              })}
+            </div>
+
+            {/* 꺾임 커넥터 ↓ (PRD → DBA_API) */}
+            <FlowDown active={isAct("PRD")} />
+
+            {/* Row 2: DBA_API QA PHASE3 PHASE4 — row-reverse로 우→좌 렌더링 */}
+            <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", width: ROW_W }}>
+              {ROW2.flatMap((step, idx) => {
+                const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
+                if (idx < ROW2.length - 1)
+                  nodes.push(<FlowArrow key={`r2-${idx}`} active={isAct(ROW2[idx].key)} flip />);
+                return nodes;
+              })}
+            </div>
+          </div>
+
+          {/* 현재 단계 메시지 */}
+          {phase === "running" && currentMsg && (
+            <div style={{
+              padding: "10px 16px",
+              background: "rgba(107,85,220,0.08)",
+              border: "1px solid rgba(107,85,220,0.18)",
+              borderRadius: 8, fontSize: 12,
+              color: "var(--db-purple-300)",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              ▸ {currentMsg}
+            </div>
+          )}
+
+          {/* 에러 시 돌아가기 */}
+          {phase === "error" && (
+            <div style={{ textAlign: "center" }}>
+              <button onClick={onCancel} style={{
+                padding: "10px 28px", borderRadius: 8,
+                background: "var(--border)", border: "none",
+                color: "var(--text-2)", fontSize: 13, cursor: "pointer",
+              }}>
+                돌아가기
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`@keyframes prog-spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
    메인 — CreateProjectWizard
 ════════════════════════════════════════════ */
 export function CreateProjectWizard({ onComplete, onCancel }) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState(initialData());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pipelineId,   setPipelineId]   = useState(null);
+  const [savedProjectId, setSavedProjectId] = useState(null);
   const scrollRef = useRef(null);
+
+  // ── AI 추천 상태 ──────────────────────────────────────────────
+  const [aiTechStack, setAiTechStack] = useState(null);
+  const [aiTechStackLoading, setAiTechStackLoading] = useState(false);
+  const [aiPersonas, setAiPersonas] = useState(null);
+  const [aiFeatures, setAiFeatures] = useState(null);
+
+  // 최신 data를 ref로 보존 (stale closure 방지)
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; });
+
+  // ── 추천 1: 구현방식 변경 시 기술 스택 prefetch ──────────────
+  useEffect(() => {
+    const d = dataRef.current;
+    if (!d.name || !d.description) return;
+    setAiTechStack(null);
+    setAiTechStackLoading(true);
+    fetchTechStackRecommendation({
+      projectName: d.name,
+      projectDescription: d.description,
+      implType: data.implType,
+    }).then(result => {
+      setAiTechStack(result);
+      setAiTechStackLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.implType]);
+
+  // ── 추천 2: Step 4 진입 시 AI 페르소나 자동 적용 ─────────────
+  useEffect(() => {
+    if (step !== 4 || !aiPersonas?.length) return;
+    setData(prev => {
+      const isEmpty = prev.personas.length === 1 && !prev.personas[0].user;
+      if (!isEmpty) return prev;
+      return {
+        ...prev,
+        personas: aiPersonas.map((p, i) => ({
+          id: Date.now() + i,
+          user: p.persona,
+          environment: p.usageEnvironment,
+          pain: p.biggestPainPoint,
+          aiGenerated: true,
+        })),
+      };
+    });
+  }, [step, aiPersonas]);
+
+  // ── 추천 3: Step 5 진입 시 AI 기능 자동 적용 ─────────────────
+  useEffect(() => {
+    if (step !== 5 || !aiFeatures?.length) return;
+    setData(prev => {
+      const isEmpty = prev.customFeatures.length === 1 && !prev.customFeatures[0].name;
+      if (!isEmpty) return prev;
+      return {
+        ...prev,
+        customFeatures: aiFeatures.map((f, i) => ({
+          id: Date.now() + i,
+          moscow: PRIORITY_MAP[f.priority] || "Must",
+          name: f.featureName,
+          desc: f.description,
+          aiGenerated: true,
+        })),
+      };
+    });
+  }, [step, aiFeatures]);
 
   const update = useCallback((patch) => {
     setData(prev => ({ ...prev, ...patch }));
@@ -905,10 +1374,36 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
   };
 
   const goNext = () => {
-    if (step < 5) {
-      setStep(s => s + 1);
-      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (step >= 5) return;
+    const d = dataRef.current;
+
+    // Step 2 → 3: 페르소나 prefetch 시작
+    if (step === 2) {
+      fetchPersonaRecommendation({
+        projectName: d.name,
+        projectDescription: d.description,
+        problem: d.problem,
+      }).then(result => {
+        if (result?.personas?.length) setAiPersonas(result.personas);
+      });
     }
+
+    // Step 3 → 4: 기능 prefetch 시작
+    if (step === 3) {
+      fetchFeatureRecommendation({
+        projectName: d.name,
+        projectDescription: d.description,
+        implType: d.implType,
+        techStack: d.techStack,
+        problem: d.problem,
+        personas: d.personas,
+      }).then(result => {
+        if (result?.features?.length) setAiFeatures(result.features);
+      });
+    }
+
+    setStep(s => s + 1);
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goPrev = () => {
@@ -921,22 +1416,98 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // TODO: 백엔드 연동 시 여기서 API 호출 후 onComplete 호출
-      // const project = await createProject(data);
-      onComplete?.(data);
+      // 1. 백엔드에 팀/프로젝트 먼저 저장 (새로고침 후에도 유지)
+      const team    = await getOrCreateDefaultTeam();
+      const teamId  = team.teamId ?? team.id;
+      const project = await createProject({
+        teamId,
+        projectName: data.name,
+        description: data.description,
+      });
+      setSavedProjectId(project.id);
+
+      const PLATFORM_MAP = { "웹": "WEB", "앱": "APP", "웹앱": "WEB_APP" };
+      const MOSCOW_BACKEND = { "Must": "MUST", "Should": "SHOULD", "Could": "COULD", "Won't": "WONT" };
+
+      const formJson = JSON.stringify({
+        projectName:        data.name,
+        projectDescription: data.description,
+        platform:           PLATFORM_MAP[data.implType] || "WEB",
+        techStack:          data.techStack,
+        problemDefinition: {
+          currentPainPoint: data.problem.pain,
+          currentSolution:  data.problem.solution,
+          idealState:       data.problem.ideal,
+          businessImpact:   data.problem.loss  || null,
+          motivation:       data.problem.trigger || null,
+          competitorGap:    data.problem.ref_exp || null,
+        },
+        targetUsers: data.personas
+          .filter(p => p.user.trim())
+          .map(p => ({
+            persona:          p.user,
+            usageEnvironment: p.environment,
+            biggestPainPoint: p.pain,
+          })),
+        featureDefinition: {
+          commonFeatures: COMMON_FEATURES.map(feat => ({
+            featureName:  feat.label,
+            selected:     data.commonFeatures[feat.id]?.checked ?? false,
+            description:  data.commonFeatures[feat.id]?.desc   || null,
+          })),
+          customFeatures: data.customFeatures
+            .filter(f => f.name.trim())
+            .map(f => ({
+              priority:    MOSCOW_BACKEND[f.moscow] || "MUST",
+              featureName: f.name,
+              description: f.desc || null,
+            })),
+        },
+      });
+
+      const form = new FormData();
+      form.append("request", new Blob([formJson], { type: "application/json" }));
+      data.references.forEach(file => form.append("files", file));
+
+      const res = await fetch(`${RAG_PIPELINE_URL}/api/v1/orchestration/generate`, {
+        method: "POST",
+        body: form,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
+      const result = await res.json();
+      const id = result.data?.pipelineId;
+      if (!id) throw new Error("pipelineId를 받지 못했습니다");
+      setPipelineId(id); // 진행 화면으로 전환 (SSE 구독 시작)
     } catch (err) {
-      console.error("프로젝트 생성 실패:", err);
+      console.error("파이프라인 실행 실패:", err);
       setIsSubmitting(false);
     }
   };
 
   const STEP_CONTENT = {
-    1: <Step1 data={data} onChange={update} />,
+    1: <Step1 data={data} onChange={update} aiTechStack={aiTechStack} aiTechStackLoading={aiTechStackLoading} />,
     2: <Step2 data={data} onChange={update} />,
     3: <Step3 data={data} onChange={update} />,
     4: <Step4 data={data} onChange={update} />,
     5: <Step5 data={data} onChange={update} />,
   };
+
+  // 파이프라인 시작 후 → 진행 화면으로 전환
+  if (pipelineId) {
+    return (
+      <ProgressScreen
+        pipelineId={pipelineId}
+        onComplete={(result) => onComplete({ ...result, projectId: savedProjectId, projectName: data.name })}
+        onCancel={() => { setPipelineId(null); setIsSubmitting(false); }}
+      />
+    );
+  }
 
   return (
     <div style={{

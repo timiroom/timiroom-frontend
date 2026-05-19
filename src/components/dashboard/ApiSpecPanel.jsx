@@ -7,7 +7,7 @@
  * 엔드포인트를 태그별로 그룹핑, 클릭 시 Request/Response 상세 펼침.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
 
 /* ── 색상 토큰 ── */
@@ -563,131 +563,191 @@ function TagGroup({ tag }) {
   );
 }
 
+/* ──────────────────────────────────────
+   백엔드 apiSpec(endpoints 배열) → 태그 형식 변환
+──────────────────────────────────────── */
+function buildTagsFromApiSpec(apiSpec) {
+  if (!apiSpec || !Array.isArray(apiSpec.endpoints) || apiSpec.endpoints.length === 0) return null;
+
+  // path prefix로 그룹핑 (/api/auth → "auth", /api/products → "products" 등)
+  const grouped = {};
+  apiSpec.endpoints.forEach((ep, i) => {
+    const parts = (ep.path || "/api/unknown").replace(/^\//, "").split("/");
+    // /api/{resource}/... → resource 단어를 태그명으로
+    const tag = parts.length >= 2 ? parts[1] : parts[0] || "General";
+    if (!grouped[tag]) grouped[tag] = [];
+    grouped[tag].push({
+      id: `ep-${i}`,
+      method: (ep.method || "GET").toUpperCase(),
+      path: ep.path || "/",
+      summary: ep.description || ep.summary || "",
+      description: ep.description || "",
+      auth: !!(ep.request?.headers?.Authorization),
+      parameters: [],
+      requestBody: ep.request?.body
+        ? { contentType: "application/json", schema: ep.request.body }
+        : null,
+      responses: [
+        ep.response?.success
+          ? { status: 200, description: "성공", schema: ep.response.success }
+          : null,
+        ep.response?.error
+          ? { status: 400, description: ep.response.error }
+          : null,
+      ].filter(Boolean),
+    });
+  });
+
+  return Object.entries(grouped).map(([name, endpoints]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    description: apiSpec.authentication || "",
+    endpoints,
+  }));
+}
+
+/* ── API 명세 → 텍스트 (AI 컨텍스트용) ── */
+function apiSpecToText(tags) {
+  return tags.flatMap(tag =>
+    tag.endpoints.map(ep => `[${ep.method}] ${ep.path} — ${ep.summary || ""}`)
+  ).join("\n");
+}
+
 /* ══════════════════════════════════════
    API SPEC PANEL (exported)
 ══════════════════════════════════════ */
 export function ApiSpecPanel({ project }) {
   const [search, setSearch] = useState("");
 
-  const filteredTags = API_SPEC.tags.map(tag => ({
+  const specTags = useMemo(() => {
+    const fromPipeline = project?.apiSpec ? buildTagsFromApiSpec(project.apiSpec) : null;
+    return fromPipeline || API_SPEC.tags;
+  }, [project?.apiSpec]);
+
+  const specTitle   = project?.name ? `${project.name} API` : API_SPEC.title;
+  const specVersion = API_SPEC.version;
+
+  const filteredTags = specTags.map(tag => ({
     ...tag,
     endpoints: tag.endpoints.filter(ep =>
       !search ||
       ep.path.toLowerCase().includes(search.toLowerCase()) ||
-      ep.summary.toLowerCase().includes(search.toLowerCase()) ||
+      (ep.summary || "").toLowerCase().includes(search.toLowerCase()) ||
       ep.method.toLowerCase().includes(search.toLowerCase())
     ),
   })).filter(tag => tag.endpoints.length > 0);
 
+  const currentContent = useMemo(() => apiSpecToText(specTags), [specTags]);
+
   return (
     <div style={{
       flex: 1, display: "flex", height: "100vh", overflow: "hidden",
-      fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      background: C.bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
-
-    {/* ── 왼쪽: Swagger 뷰어 ── */}
-    <div style={{
-      flex: 1, display: "flex", flexDirection: "column",
-      height: "100vh", background: C.bg, overflow: "hidden",
-    }}>
-      {/* 상단 헤더 */}
-      <div style={{
-        height: 52, flexShrink: 0,
-        borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center",
-        padding: "0 28px", justifyContent: "space-between",
-        background: C.surface,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {project && (
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `${project.color || "var(--text-1)"}22`,
-              border: `1px solid ${project.color || "var(--text-1)"}44`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
+      {/* ── 왼쪽: 명세 뷰어 ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* 상단 헤더 */}
+        <div style={{
+          height: 52, flexShrink: 0,
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex", alignItems: "center",
+          padding: "0 28px", justifyContent: "space-between",
+          background: C.surface,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {project && (
+              <div style={{
+                width: 22, height: 22, borderRadius: 6,
+                background: `${project.color || "var(--text-1)"}22`,
+                border: `1px solid ${project.color || "var(--text-1)"}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
+              }}>
+                {(project.name || "P").charAt(0).toUpperCase()}
+              </div>
+            )}
+            {project && <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>}
+            <span style={{ fontSize: 13, color: C.sub }}>›</span>
+            <span style={{
+              fontSize: 13, fontWeight: 500, color: "#60a5fa",
+              padding: "2px 8px", borderRadius: 6,
+              background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.2)",
             }}>
-              {(project.name || "P").charAt(0).toUpperCase()}
-            </div>
-          )}
-          {project && <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>}
-          <span style={{ fontSize: 13, color: C.sub }}>›</span>
-          <span style={{
-            fontSize: 13, fontWeight: 500, color: "#60a5fa",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.2)",
-          }}>
-            API 명세서
-          </span>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{
-            fontSize: 11, color: C.sub, padding: "3px 8px", borderRadius: 5,
-            background: "rgba(0,0,0,0.05)", border: `1px solid ${C.border}`,
-            fontFamily: "monospace",
-          }}>
-            {API_SPEC.baseUrl}
-          </span>
-          <span style={{
-            fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 5,
-            background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.25)",
-            color: C.accent,
-          }}>
-            {API_SPEC.version}
-          </span>
-        </div>
-      </div>
-
-      {/* 검색 바 */}
-      <div style={{
-        padding: "12px 28px", borderBottom: `1px solid ${C.border}`,
-        background: C.surface,
-      }}>
-        <div style={{ position: "relative", maxWidth: 420 }}>
-          <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}
-               width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="엔드포인트 검색 (경로, 메서드, 요약)"
-            style={{
-              width: "100%", padding: "8px 12px 8px 32px",
-              background: "var(--bg)", border: `1px solid ${C.border}`,
-              borderRadius: 8, fontSize: 13, color: C.text,
-              outline: "none", boxSizing: "border-box",
-            }}
-            onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
-            onBlur={e => e.target.style.borderColor = C.border}
-          />
-        </div>
-      </div>
-
-      {/* 엔드포인트 목록 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
-        {/* API 제목 */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>
-            {API_SPEC.title}
-          </h1>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: C.muted }}>
-            RESTful API · JSON · JWT Bearer Auth
-          </p>
-        </div>
-
-        {filteredTags.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 0", color: C.sub, fontSize: 14 }}>
-            검색 결과가 없습니다
+              API 명세서
+            </span>
           </div>
-        ) : (
-          filteredTags.map(tag => <TagGroup key={tag.name} tag={tag} />)
-        )}
-      </div>
-    </div>{/* ── 오른쪽: AI 채팅 ── */}
-    <AiChatSidebar contextType="api" />
 
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{
+              fontSize: 11, color: C.sub, padding: "3px 8px", borderRadius: 5,
+              background: "rgba(0,0,0,0.05)", border: `1px solid ${C.border}`,
+              fontFamily: "monospace",
+            }}>
+              {API_SPEC.baseUrl}
+            </span>
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 5,
+              background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.25)",
+              color: C.accent,
+            }}>
+              {API_SPEC.version}
+            </span>
+          </div>
+        </div>
+
+        {/* 검색 바 */}
+        <div style={{
+          padding: "12px 28px", borderBottom: `1px solid ${C.border}`,
+          background: C.surface,
+        }}>
+          <div style={{ position: "relative", maxWidth: 420 }}>
+            <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}
+                 width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="엔드포인트 검색 (경로, 메서드, 요약)"
+              style={{
+                width: "100%", padding: "8px 12px 8px 32px",
+                background: "var(--bg)", border: `1px solid ${C.border}`,
+                borderRadius: 8, fontSize: 13, color: C.text,
+                outline: "none", boxSizing: "border-box",
+              }}
+              onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
+              onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+        </div>
+
+        {/* 엔드포인트 목록 */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>
+              {specTitle}
+            </h1>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: C.muted }}>
+              RESTful API · JSON · JWT Bearer Auth
+            </p>
+          </div>
+
+          {filteredTags.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px 0", color: C.sub, fontSize: 14 }}>
+              검색 결과가 없습니다
+            </div>
+          ) : (
+            filteredTags.map(tag => <TagGroup key={tag.name} tag={tag} />)
+          )}
+        </div>
+      </div>
+
+      {/* ── 오른쪽: AI 채팅 ── */}
+      <AiChatSidebar
+        contextType="api"
+        project={project}
+        currentContent={currentContent}
+        onApplyContent={undefined}
+      />
     </div>
   );
 }
