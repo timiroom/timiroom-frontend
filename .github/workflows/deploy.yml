@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v3
 
@@ -25,6 +26,10 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/timiroom-frontend:${{ env.IMAGE_TAG }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://api.timiroom.kro.kr
+            NEXT_PUBLIC_RAG_PIPELINE_URL=https://rag.timiroom.kro.kr
+            NEXT_PUBLIC_APP_URL=https://timiroom.kro.kr
 
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
@@ -39,36 +44,36 @@ jobs:
         run: |
           git clone https://${{ secrets.GH_PAT }}@github.com/timiroom/timiroom-ops.git
           cd timiroom-ops/apps/frontend
-          
+
           # Check if pub-cert.pem exists (kubeseal public cert)
           if [ ! -f pub-cert.pem ]; then
             echo "❌ ERROR: pub-cert.pem not found in timiroom-ops/apps/frontend/"
             echo "Use backend's pub-cert.pem or generate new: kubectl get secret -n kube-system sealed-secrets-key -o jsonpath='{.data.tls\.crt}' | base64 -d > pub-cert.pem"
             exit 1
           fi
-          
+
           kustomize edit set image frontend-image=${{ secrets.DOCKER_USERNAME }}/timiroom-frontend:${{ env.IMAGE_TAG }}
-          
+
           rm -f temp-secrets.env
           echo "$ALL_SECRETS_JSON" | jq -r 'to_entries[] | select(.key | startswith("FRONTEND_")) | "\(.key | sub("^FRONTEND_"; ""))=\(.value)"' > temp-secrets.env
-          
+
           # Only create secret if there are env vars
           if [ -s temp-secrets.env ]; then
             kubectl create secret generic frontend-secrets --from-env-file=temp-secrets.env --dry-run=client -o yaml > plain-secret.yaml
             kubeseal --format=yaml --cert=pub-cert.pem < plain-secret.yaml > sealed-secret.yaml
             rm -f plain-secret.yaml
           fi
-          
+
           rm -f temp-secrets.env
-          
+
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add kustomization.yaml
-          
+
           if [ -f sealed-secret.yaml ]; then
             git add sealed-secret.yaml
           fi
-          
+
           git commit -m "chore: deploy frontend image [${{ env.IMAGE_TAG }}]" || true
           git push
         env:

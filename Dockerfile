@@ -1,4 +1,4 @@
-# Multi-stage build for Next.js
+# Multi-stage build for Next.js (standalone output)
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -9,6 +9,15 @@ RUN npm ci
 
 # Build application
 COPY . .
+
+# NEXT_PUBLIC_* 변수는 빌드 타임에 번들에 정적 삽입되므로 ARG로 주입
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+ARG NEXT_PUBLIC_RAG_PIPELINE_URL=http://localhost:8081
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_RAG_PIPELINE_URL=$NEXT_PUBLIC_RAG_PIPELINE_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 RUN npm run build
 
 # Production stage
@@ -19,20 +28,17 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install only production dependencies
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-
 # Create non-root user
 RUN addgroup -g 1000 nextjs && \
     adduser -u 1000 -G nextjs -s /bin/sh -D nextjs
+
+# Copy standalone build output
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
