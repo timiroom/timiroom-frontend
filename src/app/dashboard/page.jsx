@@ -20,7 +20,7 @@ import { PrdPanel }            from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel }       from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel }            from "@/components/dashboard/ErdPanel";
 import { CreateProjectWizard } from "@/components/dashboard/CreateProjectWizard";
-import { fetchProjects }       from "@/lib/projectApi";
+import { fetchProjects, fetchProjectArtifacts, enrichProjectWithArtifacts } from "@/lib/projectApi";
 
 export default function DashboardPage() {
   const [activeMode,        setActiveMode]        = useState("projects");
@@ -31,13 +31,26 @@ export default function DashboardPage() {
   const [showWizard,        setShowWizard]        = useState(false);
   const [pipelineRunning,   setPipelineRunning]   = useState(false);
 
+  const loadArtifacts = useCallback(async (project) => {
+    try {
+      const artifacts = await fetchProjectArtifacts(project.id);
+      if (artifacts.length > 0) {
+        setSelectedProject(enrichProjectWithArtifacts(project, artifacts));
+      }
+    } catch (err) {
+      console.error("Artifacts 로드 실패:", err);
+    }
+  }, []);
+
   const loadProjects = useCallback(async () => {
     setIsLoadingProjects(true);
     try {
       const list = await fetchProjects();
       setProjects(list);
       if (list.length > 0 && !selectedProject) {
-        setSelectedProject(list[0]);
+        const first = list[0];
+        setSelectedProject(first);
+        loadArtifacts(first);
       }
     } catch (err) {
       console.error("프로젝트 목록 로드 실패:", err);
@@ -54,10 +67,11 @@ export default function DashboardPage() {
   function handleSelectProject(project) {
     setSelectedProject(project);
     setSelectedView(null);
+    loadArtifacts(project);
   }
 
-  // 위저드 완료 → AI 결과를 즉시 메모리에 반영 + 목록 갱신
-  function handleWizardComplete(pipelineResult) {
+  // 위저드 완료 → SSE 결과를 즉시 반영 + DB에서 artifacts 재조회
+  async function handleWizardComplete(pipelineResult) {
     setShowWizard(false);
     setPipelineRunning(false);
 
@@ -79,6 +93,9 @@ export default function DashboardPage() {
       if (exists) return prev.map(p => p.id === freshProject.id ? { ...p, ...freshProject } : p);
       return [freshProject, ...prev];
     });
+
+    // DB 저장 완료 후 artifacts 재조회 (새로고침 대비 데이터 동기화)
+    loadArtifacts(freshProject);
   }
 
   return (
