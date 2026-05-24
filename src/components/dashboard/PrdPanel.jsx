@@ -497,11 +497,13 @@ export function PrdPanel({ project }) {
   const [text,         setText]        = useState("");
   const [hasDraft,     setHasDraft]    = useState(false);
 
-  /* project.prdDocument → HTML → editor */
+  /* project.prdDocument → HTML → editor
+     project.id 변경(다른 프로젝트 선택) 또는
+     prdDocument 유무 변경(artifacts 늦게 로드) 시 재실행 */
   useEffect(() => {
     if (!editorRef.current) return;
     const doc = project?.prdDocument;
-    if (doc) {
+    if (doc && typeof doc === "object") {
       const html = prdJsonToHtml(doc);
       editorRef.current.innerHTML = html;
       setText(editorRef.current.innerText || "");
@@ -512,7 +514,7 @@ export function PrdPanel({ project }) {
       setHasDraft(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id]);
+  }, [project?.id, !!project?.prdDocument]);
 
   /* AI 내용 에디터에 삽입 */
   function handleApplyAiContent(aiText) {

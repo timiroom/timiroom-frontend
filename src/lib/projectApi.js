@@ -120,3 +120,40 @@ function normalizeProjects(list) {
   if (!Array.isArray(list)) return [];
   return list.map(normalizeProject);
 }
+
+/* ══════════════════════════════════════
+   프로젝트의 최신 파이프라인 Artifact 조회
+   GET /api/v1/pipeline/projects/{projectId}/artifacts
+   반환: [{ artifactType, content, ... }, ...]
+══════════════════════════════════════ */
+export async function fetchProjectArtifacts(projectId) {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/pipeline/projects/${projectId}/artifacts`);
+  if (!res || !res.ok) return [];
+  const body = await res.json();
+  return Array.isArray(body) ? body : (body?.data ?? []);
+}
+
+/* ══════════════════════════════════════
+   Artifact 배열로 project 객체 보강
+   artifactType: PRD | DB_SCHEMA | API_SPEC | FEATURE_LIST | MARKET_RESEARCH
+══════════════════════════════════════ */
+export function enrichProjectWithArtifacts(project, artifacts) {
+  const map = {};
+  artifacts.forEach(a => { map[a.artifactType] = a.content; });
+
+  // DB content는 JSON 문자열 — 이미 객체면 그대로, 문자열이면 파싱
+  const tryParse = (val) => {
+    if (val == null) return null;
+    if (typeof val === "object") return val;
+    try { return JSON.parse(val); } catch { return null; }
+  };
+
+  return {
+    ...project,
+    prdDocument:    tryParse(map["PRD"])             ?? project.prdDocument    ?? null,
+    dbSchema:       tryParse(map["DB_SCHEMA"])       ?? project.dbSchema       ?? null,
+    apiSpec:        tryParse(map["API_SPEC"])        ?? project.apiSpec        ?? null,
+    featureList:    tryParse(map["FEATURE_LIST"])    ?? project.featureList    ?? [],
+    marketResearch: tryParse(map["MARKET_RESEARCH"]) ?? project.marketResearch ?? null,
+  };
+}

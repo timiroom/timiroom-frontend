@@ -14,7 +14,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { API_BASE_URL, RAG_PIPELINE_URL } from "@/lib/authConfig";
+import { API_BASE_URL, RAG_PIPELINE_URL, apiFetch } from "@/lib/authConfig";
 import {
   fetchTechStackRecommendation,
   fetchPersonaRecommendation,
@@ -1118,7 +1118,10 @@ function ProgressScreen({ pipelineId, onComplete, onCancel }) {
   const doneRef       = useRef(false);
 
   useEffect(() => {
-    const es = new EventSource(`${RAG_PIPELINE_URL}/api/v1/orchestration/progress/${pipelineId}`);
+    const es = new EventSource(
+      `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
+      { withCredentials: true }
+    );
 
     es.addEventListener("progress", (e) => {
       const d      = JSON.parse(e.data);
@@ -1416,7 +1419,7 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // 1. 백엔드에 팀/프로젝트 먼저 저장 (새로고침 후에도 유지)
+      // 1. 팀/프로젝트 저장
       const team    = await getOrCreateDefaultTeam();
       const teamId  = team.teamId ?? team.id;
       const project = await createProject({
@@ -1426,7 +1429,7 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
       });
       setSavedProjectId(project.id);
 
-      const PLATFORM_MAP = { "웹": "WEB", "앱": "APP", "웹앱": "WEB_APP" };
+      const PLATFORM_MAP   = { "웹": "WEB", "앱": "APP", "웹앱": "WEB_APP" };
       const MOSCOW_BACKEND = { "Must": "MUST", "Should": "SHOULD", "Could": "COULD", "Won't": "WONT" };
 
       const formJson = JSON.stringify({
@@ -1438,7 +1441,7 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
           currentPainPoint: data.problem.pain,
           currentSolution:  data.problem.solution,
           idealState:       data.problem.ideal,
-          businessImpact:   data.problem.loss  || null,
+          businessImpact:   data.problem.loss    || null,
           motivation:       data.problem.trigger || null,
           competitorGap:    data.problem.ref_exp || null,
         },
@@ -1451,9 +1454,9 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
           })),
         featureDefinition: {
           commonFeatures: COMMON_FEATURES.map(feat => ({
-            featureName:  feat.label,
-            selected:     data.commonFeatures[feat.id]?.checked ?? false,
-            description:  data.commonFeatures[feat.id]?.desc   || null,
+            featureName: feat.label,
+            selected:    data.commonFeatures[feat.id]?.checked ?? false,
+            description: data.commonFeatures[feat.id]?.desc   || null,
           })),
           customFeatures: data.customFeatures
             .filter(f => f.name.trim())
@@ -1465,25 +1468,36 @@ export function CreateProjectWizard({ onComplete, onCancel }) {
         },
       });
 
-      const form = new FormData();
-      form.append("request", new Blob([formJson], { type: "application/json" }));
-      data.references.forEach(file => form.append("files", file));
-
-      const res = await fetch(`${RAG_PIPELINE_URL}/api/v1/orchestration/generate`, {
+      // 2. requirement 저장 (formJson을 DB에 보관 → 파이프라인 재실행 가능)
+      const reqRes = await apiFetch(`${API_BASE_URL}/api/v1/requirements`, {
         method: "POST",
-        body: form,
-        credentials: "include",
+        body: JSON.stringify({
+          projectId: Number(project.id),
+          title:     data.name,
+          content:   formJson,
+        }),
       });
+      if (!reqRes || !reqRes.ok)
+        throw new Error(`요구사항 생성 실패 (HTTP ${reqRes?.status})`);
+      const requirement = await reqRes.json();
+      const requirementId = requirement.requirementId;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
+      // 3. 파이프라인 시작 (timiroom-backend → rag-pipeline 중계)
+      //    완료 시 backend가 pipeline_artifact 테이블에 자동 저장
+      const pipeForm = new FormData();
+      data.references.forEach(file => pipeForm.append("files", file));
 
-      const result = await res.json();
-      const id = result.data?.pipelineId;
+      const pipeRes = await apiFetch(
+        `${API_BASE_URL}/api/v1/pipeline/start/${requirementId}`,
+        { method: "POST", body: pipeForm }
+      );
+      if (!pipeRes || !pipeRes.ok)
+        throw new Error(`파이프라인 시작 실패 (HTTP ${pipeRes?.status})`);
+
+      const pipeResult = await pipeRes.json();
+      const id = pipeResult.pipelineId ?? pipeResult.data?.pipelineId;
       if (!id) throw new Error("pipelineId를 받지 못했습니다");
-      setPipelineId(id); // 진행 화면으로 전환 (SSE 구독 시작)
+      setPipelineId(id);
     } catch (err) {
       console.error("파이프라인 실행 실패:", err);
       setIsSubmitting(false);
