@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 /* ── 색상 토큰 ── */
@@ -117,6 +118,7 @@ function ActivityIcon({ id, icon: Icon, label, isActive, onClick }) {
 /* ── ActivityBar (exported) ── */
 export function ActivityBar({ activeMode, onModeChange }) {
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [avatarHovered, setAvatarHovered] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -225,10 +227,31 @@ export function ActivityBar({ activeMode, onModeChange }) {
             boxShadow:    "0 8px 32px rgba(0,0,0,0.5)",
             zIndex:       200,
           }}>
-            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1916" }}>{user?.name || "사용자"}</div>
-              <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 2 }}>{user?.email}</div>
-            </div>
+            <button
+              onClick={() => { setShowMenu(false); router.push("/mypage"); }}
+              style={{
+                display:    "flex",
+                alignItems: "center",
+                gap:        8,
+                width:      "100%",
+                padding:    "10px 14px",
+                border:     "none",
+                borderBottom: "1px solid rgba(0,0,0,0.07)",
+                background: "none",
+                fontSize:   13,
+                color:      "var(--text-2)",
+                cursor:     "pointer",
+                textAlign:  "left",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.05)"}
+              onMouseLeave={e => e.currentTarget.style.background = "none"}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              내 프로필
+            </button>
             <button
               onClick={() => { setShowMenu(false); logout(); }}
               style={{
