@@ -38,6 +38,7 @@ const STATUS_MAP = {
   draft:     { label: "초안",   color: "#6b7280" },
   completed: { label: "완료",   color: "#6b6960" },
   archived:  { label: "보관",   color: "#4b5563" },
+  running:   { label: "생성 중", color: "#6b55dc" },
 };
 
 /* ── 프로젝트 서브 문서 목록 ── */
@@ -60,7 +61,7 @@ const MOCK_COMMITS = [
 /* ══════════════════════════════════════
    PROJECTS PANEL
 ══════════════════════════════════════ */
-function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject }) {
+function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
 
@@ -154,6 +155,7 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
                   isSelected={isSelected}
                   isOpen={isOpen}
                   onClick={() => handleProjectClick(project)}
+                  onDelete={onDeleteProject ? (e) => { e.stopPropagation(); onDeleteProject(project); } : null}
                 />
 
                 {/* 서브 문서 아이템 (펼쳐졌을 때만) */}
@@ -183,54 +185,94 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
 }
 
 /* ── 프로젝트 헤더 행 ── */
-function ProjectRow({ project, status, isSelected, isOpen, onClick }) {
+function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <button
-      onClick={onClick}
+    <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        display:       "flex",
-        alignItems:    "center",
-        gap:           6,
-        width:         "100%",
-        padding:       "8px 8px",
-        borderRadius:  7,
-        border:        isSelected ? `1px solid ${C.activeBdr}` : "1px solid transparent",
-        background:    isSelected ? C.active : hovered ? C.hover : "transparent",
-        cursor:        "pointer",
-        textAlign:     "left",
-        transition:    "all 0.12s",
-      }}
+      style={{ position: "relative" }}
     >
-      {/* 화살표 */}
-      <svg
-        width="12" height="12" viewBox="0 0 24 24" fill="none"
-        stroke={isSelected ? C.accent : C.sub} strokeWidth="2.5" strokeLinecap="round"
-        style={{ flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+      <button
+        onClick={onClick}
+        style={{
+          display:       "flex",
+          alignItems:    "center",
+          gap:           6,
+          width:         "100%",
+          padding:       "8px 8px",
+          borderRadius:  7,
+          border:        isSelected ? `1px solid ${C.activeBdr}` : "1px solid transparent",
+          background:    isSelected ? C.active : hovered ? C.hover : "transparent",
+          cursor:        "pointer",
+          textAlign:     "left",
+          transition:    "all 0.12s",
+        }}
       >
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
+        {/* 화살표 */}
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke={isSelected ? C.accent : C.sub} strokeWidth="2.5" strokeLinecap="round"
+          style={{ flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+        >
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
 
-      {/* 프로젝트 이름 */}
-      <span style={{
-        flex: 1, fontSize: 13, fontWeight: 600,
-        color: isSelected ? C.accent : C.text,
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>
-        {project.name}
-      </span>
+        {/* 프로젝트 이름 */}
+        <span style={{
+          flex: 1, fontSize: 13, fontWeight: 600,
+          color: isSelected ? C.accent : C.text,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          paddingRight: hovered && onDelete ? 20 : 0,
+        }}>
+          {project.name}
+        </span>
 
-      {/* 상태 배지 */}
-      <span style={{
-        fontSize: 10, fontWeight: 600, color: status.color,
-        background: `${status.color}18`, padding: "2px 6px",
-        borderRadius: 100, whiteSpace: "nowrap", flexShrink: 0,
-      }}>
-        {status.label}
-      </span>
-    </button>
+        {/* 상태 배지 (호버 시 숨김) */}
+        {!hovered && (
+          <span style={{
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 10, fontWeight: 600, color: status.color,
+            background: `${status.color}18`, padding: "2px 6px",
+            borderRadius: 100, whiteSpace: "nowrap", flexShrink: 0,
+          }}>
+            {project.status === "running" && (
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                style={{ animation: "ctx-spin 0.9s linear infinite", flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+              </svg>
+            )}
+            {status.label}
+          </span>
+        )}
+      </button>
+
+      {/* 삭제 버튼 (호버 시만 표시) */}
+      {hovered && onDelete && (
+        <button
+          onClick={onDelete}
+          title="프로젝트 삭제"
+          style={{
+            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 22, height: 22, borderRadius: 5,
+            background: "none", border: "none",
+            color: "#f87171", cursor: "pointer",
+            transition: "all 0.12s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -444,13 +486,14 @@ function CommitItem({ commit, isLatest }) {
 /* ══════════════════════════════════════
    CONTEXT PANEL (exported)
 ══════════════════════════════════════ */
-export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject }) {
+export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
   return (
     <div style={{
       width: 260, flexShrink: 0, height: "100vh",
       background: C.panel, borderRight: `1px solid ${C.border}`,
       display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
+      <style>{`@keyframes ctx-spin { to { transform: rotate(360deg); } }`}</style>
       {mode === "projects" ? (
         <ProjectsPanel
           projects={projects}
@@ -459,6 +502,7 @@ export function ContextPanel({ mode, projects, selectedProject, onSelectProject,
           selectedView={selectedView}
           onSelectView={onSelectView}
           onCreateProject={onCreateProject}
+          onDeleteProject={onDeleteProject}
         />
       ) : (
         <CommitPanel selectedProject={selectedProject} />
