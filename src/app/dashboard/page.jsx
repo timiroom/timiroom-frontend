@@ -19,8 +19,8 @@ import { ApiSpecPanel }        from "@/components/dashboard/ApiSpecPanel";
 import { PrdPanel }            from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel }       from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel }            from "@/components/dashboard/ErdPanel";
-import { CreateProjectWizard } from "@/components/dashboard/CreateProjectWizard";
-import { fetchProjects, fetchProjectArtifacts, enrichProjectWithArtifacts } from "@/lib/projectApi";
+import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
+import { fetchProjects, fetchProjectArtifacts, enrichProjectWithArtifacts, deleteProject } from "@/lib/projectApi";
 
 export default function DashboardPage() {
   const [activeMode,        setActiveMode]        = useState("projects");
@@ -28,8 +28,8 @@ export default function DashboardPage() {
   const [selectedProject,   setSelectedProject]   = useState(null);
   const [selectedView,      setSelectedView]      = useState(null); // "prd" | "features" | "api" | "erd" | "qa" | null
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [showWizard,        setShowWizard]        = useState(false);
-  const [pipelineRunning,   setPipelineRunning]   = useState(false);
+  const [showWizard,        setShowWizard]        = useState(true);
+  const [runningPipeline,   setRunningPipeline]   = useState(null); // { pipelineId, projectId, projectName }
 
   const loadArtifacts = useCallback(async (project) => {
     try {
@@ -64,17 +64,50 @@ export default function DashboardPage() {
     loadProjects();
   }, [loadProjects]);
 
-  function handleSelectProject(project) {
-    setSelectedProject(project);
-    setSelectedView(null);
-    loadArtifacts(project);
+  async function handleDeleteProject(project) {
+    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
+    try {
+      await deleteProject(project.id);
+      setProjects(prev => prev.filter(p => p.id !== project.id));
+      if (selectedProject?.id === project.id) {
+        setSelectedProject(null);
+        setSelectedView(null);
+        setShowWizard(true);
+      }
+    } catch (err) {
+      console.error("프로젝트 삭제 실패:", err);
+    }
   }
 
-  // 위저드 완료 → SSE 결과를 즉시 반영 + DB에서 artifacts 재조회
-  async function handleWizardComplete(pipelineResult) {
+  function handleSelectProject(project) {
+    setSelectedProject(project);
+    setSelectedView(runningPipeline?.projectId === project.id ? null : "prd");
     setShowWizard(false);
-    setPipelineRunning(false);
+    if (runningPipeline?.projectId !== project.id) loadArtifacts(project);
+  }
 
+  // 채팅 완료 → 파이프라인 시작, 위저드 닫기, 사이드바에 프로젝트 추가
+  function handlePipelineStart(pipelineId, projectId, projectName) {
+    const runningProject = {
+      id: projectId, name: projectName,
+      description: "", status: "running",
+      prdDocument: null, dbSchema: null, apiSpec: null,
+      featureList: [], marketResearch: null,
+    };
+    setRunningPipeline({ pipelineId, projectId, projectName });
+    setProjects(prev => {
+      const exists = prev.find(p => p.id === projectId);
+      return exists
+        ? prev.map(p => p.id === projectId ? { ...p, status: "running" } : p)
+        : [runningProject, ...prev];
+    });
+    setSelectedProject(runningProject);
+    setSelectedView(null);
+    setShowWizard(false);
+  }
+
+  // 파이프라인 완료 → SSE 결과 반영 + artifacts 재조회
+  async function handlePipelineComplete(pipelineResult) {
     const freshProject = {
       id:             String(pipelineResult?.projectId   ?? Date.now()),
       name:           pipelineResult?.projectName        ?? "새 프로젝트",
@@ -87,14 +120,14 @@ export default function DashboardPage() {
       marketResearch: pipelineResult?.marketResearch     ?? null,
     };
 
+    setRunningPipeline(null);
     setSelectedProject(freshProject);
+    setSelectedView("prd");
     setProjects(prev => {
       const exists = prev.find(p => p.id === freshProject.id);
       if (exists) return prev.map(p => p.id === freshProject.id ? { ...p, ...freshProject } : p);
       return [freshProject, ...prev];
     });
-
-    // DB 저장 완료 후 artifacts 재조회 (새로고침 대비 데이터 동기화)
     loadArtifacts(freshProject);
   }
 
@@ -121,14 +154,32 @@ export default function DashboardPage() {
         selectedView={selectedView}
         onSelectView={setSelectedView}
         onCreateProject={() => setShowWizard(true)}
+        onDeleteProject={handleDeleteProject}
       />
 
-      {/* ③ 메인 콘텐츠 — 위저드 / 뷰에 따라 전환 */}
+      {/* ③ 메인 콘텐츠 — 위저드 / 파이프라인 진행 / 뷰에 따라 전환 */}
       {showWizard ? (
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <CreateProjectWizard
-            onComplete={handleWizardComplete}
+          <ProjectChatWizard
+            onPipelineStart={handlePipelineStart}
             onCancel={() => setShowWizard(false)}
+          />
+        </div>
+      ) : runningPipeline && selectedProject?.id === runningPipeline.projectId ? (
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <ProgressScreen
+            pipelineId={runningPipeline.pipelineId}
+            onComplete={(result) => handlePipelineComplete({
+              ...result,
+              projectId:   runningPipeline.projectId,
+              projectName: runningPipeline.projectName,
+            })}
+            onCancel={() => {
+              setRunningPipeline(null);
+              setProjects(prev => prev.filter(p => p.id !== runningPipeline.projectId));
+              setSelectedProject(null);
+              setShowWizard(true);
+            }}
           />
         </div>
       ) : selectedView === "prd" ? (
