@@ -528,7 +528,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
             </div>
           )}
           <div
-            style={{ display: "flex", alignItems: "flex-end", gap: 10, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 12px 10px 16px", transition: "border-color 0.15s" }}
+            style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 12px 10px 16px", transition: "border-color 0.15s" }}
             onFocusCapture={e => e.currentTarget.style.borderColor = "var(--db-purple-400)"}
             onBlurCapture={e => e.currentTarget.style.borderColor = "var(--db-border-mid)"}
           >
@@ -540,7 +540,8 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               placeholder="위에서 선택하거나 직접 입력하세요... (Enter 전송, Shift+Enter 줄바꿈)"
               disabled={isLoading || isSubmitting || !!sessionError}
               rows={1}
-              style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text-1)", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: 1.6, maxHeight: 120, overflowY: "auto" }}
+              className="chat-textarea"
+              style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text-1)", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: 1.6, maxHeight: 120, overflowY: "auto", scrollbarWidth: "none" }}
               onInput={e => {
                 e.target.style.height = "auto";
                 e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
@@ -577,6 +578,9 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
           40% { transform: scale(1); opacity: 1; }
         }
         @keyframes prog-spin { to { transform: rotate(360deg); } }
+        .chat-textarea::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
     </div>
   );

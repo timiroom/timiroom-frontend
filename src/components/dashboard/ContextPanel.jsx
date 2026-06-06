@@ -12,7 +12,8 @@
  *   커밋 히스토리 + 커밋 폼
  */
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { fetchCommits, fetchCommitsByProject, createCommit } from "@/lib/commitApi";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -50,13 +51,6 @@ const PROJECT_DOCS = [
   { id: "qa",       label: "QA",         icon: "✓"  },
 ];
 
-/* ── 샘플 커밋 히스토리 ── */
-const MOCK_COMMITS = [
-  { id: "c001", summary: "초기 PRD 및 기능 목록 확정",  project: "Align-it MVP",   time: "1시간 전", hash: "3a4b5c" },
-  { id: "c002", summary: "API 명세 v1 생성",            project: "Align-it MVP",   time: "3시간 전", hash: "8f2e1a" },
-  { id: "c003", summary: "DB 스키마 1차 설계",           project: "Align-it MVP",   time: "어제",     hash: "c9d3b7" },
-  { id: "c004", summary: "QA 시나리오 자동 생성",        project: "테스트 프로젝트", time: "2일 전",   hash: "e1f4a2" },
-];
 
 /* ══════════════════════════════════════
    PROJECTS PANEL
@@ -334,16 +328,48 @@ function CommitPanel({ selectedProject }) {
   const [desc,       setDesc]       = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [committed,  setCommitted]  = useState(false);
+  const [commits,    setCommits]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
 
+  /* ── 커밋 목록 로드 ── */
+  const loadCommits = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = selectedProject?.id
+        ? await fetchCommitsByProject(selectedProject.id)
+        : await fetchCommits();
+      setCommits(data);
+    } catch (e) {
+      setError("커밋 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedProject?.id]);
+
+  useEffect(() => { loadCommits(); }, [loadCommits]);
+
+  /* ── 커밋 생성 ── */
   async function handleCommit() {
-    if (!summary.trim()) return;
+    if (!summary.trim() || !selectedProject?.id) return;
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSubmitting(false);
-    setCommitted(true);
-    setSummary("");
-    setDesc("");
-    setTimeout(() => setCommitted(false), 2000);
+    try {
+      const newCommit = await createCommit({
+        projectId:   selectedProject.id,
+        message:     summary.trim(),
+        description: desc.trim(),
+      });
+      setCommits(prev => [newCommit, ...prev]);
+      setCommitted(true);
+      setSummary("");
+      setDesc("");
+      setTimeout(() => setCommitted(false), 2000);
+    } catch {
+      setError("커밋에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -362,9 +388,34 @@ function CommitPanel({ selectedProject }) {
 
       {/* 히스토리 목록 */}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        {MOCK_COMMITS.map((commit, idx) => (
-          <CommitItem key={commit.id} commit={commit} isLatest={idx === 0} />
-        ))}
+        {loading ? (
+          <div style={{ padding: "32px 0", textAlign: "center" }}>
+            <svg style={{ animation: "ctx-spin 0.9s linear infinite", color: C.sub }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+            </svg>
+          </div>
+        ) : error ? (
+          <div style={{ padding: "20px 12px", textAlign: "center" }}>
+            <div style={{ fontSize: 12, color: "#f87171", marginBottom: 8 }}>{error}</div>
+            <button
+              onClick={loadCommits}
+              style={{
+                fontSize: 11, color: C.accent, background: "none",
+                border: `1px solid ${C.inputBdr}`, borderRadius: 5,
+                padding: "4px 10px", cursor: "pointer",
+              }}
+            >다시 시도</button>
+          </div>
+        ) : commits.length === 0 ? (
+          <div style={{ padding: "40px 12px", textAlign: "center", color: C.sub, fontSize: 12 }}>
+            {selectedProject ? "아직 커밋이 없습니다" : "프로젝트를 선택하세요"}
+          </div>
+        ) : (
+          commits.map((commit, idx) => (
+            <CommitItem key={commit.id} commit={commit} isLatest={idx === 0} />
+          ))
+        )}
       </div>
 
       {/* 커밋 폼 */}
@@ -404,17 +455,31 @@ function CommitPanel({ selectedProject }) {
           onBlur={e => e.target.style.borderColor = C.inputBdr}
         />
 
+        {error && !loading && (
+          <div style={{ fontSize: 11, color: "#f87171", marginBottom: 6, textAlign: "center" }}>
+            {error}
+          </div>
+        )}
+
+        {!selectedProject && (
+          <div style={{ fontSize: 11, color: C.sub, marginBottom: 6, textAlign: "center" }}>
+            프로젝트를 먼저 선택해주세요
+          </div>
+        )}
+
         <button
           onClick={handleCommit}
-          disabled={!summary.trim() || submitting}
+          disabled={!summary.trim() || submitting || !selectedProject}
           style={{
             width: "100%", padding: "9px 0", borderRadius: 6, border: "none",
             background: committed
               ? "#a8a69f"
-              : !summary.trim() || submitting ? "rgba(26,25,22,0.35)" : C.commit,
-            color:      committed ? "#064e3b" : "var(--bg)",
+              : !summary.trim() || submitting || !selectedProject
+                ? "rgba(26,25,22,0.35)"
+                : C.commit,
+            color:   committed ? "#064e3b" : "var(--bg)",
             fontSize: 13, fontWeight: 700,
-            cursor: !summary.trim() || submitting ? "not-allowed" : "pointer",
+            cursor: !summary.trim() || submitting || !selectedProject ? "not-allowed" : "pointer",
             transition: "all 0.2s",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}

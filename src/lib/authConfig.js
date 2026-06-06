@@ -56,7 +56,11 @@ export async function apiFetch(url, options = {}) {
   });
 
   if (res.status === 401) {
-    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+    const REDIRECT_EXEMPT = ["/", "/auth/callback"];
+    if (
+      typeof window !== "undefined" &&
+      !REDIRECT_EXEMPT.includes(window.location.pathname)
+    ) {
       window.location.href = "/";
     }
     return null;
