@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { fetchProjects } from "@/lib/projectApi";
@@ -71,10 +72,9 @@ function Avatar({ user, size = 72 }) {
   const initial = (user?.name || user?.email || "U").charAt(0).toUpperCase();
   if (user?.avatarUrl) {
     return (
-      <img src={user.avatarUrl} alt="profile" style={{
-        width: size, height: size, borderRadius: "50%",
-        objectFit: "cover", border: "3px solid var(--border)",
-      }} />
+      <Image src={user.avatarUrl} alt="profile" width={size} height={size}
+        style={{ borderRadius: "50%", objectFit: "cover", border: "3px solid var(--border)" }}
+        unoptimized />
     );
   }
   return (

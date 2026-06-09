@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -208,7 +209,7 @@ export function ActivityBar({ activeMode, onModeChange }) {
           }}
         >
           {user?.avatarUrl
-            ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ? <Image src={user.avatarUrl} alt="" fill sizes="32px" style={{ objectFit: "cover" }} />
             : initials
           }
         </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
 import { createChatSession, sendChatMessage, validateFile, isImageFile, MAX_FILES, ALLOWED_EXTENSIONS } from "@/lib/chatApi";
 import { restartPipeline } from "@/lib/pipelineApi";
@@ -312,7 +313,8 @@ function FileChip({ file, onRemove, preview }) {
       maxWidth: 180,
     }}>
       {isImg && preview ? (
-        <img src={preview} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
+        <Image src={preview} alt="" width={20} height={20}
+          style={{ borderRadius: 4, objectFit: "cover", flexShrink: 0 }} unoptimized />
       ) : (
         <span style={{ fontSize: 14, flexShrink: 0 }}>
           {ALLOWED_EXTENSIONS[file.type]?.icon ?? "📎"}
