@@ -28,16 +28,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user
-RUN addgroup -g 1000 nextjs && \
-    adduser -u 1000 -G nextjs -s /bin/sh -D nextjs
-
 # Copy standalone build output
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nextjs /app/public ./public
+COPY --from=builder --chown=1000:1000 /app/.next/standalone ./
+COPY --from=builder --chown=1000:1000 /app/.next/static ./.next/static
+COPY --from=builder --chown=1000:1000 /app/public ./public
 
-USER nextjs
+USER 1000:1000
 
 EXPOSE 3000
 
