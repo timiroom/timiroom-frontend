@@ -9,6 +9,7 @@ RUN npm ci
 
 # Build application
 COPY . .
+RUN mkdir -p public
 
 # NEXT_PUBLIC_* 변수는 빌드 타임에 번들에 정적 삽입되므로 ARG로 주입
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
