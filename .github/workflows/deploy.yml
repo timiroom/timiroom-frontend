@@ -2,7 +2,7 @@ name: Frontend CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
 
 jobs:
   build-and-push:
@@ -59,7 +59,7 @@ jobs:
 
           # Only create secret if there are env vars
           if [ -s temp-secrets.env ]; then
-            kubectl create secret generic frontend-secrets --from-env-file=temp-secrets.env --dry-run=client -o yaml > plain-secret.yaml
+            kubectl create secret generic frontend-secrets -n timiroom --from-env-file=temp-secrets.env --dry-run=client -o yaml > plain-secret.yaml
             kubeseal --format=yaml --cert=pub-cert.pem < plain-secret.yaml > sealed-secret.yaml
             rm -f plain-secret.yaml
           fi
