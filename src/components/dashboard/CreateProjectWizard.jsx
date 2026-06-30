@@ -14,6 +14,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { API_BASE_URL, RAG_PIPELINE_URL, apiFetch } from "@/lib/authConfig";
 import {
   fetchTechStackRecommendation,
@@ -289,8 +290,8 @@ function Step1({ data, onChange, aiTechStack, aiTechStackLoading }) {
             onMouseLeave={e => e.currentTarget.style.borderColor = "var(--db-border-mid)"}
           >
             {data.imagePreview ? (
-              <img src={data.imagePreview} alt="preview"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <Image src={data.imagePreview} alt="preview" fill sizes="160px"
+                style={{ objectFit: "cover" }} unoptimized />
             ) : (
               <>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="1.5">
@@ -1114,8 +1115,10 @@ function ProgressScreen({ pipelineId, onComplete, onCancel }) {
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
   const [currentMsg, setCurrentMsg] = useState("파이프라인 준비 중...");
-  const currentKeyRef = useRef(null);
-  const doneRef       = useRef(false);
+  const currentKeyRef  = useRef(null);
+  const doneRef        = useRef(false);
+  const onCompleteRef  = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     const es = new EventSource(
@@ -1148,7 +1151,7 @@ function ProgressScreen({ pipelineId, onComplete, onCancel }) {
       setCurrentMsg("모든 단계 완료!");
       setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
       es.close();
-      setTimeout(() => onComplete(d.result), 1500);
+      setTimeout(() => onCompleteRef.current(d.result), 1500);
     });
 
     es.addEventListener("error", (e) => {
