@@ -63,6 +63,20 @@ export function subscribePipelineProgress(pipelineId, { onProgress, onComplete, 
   return () => es.close();
 }
 
+/**
+ * 파이프라인 재시작
+ * POST /api/v1/pipeline/restart/{pipelineId}
+ * @returns {{ pipelineId: string }}
+ */
+export async function restartPipeline(pipelineId) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/pipeline/restart/${pipelineId}`,
+    { method: "POST" }
+  );
+  if (!res || !res.ok) throw new Error(`파이프라인 재시작 실패 (HTTP ${res?.status})`);
+  return res.json(); // { pipelineId }
+}
+
 export async function getArtifacts(executionId) {
   const res = await apiFetch(
     `${API_BASE_URL}/api/v1/pipeline/executions/${executionId}/artifacts`

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
-import { createChatSession, sendChatMessage } from "@/lib/chatApi";
+import { createChatSession, sendChatMessage, validateFile, isImageFile, MAX_FILES, ALLOWED_EXTENSIONS } from "@/lib/chatApi";
+import { restartPipeline } from "@/lib/pipelineApi";
 import { getOrCreateDefaultTeam } from "@/lib/teamApi";
 import { createProject } from "@/lib/projectApi";
 
@@ -103,18 +104,30 @@ function FlowNode({ step, status }) {
 /* ═══════════════════════════════════════════
    ProgressScreen
 ════════════════════════════════════════════ */
-export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
+export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel }) {
+  const [pipelineId, setPipelineId] = useState(initialPipelineId);
   const [percent,    setPercent]    = useState(5);
   const [phase,      setPhase]      = useState("running");
   const [errMsg,     setErrMsg]     = useState(null);
   const [statuses,   setStatuses]   = useState(() =>
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
-  const [currentMsg, setCurrentMsg] = useState("파이프라인 준비 중...");
+  const [currentMsg,  setCurrentMsg]  = useState("파이프라인 준비 중...");
+  const [restarting,  setRestarting]  = useState(false);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
+  /* ── SSE 연결 ── */
   useEffect(() => {
+    // 상태 초기화
+    setPercent(5);
+    setPhase("running");
+    setErrMsg(null);
+    setCurrentMsg("파이프라인 준비 중...");
+    setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
+    currentKeyRef.current = null;
+    doneRef.current = false;
+
     const es = new EventSource(
       `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
       { withCredentials: true }
@@ -160,6 +173,28 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
     };
     return () => es.close();
   }, [pipelineId, onComplete]);
+
+  /* ── 재시작 핸들러 ── */
+  async function handleRestart() {
+    setRestarting(true);
+    try {
+      const result = await restartPipeline(pipelineId);
+      const newId  = result.pipelineId ?? result.data?.pipelineId ?? pipelineId;
+      // pipelineId가 바뀌면 useEffect 재실행 → SSE 재연결
+      // 같은 ID면 강제 재마운트를 위해 상태를 직접 초기화
+      if (newId !== pipelineId) {
+        setPipelineId(newId);
+      } else {
+        // 동일 ID 재시작: 상태만 리셋하고 SSE 재연결은 키를 바꿔서 처리
+        setPipelineId(null);
+        setTimeout(() => setPipelineId(newId), 0);
+      }
+    } catch (e) {
+      setErrMsg(e.message || "재시작에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setRestarting(false);
+    }
+  }
 
   const isAct       = (key) => statuses[key] === "done";
   const accentColor = phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "var(--db-purple-400)";
@@ -209,9 +244,49 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
             </div>
           )}
           {phase === "error" && (
-            <div style={{ textAlign: "center" }}>
-              <button onClick={onCancel} style={{ padding: "10px 28px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}>
+            <div style={{ textAlign: "center", display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={onCancel}
+                style={{
+                  padding: "10px 24px", borderRadius: 8,
+                  background: "var(--border)", border: "none",
+                  color: "var(--text-2)", fontSize: 13, cursor: "pointer",
+                }}
+              >
                 돌아가기
+              </button>
+              <button
+                onClick={handleRestart}
+                disabled={restarting}
+                style={{
+                  padding: "10px 24px", borderRadius: 8,
+                  background: restarting ? "rgba(107,85,220,0.4)" : "var(--db-grad-purple)",
+                  border: "none", color: "white",
+                  fontSize: 13, fontWeight: 700,
+                  cursor: restarting ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 6,
+                  transition: "all 0.2s",
+                  boxShadow: restarting ? "none" : "var(--db-glow-sm)",
+                }}
+              >
+                {restarting ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                      style={{ animation: "prog-spin 0.9s linear infinite" }}>
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+                    </svg>
+                    재시작 중...
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    다시 시작
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -225,23 +300,73 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
 /* ═══════════════════════════════════════════
    채팅 메시지 버블
 ════════════════════════════════════════════ */
-function MessageBubble({ role, content }) {
+function FileChip({ file, onRemove, preview }) {
+  const isImg = isImageFile(file);
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "4px 8px 4px 6px",
+      background: "rgba(107,85,220,0.1)",
+      border: "1px solid rgba(107,85,220,0.25)",
+      borderRadius: 8, fontSize: 12, color: "var(--text-2)",
+      maxWidth: 180,
+    }}>
+      {isImg && preview ? (
+        <img src={preview} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
+      ) : (
+        <span style={{ fontSize: 14, flexShrink: 0 }}>
+          {ALLOWED_EXTENSIONS[file.type]?.icon ?? "📎"}
+        </span>
+      )}
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+        {file.name}
+      </span>
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.color = "#f87171"}
+          onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MessageBubble({ role, content, files }) {
   const isUser = role === "user";
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 8 }}>
       {!isUser && (
         <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
       )}
-      <div style={{
-        maxWidth: "72%", padding: "12px 16px",
-        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-        background: isUser ? "var(--db-grad-purple)" : "var(--surface)",
-        border: isUser ? "none" : "1px solid var(--border)",
-        color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
-        boxShadow: isUser ? "var(--db-glow-sm)" : "none",
-        whiteSpace: "pre-wrap", wordBreak: "break-word",
-      }}>
-        {content}
+      <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", gap: 6 }}>
+        {/* 첨부 파일 미리보기 */}
+        {files && files.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: isUser ? "flex-end" : "flex-start" }}>
+            {files.map((f, i) => (
+              <FileChip key={i} file={f.file} preview={f.preview} />
+            ))}
+          </div>
+        )}
+        {/* 텍스트 버블 */}
+        {content && (
+          <div style={{
+            padding: "12px 16px",
+            borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+            background: isUser ? "var(--db-grad-purple)" : "var(--surface)",
+            border: isUser ? "none" : "1px solid var(--border)",
+            color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
+            boxShadow: isUser ? "var(--db-glow-sm)" : "none",
+            whiteSpace: "pre-wrap", wordBreak: "break-word",
+          }}>
+            {content}
+          </div>
+        )}
       </div>
       {isUser && (
         <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "var(--bg)", marginLeft: 10, alignSelf: "flex-end" }}>나</div>
@@ -324,8 +449,44 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
   const [sessionId,         setSessionId]         = useState(null);
   const [sessionError,      setSessionError]      = useState(null);
   const [isSubmitting,      setIsSubmitting]      = useState(false);
+  // 파일 첨부
+  const [attachedFiles,     setAttachedFiles]     = useState([]); // [{ file, preview }]
+  const [fileError,         setFileError]         = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
+  const fileInputRef   = useRef(null);
+
+  /* ── 파일 선택 핸들러 ── */
+  const handleFileSelect = useCallback((e) => {
+    const selected = Array.from(e.target.files);
+    setFileError(null);
+    const next = [...attachedFiles];
+
+    for (const file of selected) {
+      if (next.length >= MAX_FILES) {
+        setFileError(`파일은 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
+        break;
+      }
+      const err = validateFile(file);
+      if (err) { setFileError(err); continue; }
+
+      const preview = isImageFile(file) ? URL.createObjectURL(file) : null;
+      next.push({ file, preview });
+    }
+    setAttachedFiles(next);
+    e.target.value = "";
+  }, [attachedFiles]);
+
+  /* ── 파일 제거 ── */
+  const removeFile = useCallback((idx) => {
+    setAttachedFiles(prev => {
+      const copy = [...prev];
+      if (copy[idx]?.preview) URL.revokeObjectURL(copy[idx].preview);
+      copy.splice(idx, 1);
+      return copy;
+    });
+    setFileError(null);
+  }, []);
 
   // 세션 생성 + 첫 인사
   useEffect(() => {
@@ -399,13 +560,18 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
   const sendText = useCallback(async (text) => {
     if (!text.trim() || !sessionId || isLoading || isSubmitting) return;
 
-    setMessages(prev => [...prev, { role: "user", content: text }]);
-    setCurrentSuggestions([]); // 전송하면 제안 즉시 제거
+    const filesToSend = attachedFiles.map(f => f.file);
+    const filesMeta   = attachedFiles.map(f => ({ file: f.file, preview: f.preview }));
+
+    setMessages(prev => [...prev, { role: "user", content: text, files: filesMeta }]);
+    setCurrentSuggestions([]);
     setInputText("");
+    setAttachedFiles([]);
+    setFileError(null);
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(sessionId, text);
+      const response = await sendChatMessage(sessionId, text, filesToSend);
       setMessages(prev => [...prev, { role: "assistant", content: response.message }]);
       setCurrentSuggestions(response.suggestions ?? []);
 
@@ -424,7 +590,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
       setIsLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [sessionId, isLoading, isSubmitting, triggerPipeline]);
+  }, [sessionId, isLoading, isSubmitting, triggerPipeline, attachedFiles]);
 
   const handleSend = useCallback(() => {
     sendText(inputText.trim());
@@ -437,7 +603,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
     }
   };
 
-  const canSend = inputText.trim() && !isLoading && !isSubmitting && !sessionError;
+  const canSend = (inputText.trim() || attachedFiles.length > 0) && !isLoading && !isSubmitting && !sessionError;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
@@ -476,7 +642,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
 
           {/* 메시지 목록 */}
           {messages.map((msg, i) => (
-            <MessageBubble key={i} role={msg.role} content={msg.content} />
+            <MessageBubble key={i} role={msg.role} content={msg.content} files={msg.files} />
           ))}
 
           {/* 로딩 중 */}
@@ -527,11 +693,68 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               ))}
             </div>
           )}
+          {/* 파일 입력 (숨김) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={Object.keys(ALLOWED_EXTENSIONS).join(",")}
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+
+          {/* 첨부 파일 미리보기 */}
+          {attachedFiles.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {attachedFiles.map((f, i) => (
+                <FileChip key={i} file={f.file} preview={f.preview} onRemove={() => removeFile(i)} />
+              ))}
+            </div>
+          )}
+
+          {/* 파일 에러 */}
+          {fileError && (
+            <div style={{ fontSize: 11, color: "#f87171", marginBottom: 6 }}>{fileError}</div>
+          )}
+
           <div
-            style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 12px 10px 16px", transition: "border-color 0.15s" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 10px 10px 14px", transition: "border-color 0.15s" }}
             onFocusCapture={e => e.currentTarget.style.borderColor = "var(--db-purple-400)"}
             onBlurCapture={e => e.currentTarget.style.borderColor = "var(--db-border-mid)"}
           >
+            {/* 파일 첨부 버튼 */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isSubmitting || !!sessionError || attachedFiles.length >= MAX_FILES}
+              title={`파일 첨부 (최대 ${MAX_FILES}개, PDF·이미지·텍스트·JSON 지원)`}
+              style={{
+                width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                background: "none", border: "none",
+                cursor: isLoading || isSubmitting || attachedFiles.length >= MAX_FILES ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: attachedFiles.length > 0 ? "var(--db-purple-400)" : "var(--text-3)",
+                transition: "all 0.15s",
+                position: "relative",
+              }}
+              onMouseEnter={e => { if (!isLoading && !isSubmitting) e.currentTarget.style.color = "var(--db-purple-300)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = attachedFiles.length > 0 ? "var(--db-purple-400)" : "var(--text-3)"; }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+              {attachedFiles.length > 0 && (
+                <span style={{
+                  position: "absolute", top: -2, right: -2,
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: "var(--db-purple-400)", color: "white",
+                  fontSize: 9, fontWeight: 800,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {attachedFiles.length}
+                </span>
+              )}
+            </button>
+
             <textarea
               ref={inputRef}
               value={inputText}
@@ -567,7 +790,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
             </button>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 8 }}>
-            Claude가 대화를 통해 프로젝트 정보를 수집하고 자동으로 기획서를 생성합니다
+            PDF·이미지·텍스트 파일을 첨부하거나 아이디어를 자유롭게 입력하세요
           </div>
         </div>
       </div>
