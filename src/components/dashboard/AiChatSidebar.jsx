@@ -603,7 +603,7 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
       {/* 입력창 */}
       <div style={{ padding: "10px 12px", borderTop: `1px solid ${C.border}` }}>
         <div style={{
-          display: "flex", gap: 8, alignItems: "flex-end",
+          display: "flex", gap: 8, alignItems: "center",
           background: C.inputBg, borderRadius: 12,
           border: `1px solid ${C.inputBdr}`, padding: "8px 10px",
         }}>
@@ -614,10 +614,11 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
             onKeyDown={handleKeyDown}
             placeholder={meta.placeholder}
             rows={1}
+            className="chat-textarea"
             style={{
               flex: 1, background: "none", border: "none", outline: "none",
               fontSize: 13, color: C.text, resize: "none", lineHeight: 1.5,
-              fontFamily: "inherit", maxHeight: 120,
+              fontFamily: "inherit", maxHeight: 120, overflowY: "auto", scrollbarWidth: "none",
             }}
           />
           <button
@@ -648,6 +649,9 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
 
       <style>{`
         @keyframes aic-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
+        .chat-textarea::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
     </div>
   );
