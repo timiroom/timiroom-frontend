@@ -1,3 +1,17 @@
+/**
+ * chatApi.js
+ * ----------
+ * 채팅 세션 및 메시지 전송 API 레이어.
+ *
+ * ┌─ 백엔드 REST Endpoints ─────────────────────────────────────────┐
+ * │  POST /api/v1/chat/sessions                  → 세션 생성        │
+ * │  POST /api/v1/chat/sessions/{id}/messages    → 메시지 전송      │
+ * │    - 파일 없음: Content-Type: application/json                  │
+ * │    - 파일 있음: Content-Type: multipart/form-data               │
+ * │      fields: content (string), files (File[])                   │
+ * └────────────────────────────────────────────────────────────────┘
+ */
+
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
 
 export const MAX_FILES = 5;
@@ -52,4 +66,29 @@ export async function sendChatMessage(sessionId, content, files = []) {
   );
   if (!res || !res.ok) throw new Error("메시지 전송 실패");
   return res.json();
+}
+
+/** 허용 확장자 및 아이콘 */
+export const ALLOWED_EXTENSIONS = {
+  "application/pdf":        { icon: "📄", label: "PDF"      },
+  "text/plain":             { icon: "📝", label: "TXT"      },
+  "text/markdown":          { icon: "📝", label: "MD"       },
+  "application/json":       { icon: "🔧", label: "JSON"     },
+  "image/png":              { icon: "🖼️", label: "PNG"      },
+  "image/jpeg":             { icon: "🖼️", label: "JPG"      },
+  "image/gif":              { icon: "🖼️", label: "GIF"      },
+  "image/webp":             { icon: "🖼️", label: "WEBP"     },
+};
+
+export const MAX_FILE_SIZE_MB = 10;
+export const MAX_FILES        = 5;
+
+export function validateFile(file) {
+  if (!ALLOWED_EXTENSIONS[file.type]) return "지원하지 않는 파일 형식입니다.";
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) return `파일 크기는 ${MAX_FILE_SIZE_MB}MB 이하여야 합니다.`;
+  return null;
+}
+
+export function isImageFile(file) {
+  return file.type.startsWith("image/");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
 import {
   createChatSession, sendChatMessage,
@@ -143,6 +144,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
+  /* ── SSE 연결 ── */
   useEffect(() => {
     if (!pipelineId) return;
 
@@ -783,7 +785,8 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               placeholder="위에서 선택하거나 직접 입력하세요... (Enter 전송, Shift+Enter 줄바꿈)"
               disabled={isLoading || isSubmitting || !!sessionError}
               rows={1}
-              style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text-1)", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: 1.6, maxHeight: 120, overflowY: "auto" }}
+              className="chat-textarea"
+              style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text-1)", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: 1.6, maxHeight: 120, overflowY: "auto", scrollbarWidth: "none" }}
               onInput={e => {
                 e.target.style.height = "auto";
                 e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";

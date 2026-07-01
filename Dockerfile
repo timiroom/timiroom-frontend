@@ -9,6 +9,7 @@ RUN npm ci
 
 # Build application
 COPY . .
+RUN mkdir -p public
 
 # NEXT_PUBLIC_* 변수는 빌드 타임에 번들에 정적 삽입되므로 ARG로 주입
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -28,16 +29,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user
-RUN addgroup -g 1000 nextjs && \
-    adduser -u 1000 -G nextjs -s /bin/sh -D nextjs
-
 # Copy standalone build output
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nextjs /app/public ./public
+COPY --from=builder --chown=1000:1000 /app/.next/standalone ./
+COPY --from=builder --chown=1000:1000 /app/.next/static ./.next/static
+COPY --from=builder --chown=1000:1000 /app/public ./public
 
-USER nextjs
+USER 1000:1000
 
 EXPOSE 3000
 

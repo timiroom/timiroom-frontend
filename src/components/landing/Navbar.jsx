@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { smoothScroll } from "@/lib/smoothScroll";
 import { Button } from "@/components/ui";
@@ -51,10 +52,12 @@ function UserMenu({ user, onLogout }) {
         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border, #E5E7EB)")}
       >
         {user.avatarUrl ? (
-          <img
+          <Image
             src={user.avatarUrl}
             alt={user.name}
-            style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
+            width={28} height={28}
+            style={{ borderRadius: "50%", objectFit: "cover" }}
+            unoptimized
           />
         ) : (
           <div style={{
