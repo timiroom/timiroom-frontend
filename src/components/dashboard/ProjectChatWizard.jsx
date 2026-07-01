@@ -2,29 +2,33 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
-import { createChatSession, sendChatMessage } from "@/lib/chatApi";
+import {
+  createChatSession, sendChatMessage,
+  validateFile, isImageFile, MAX_FILES, ALLOWED_EXTENSIONS,
+} from "@/lib/chatApi";
+import { restartPipeline } from "@/lib/pipelineApi";
 import { getOrCreateDefaultTeam } from "@/lib/teamApi";
 import { createProject } from "@/lib/projectApi";
 
 /* ═══════════════════════════════════════════
    파이프라인 진행 화면 상수 (ProgressScreen용)
+   — Collaborative 멀티 에이전트 모드 기준
 ════════════════════════════════════════════ */
 const PIPELINE_STEPS = [
-  { key: "PHASE1",  label: "RAG 준비",      icon: "📚" },
-  { key: "SEARCH",  label: "시장 조사",      icon: "🔍" },
-  { key: "PM",      label: "기능 분석",      icon: "📋" },
-  { key: "PRD",     label: "PRD 작성",       icon: "📝" },
-  { key: "DBA_API", label: "DB · API 설계", icon: "🔌" },
-  { key: "QA",      label: "QA 검수",        icon: "🧪" },
-  { key: "PHASE3",  label: "최종 검증",      icon: "✅" },
-  { key: "PHASE4",  label: "결과 저장",      icon: "💾" },
+  { key: "PHASE1",  label: "RAG 준비",    icon: "📚", agents: null },
+  { key: "SEARCH",  label: "시장 조사",    icon: "🔍", agents: null },
+  { key: "DRAFT",   label: "Round 1",      icon: "⚡", agents: "PM · PRD · DBA · API" },
+  { key: "COLLAB",  label: "Round 2",      icon: "🔄", agents: "피드백 교환 후 수정" },
+  { key: "QA",      label: "QA 검수",      icon: "🧪", agents: null },
+  { key: "PHASE3",  label: "최종 검증",    icon: "✅", agents: null },
+  { key: "PHASE4",  label: "결과 저장",    icon: "💾", agents: null },
 ];
 
 const SSE_TO_STEP = {
   PHASE1_START: "PHASE1", PHASE1_DONE: "PHASE1",
-  SEARCH: "SEARCH", PM: "PM",
-  PRD: "PRD", PRD_ROLLBACK: "PRD",
-  DBA_API: "DBA_API",
+  SEARCH: "SEARCH",
+  DRAFT: "DRAFT",
+  COLLAB: "COLLAB",
   QA: "QA", QA_RETRY: "QA",
   PHASE3: "PHASE3",
   PHASE4: "PHASE4",
@@ -64,19 +68,33 @@ function FlowDown({ active }) {
 }
 
 function FlowNode({ step, status }) {
-  const isDone    = status === "done";
-  const isRunning = status === "running";
+  const isDone      = status === "done";
+  const isRunning   = status === "running";
+  const isParallel  = !!step.agents;
   return (
     <div style={{ width: NODE_W, flexShrink: 0 }}>
       <div style={{
         width: "100%", padding: "12px 6px 10px",
         background: isDone ? "rgba(52,211,153,0.07)" : isRunning ? "rgba(107,85,220,0.12)" : "var(--surface)",
         border: `2px solid ${isDone ? "rgba(52,211,153,0.5)" : isRunning ? "var(--db-purple-400)" : "var(--border)"}`,
-        borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+        borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
         transition: "all 0.4s",
-        boxShadow: isRunning ? "0 0 20px rgba(107,85,220,0.28)" : "none",
+        boxShadow: isRunning ? (isParallel ? "0 0 28px rgba(107,85,220,0.45)" : "0 0 20px rgba(107,85,220,0.28)") : "none",
         position: "relative",
       }}>
+        {isParallel && (
+          <div style={{
+            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
+            fontSize: 8, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
+            background: isDone ? "rgba(52,211,153,0.2)" : isRunning ? "var(--db-purple-600)" : "var(--border)",
+            color: isDone ? "#34d399" : isRunning ? "#fff" : "var(--text-3)",
+            border: `1px solid ${isDone ? "rgba(52,211,153,0.4)" : isRunning ? "var(--db-purple-400)" : "var(--border)"}`,
+            whiteSpace: "nowrap", letterSpacing: ".03em",
+            transition: "all 0.3s",
+          }}>
+            ×4 병렬
+          </div>
+        )}
         {isDone && (
           <div style={{ position: "absolute", top: -8, right: -8, width: 20, height: 20, borderRadius: "50%", background: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--db-bg-primary)" }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -90,8 +108,17 @@ function FlowNode({ step, status }) {
             </svg>
           </div>
         )}
-        <span style={{ fontSize: 22, opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s" }}>{step.icon}</span>
+        <span style={{ fontSize: 22, opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s", marginTop: isParallel ? 4 : 0 }}>{step.icon}</span>
         <span style={{ fontSize: 10, fontWeight: 700, textAlign: "center", lineHeight: 1.35, color: isDone ? "var(--text-2)" : isRunning ? "var(--text-1)" : "var(--text-3)", transition: "color 0.3s" }}>{step.label}</span>
+        {step.agents && (
+          <span style={{
+            fontSize: 8, fontWeight: 600, textAlign: "center", lineHeight: 1.3,
+            color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)",
+            transition: "color 0.3s", padding: "0 2px",
+          }}>
+            {step.agents}
+          </span>
+        )}
         <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
           {isDone ? "완료" : isRunning ? "실행 중" : "대기"}
         </span>
@@ -103,18 +130,31 @@ function FlowNode({ step, status }) {
 /* ═══════════════════════════════════════════
    ProgressScreen
 ════════════════════════════════════════════ */
-export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
-  const [percent,    setPercent]    = useState(5);
-  const [phase,      setPhase]      = useState("running");
-  const [errMsg,     setErrMsg]     = useState(null);
-  const [statuses,   setStatuses]   = useState(() =>
+export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel }) {
+  const [pipelineId,  setPipelineId]  = useState(initialPipelineId);
+  const [percent,     setPercent]     = useState(5);
+  const [phase,       setPhase]       = useState("running");
+  const [errMsg,      setErrMsg]      = useState(null);
+  const [statuses,    setStatuses]    = useState(() =>
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
-  const [currentMsg, setCurrentMsg] = useState("파이프라인 준비 중...");
+  const [currentMsg,  setCurrentMsg]  = useState("파이프라인 준비 중...");
+  const [restarting,  setRestarting]  = useState(false);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
   useEffect(() => {
+    if (!pipelineId) return;
+
+    // 상태 초기화 (재시작 시에도 깔끔하게 리셋)
+    setPercent(5);
+    setPhase("running");
+    setErrMsg(null);
+    setCurrentMsg("파이프라인 준비 중...");
+    setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
+    currentKeyRef.current = null;
+    doneRef.current = false;
+
     const es = new EventSource(
       `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
       { withCredentials: true }
@@ -161,15 +201,38 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
     return () => es.close();
   }, [pipelineId, onComplete]);
 
+  async function handleRestart() {
+    setRestarting(true);
+    try {
+      const result = await restartPipeline(pipelineId);
+      const newId  = result.pipelineId ?? result.data?.pipelineId ?? pipelineId;
+      if (newId !== pipelineId) {
+        setPipelineId(newId);
+      } else {
+        // 같은 ID면 null → newId 순서로 useEffect 재트리거
+        setPipelineId(null);
+        setTimeout(() => setPipelineId(newId), 0);
+      }
+    } catch (e) {
+      setErrMsg(e.message || "재시작에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setRestarting(false);
+    }
+  }
+
   const isAct       = (key) => statuses[key] === "done";
   const accentColor = phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "var(--db-purple-400)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
-      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 16, flexShrink: 0 }}>
+      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 16, gap: 16, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: `2px solid ${accentColor}`, background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
           <span style={{ fontSize: 14 }}>✦</span>
           {phase === "done" ? "생성 완료" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--db-purple-300)", fontWeight: 700 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: phase === "running" ? "var(--db-purple-400)" : phase === "done" ? "#34d399" : "#f87171", display: "inline-block", animation: phase === "running" ? "prog-pulse 1.5s infinite" : "none" }}/>
+          Collaborative · 4 에이전트 병렬
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "32px 40px" }}>
@@ -194,7 +257,7 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
                 return nodes;
               })}
             </div>
-            <FlowDown active={isAct("PRD")} />
+            <FlowDown active={isAct("COLLAB")} />
             <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", width: ROW_W }}>
               {ROW2.flatMap((step, idx) => {
                 const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
@@ -209,15 +272,96 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
             </div>
           )}
           {phase === "error" && (
-            <div style={{ textAlign: "center" }}>
-              <button onClick={onCancel} style={{ padding: "10px 28px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}>
+            <div style={{ textAlign: "center", display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={onCancel}
+                style={{ padding: "10px 24px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}
+              >
                 돌아가기
+              </button>
+              <button
+                onClick={handleRestart}
+                disabled={restarting}
+                style={{
+                  padding: "10px 24px", borderRadius: 8,
+                  background: restarting ? "rgba(107,85,220,0.4)" : "var(--db-grad-purple)",
+                  border: "none", color: "white",
+                  fontSize: 13, fontWeight: 700,
+                  cursor: restarting ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 6,
+                  transition: "all 0.2s",
+                  boxShadow: restarting ? "none" : "var(--db-glow-sm)",
+                }}
+              >
+                {restarting ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                      style={{ animation: "prog-spin 0.9s linear infinite" }}>
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+                    </svg>
+                    재시작 중...
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    다시 시작
+                  </>
+                )}
               </button>
             </div>
           )}
         </div>
       </div>
-      <style>{`@keyframes prog-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes prog-spin  { to { transform: rotate(360deg); } }
+        @keyframes prog-pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+      `}</style>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   파일 칩
+════════════════════════════════════════════ */
+function FileChip({ file, preview, onRemove }) {
+  const isImg = isImageFile(file);
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "4px 8px 4px 6px",
+      background: "rgba(107,85,220,0.1)",
+      border: "1px solid rgba(107,85,220,0.25)",
+      borderRadius: 8, fontSize: 12, color: "var(--text-2)",
+      maxWidth: 180,
+    }}>
+      {isImg && preview ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview} alt="" width={20} height={20}
+          style={{ borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
+      ) : (
+        <span style={{ fontSize: 14, flexShrink: 0 }}>
+          {ALLOWED_EXTENSIONS[file.type]?.icon ?? "📎"}
+        </span>
+      )}
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+        {file.name}
+      </span>
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.color = "#f87171"}
+          onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -225,23 +369,32 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
 /* ═══════════════════════════════════════════
    채팅 메시지 버블
 ════════════════════════════════════════════ */
-function MessageBubble({ role, content }) {
+function MessageBubble({ role, content, files }) {
   const isUser = role === "user";
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 8 }}>
       {!isUser && (
         <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
       )}
-      <div style={{
-        maxWidth: "72%", padding: "12px 16px",
-        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-        background: isUser ? "var(--db-grad-purple)" : "var(--surface)",
-        border: isUser ? "none" : "1px solid var(--border)",
-        color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
-        boxShadow: isUser ? "var(--db-glow-sm)" : "none",
-        whiteSpace: "pre-wrap", wordBreak: "break-word",
-      }}>
-        {content}
+      <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", gap: 6 }}>
+        {files && files.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: isUser ? "flex-end" : "flex-start" }}>
+            {files.map((f, i) => <FileChip key={i} file={f.file} preview={f.preview} />)}
+          </div>
+        )}
+        {content && (
+          <div style={{
+            padding: "12px 16px",
+            borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+            background: isUser ? "var(--db-grad-purple)" : "var(--surface)",
+            border: isUser ? "none" : "1px solid var(--border)",
+            color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
+            boxShadow: isUser ? "var(--db-glow-sm)" : "none",
+            whiteSpace: "pre-wrap", wordBreak: "break-word",
+          }}>
+            {content}
+          </div>
+        )}
       </div>
       {isUser && (
         <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "var(--bg)", marginLeft: 10, alignSelf: "flex-end" }}>나</div>
@@ -258,7 +411,7 @@ function SuggestionChips({ suggestions, onSelect, disabled }) {
   return (
     <div style={{
       display: "flex", flexWrap: "wrap", gap: 8,
-      paddingLeft: 42, // 아바타(32) + gap(10) 만큼 들여쓰기
+      paddingLeft: 42,
       marginBottom: 16, marginTop: 6,
     }}>
       {suggestions.map((s, i) => (
@@ -317,15 +470,48 @@ function TypingIndicator() {
    메인 — ProjectChatWizard
 ════════════════════════════════════════════ */
 export function ProjectChatWizard({ onPipelineStart, onCancel }) {
-  const [messages,          setMessages]          = useState([]);
-  const [currentSuggestions,setCurrentSuggestions]= useState([]);
-  const [inputText,         setInputText]         = useState("");
-  const [isLoading,         setIsLoading]         = useState(false);
-  const [sessionId,         setSessionId]         = useState(null);
-  const [sessionError,      setSessionError]      = useState(null);
-  const [isSubmitting,      setIsSubmitting]      = useState(false);
+  const [messages,           setMessages]           = useState([]);
+  const [currentSuggestions, setCurrentSuggestions] = useState([]);
+  const [inputText,          setInputText]          = useState("");
+  const [isLoading,          setIsLoading]          = useState(false);
+  const [sessionId,          setSessionId]          = useState(null);
+  const [sessionError,       setSessionError]       = useState(null);
+  const [isSubmitting,       setIsSubmitting]       = useState(false);
+  const [attachedFiles,      setAttachedFiles]      = useState([]); // [{ file, preview }]
+  const [fileError,          setFileError]          = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
+  const fileInputRef   = useRef(null);
+
+  /* ── 파일 선택 ── */
+  const handleFileSelect = useCallback((e) => {
+    const selected = Array.from(e.target.files);
+    setFileError(null);
+    const next = [...attachedFiles];
+    for (const file of selected) {
+      if (next.length >= MAX_FILES) {
+        setFileError(`파일은 최대 ${MAX_FILES}개까지 첨부할 수 있습니다.`);
+        break;
+      }
+      const err = validateFile(file);
+      if (err) { setFileError(err); continue; }
+      const preview = isImageFile(file) ? URL.createObjectURL(file) : null;
+      next.push({ file, preview });
+    }
+    setAttachedFiles(next);
+    e.target.value = "";
+  }, [attachedFiles]);
+
+  /* ── 파일 제거 ── */
+  const removeFile = useCallback((idx) => {
+    setAttachedFiles(prev => {
+      const copy = [...prev];
+      if (copy[idx]?.preview) URL.revokeObjectURL(copy[idx].preview);
+      copy.splice(idx, 1);
+      return copy;
+    });
+    setFileError(null);
+  }, []);
 
   // 세션 생성 + 첫 인사
   useEffect(() => {
@@ -335,9 +521,8 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
         setSessionId(sid);
         setMessages([{
           role: "assistant",
-          content: "안녕하세요! 어떤 서비스를 만들고 싶으신가요? 아이디어를 자유롭게 말씀해 주세요.",
+          content: "안녕하세요! 프로젝트 기획을 시작해 볼게요. 어떤 서비스를 만들고 싶으신가요? 어떤 문제를 해결하는 서비스인지 자유롭게 설명해 주세요.",
         }]);
-        // 첫 메시지는 사용자가 직접 입력 — 제안 없음
       } catch {
         setSessionError("채팅 세션을 시작하지 못했습니다. 새로고침 후 다시 시도해 주세요.");
       }
@@ -375,7 +560,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
       const requirementId = requirement.requirementId;
 
       const pipeRes = await apiFetch(
-        `${API_BASE_URL}/api/v1/pipeline/start/${requirementId}`,
+        `${API_BASE_URL}/api/v1/pipeline/start/${requirementId}?mode=collaborative`,
         { method: "POST", body: new FormData() }
       );
       if (!pipeRes || !pipeRes.ok) throw new Error(`파이프라인 시작 실패 (HTTP ${pipeRes?.status})`);
@@ -395,17 +580,21 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
     }
   }, [onPipelineStart]);
 
-  // text를 직접 받아서 전송 (제안 클릭 시 사용)
   const sendText = useCallback(async (text) => {
-    if (!text.trim() || !sessionId || isLoading || isSubmitting) return;
+    if ((!text.trim() && attachedFiles.length === 0) || !sessionId || isLoading || isSubmitting) return;
 
-    setMessages(prev => [...prev, { role: "user", content: text }]);
-    setCurrentSuggestions([]); // 전송하면 제안 즉시 제거
+    const filesToSend = attachedFiles.map(f => f.file);
+    const filesMeta   = attachedFiles.map(f => ({ file: f.file, preview: f.preview }));
+
+    setMessages(prev => [...prev, { role: "user", content: text, files: filesMeta }]);
+    setCurrentSuggestions([]);
     setInputText("");
+    setAttachedFiles([]);
+    setFileError(null);
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(sessionId, text);
+      const response = await sendChatMessage(sessionId, text, filesToSend);
       setMessages(prev => [...prev, { role: "assistant", content: response.message }]);
       setCurrentSuggestions(response.suggestions ?? []);
 
@@ -424,7 +613,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
       setIsLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [sessionId, isLoading, isSubmitting, triggerPipeline]);
+  }, [sessionId, isLoading, isSubmitting, triggerPipeline, attachedFiles]);
 
   const handleSend = useCallback(() => {
     sendText(inputText.trim());
@@ -437,7 +626,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
     }
   };
 
-  const canSend = inputText.trim() && !isLoading && !isSubmitting && !sessionError;
+  const canSend = (inputText.trim() || attachedFiles.length > 0) && !isLoading && !isSubmitting && !sessionError;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
@@ -451,7 +640,6 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
         <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", fontSize: 16, cursor: "pointer", padding: "4px 8px", borderRadius: 4 }} title="닫기">✕</button>
       </div>
 
-      {/* 에러 */}
       {sessionError && (
         <div style={{ padding: 20, color: "#f87171", fontSize: 13, textAlign: "center" }}>{sessionError}</div>
       )}
@@ -460,26 +648,23 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 0" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 24px" }}>
 
-          {/* 첫 화면 안내 */}
           {messages.length <= 1 && (
             <div style={{ textAlign: "center", marginBottom: 32 }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>💡</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-1)", marginBottom: 8 }}>
-                어떤 서비스를 만들고 싶으신가요?
+                어떤 문제를 해결하고 싶으신가요?
               </div>
               <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-                아이디어를 자연스럽게 이야기해 주시면<br/>
-                Claude가 필요한 정보를 물어보며 프로젝트를 함께 기획합니다.
+                아이디어를 자유롭게 설명해 주시면<br/>
+                AI가 서비스 이름부터 기획서까지 함께 만들어 드립니다.
               </div>
             </div>
           )}
 
-          {/* 메시지 목록 */}
           {messages.map((msg, i) => (
-            <MessageBubble key={i} role={msg.role} content={msg.content} />
+            <MessageBubble key={i} role={msg.role} content={msg.content} files={msg.files} />
           ))}
 
-          {/* 로딩 중 */}
           {(isLoading || isSubmitting) && <TypingIndicator />}
 
           <div ref={messagesEndRef} />
@@ -490,7 +675,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
       <div style={{ padding: "12px 24px 20px", background: "var(--db-bg-primary)", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
-          {/* Claude 제안 버튼 — 입력창 바로 위, 폼과 동일 너비 */}
+          {/* Claude 제안 버튼 */}
           {currentSuggestions.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
               {currentSuggestions.map((s, i) => (
@@ -527,11 +712,69 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               ))}
             </div>
           )}
+
+          {/* 파일 input (숨김) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={Object.keys(ALLOWED_EXTENSIONS).join(",")}
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+
+          {/* 첨부 파일 미리보기 */}
+          {attachedFiles.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {attachedFiles.map((f, i) => (
+                <FileChip key={i} file={f.file} preview={f.preview} onRemove={() => removeFile(i)} />
+              ))}
+            </div>
+          )}
+
+          {/* 파일 에러 */}
+          {fileError && (
+            <div style={{ fontSize: 11, color: "#f87171", marginBottom: 6 }}>{fileError}</div>
+          )}
+
           <div
-            style={{ display: "flex", alignItems: "flex-end", gap: 10, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 12px 10px 16px", transition: "border-color 0.15s" }}
+            style={{ display: "flex", alignItems: "flex-end", gap: 8, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 10px 10px 12px", transition: "border-color 0.15s" }}
             onFocusCapture={e => e.currentTarget.style.borderColor = "var(--db-purple-400)"}
             onBlurCapture={e => e.currentTarget.style.borderColor = "var(--db-border-mid)"}
           >
+            {/* 파일 첨부 버튼 */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isSubmitting || !!sessionError || attachedFiles.length >= MAX_FILES}
+              title={`파일 첨부 (최대 ${MAX_FILES}개 · PDF·이미지·TXT·JSON)`}
+              style={{
+                width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                background: "none", border: "none",
+                cursor: isLoading || isSubmitting || attachedFiles.length >= MAX_FILES ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: attachedFiles.length > 0 ? "var(--db-purple-400)" : "var(--text-3)",
+                transition: "all 0.15s",
+                position: "relative",
+              }}
+              onMouseEnter={e => { if (!isLoading && !isSubmitting) e.currentTarget.style.color = "var(--db-purple-300)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = attachedFiles.length > 0 ? "var(--db-purple-400)" : "var(--text-3)"; }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+              {attachedFiles.length > 0 && (
+                <span style={{
+                  position: "absolute", top: -2, right: -2,
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: "var(--db-purple-400)", color: "white",
+                  fontSize: 9, fontWeight: 800,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {attachedFiles.length}
+                </span>
+              )}
+            </button>
+
             <textarea
               ref={inputRef}
               value={inputText}
@@ -566,7 +809,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
             </button>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 8 }}>
-            Claude가 대화를 통해 프로젝트 정보를 수집하고 자동으로 기획서를 생성합니다
+            PDF·이미지·텍스트 파일 첨부 또는 아이디어를 자유롭게 입력하세요
           </div>
         </div>
       </div>
@@ -577,6 +820,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
           40% { transform: scale(1); opacity: 1; }
         }
         @keyframes prog-spin { to { transform: rotate(360deg); } }
+        @keyframes prog-pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
       `}</style>
     </div>
   );

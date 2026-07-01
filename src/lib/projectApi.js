@@ -139,9 +139,12 @@ export async function fetchProjectArtifacts(projectId) {
 ══════════════════════════════════════ */
 export function enrichProjectWithArtifacts(project, artifacts) {
   const map = {};
-  artifacts.forEach(a => { map[a.artifactType] = a.content; });
+  const idMap = {};
+  artifacts.forEach(a => {
+    map[a.artifactType] = a.content;
+    idMap[a.artifactType] = a.artifactId;
+  });
 
-  // DB content는 JSON 문자열 — 이미 객체면 그대로, 문자열이면 파싱
   const tryParse = (val) => {
     if (val == null) return null;
     if (typeof val === "object") return val;
@@ -155,5 +158,6 @@ export function enrichProjectWithArtifacts(project, artifacts) {
     apiSpec:        tryParse(map["API_SPEC"])        ?? project.apiSpec        ?? null,
     featureList:    tryParse(map["FEATURE_LIST"])    ?? project.featureList    ?? [],
     marketResearch: tryParse(map["MARKET_RESEARCH"]) ?? project.marketResearch ?? null,
+    artifactIds:    idMap,
   };
 }

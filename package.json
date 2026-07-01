@@ -3,18 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":   "next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint":  "next lint"
+    "lint": "next lint"
   },
   "dependencies": {
-    "next":    "14.2.3",
-    "react":   "^18",
+    "@tiptap/extension-highlight": "^3.27.1",
+    "@tiptap/extension-link": "^3.27.1",
+    "@tiptap/extension-placeholder": "^3.27.1",
+    "@tiptap/extension-task-item": "^3.27.1",
+    "@tiptap/extension-task-list": "^3.27.1",
+    "@tiptap/extension-text-align": "^3.27.1",
+    "@tiptap/extension-typography": "^3.27.1",
+    "@tiptap/extension-underline": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "next": "14.2.3",
+    "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
-    "eslint":             "^8",
+    "eslint": "^8",
     "eslint-config-next": "14.2.3"
   }
 }
