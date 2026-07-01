@@ -16,15 +16,18 @@ import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
 
 export const MAX_FILES = 5;
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE_MB = 10;
+
 
 export const ALLOWED_EXTENSIONS = {
-  "application/pdf":  { icon: "📄", label: "PDF" },
-  "image/jpeg":       { icon: "🖼️", label: "JPG" },
-  "image/png":        { icon: "🖼️", label: "PNG" },
-  "image/gif":        { icon: "🖼️", label: "GIF" },
-  "image/webp":       { icon: "🖼️", label: "WEBP" },
-  "text/plain":       { icon: "📝", label: "TXT" },
-  "application/json": { icon: "📋", label: "JSON" },
+  "application/pdf":        { icon: "📄", label: "PDF"      },
+  "text/plain":             { icon: "📝", label: "TXT"      },
+  "text/markdown":          { icon: "📝", label: "MD"       },
+  "application/json":       { icon: "🔧", label: "JSON"     },
+  "image/png":              { icon: "🖼️", label: "PNG"      },
+  "image/jpeg":             { icon: "🖼️", label: "JPG"      },
+  "image/gif":              { icon: "🖼️", label: "GIF"      },
+  "image/webp":             { icon: "🖼️", label: "WEBP"     },
 };
 
 export function isImageFile(file) {
@@ -68,20 +71,6 @@ export async function sendChatMessage(sessionId, content, files = []) {
   return res.json();
 }
 
-/** 허용 확장자 및 아이콘 */
-export const ALLOWED_EXTENSIONS = {
-  "application/pdf":        { icon: "📄", label: "PDF"      },
-  "text/plain":             { icon: "📝", label: "TXT"      },
-  "text/markdown":          { icon: "📝", label: "MD"       },
-  "application/json":       { icon: "🔧", label: "JSON"     },
-  "image/png":              { icon: "🖼️", label: "PNG"      },
-  "image/jpeg":             { icon: "🖼️", label: "JPG"      },
-  "image/gif":              { icon: "🖼️", label: "GIF"      },
-  "image/webp":             { icon: "🖼️", label: "WEBP"     },
-};
-
-export const MAX_FILE_SIZE_MB = 10;
-export const MAX_FILES        = 5;
 
 export function validateFile(file) {
   if (!ALLOWED_EXTENSIONS[file.type]) return "지원하지 않는 파일 형식입니다.";
