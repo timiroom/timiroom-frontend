@@ -4,37 +4,14 @@
  * LLM Agent 통신 추상화 레이어.
  *
  * ┌─ 아키텍처 ───────────────────────────────────────────────┐
- * │  Browser  →  Spring Boot (/api/agent/chat)  →  LLM API  │
+ * │  Browser  →  pipeline_py (/api/agent/chat)  →  LLM API  │
  * │                                                          │
- * │  프론트는 API 키를 헤더로 백엔드에 전달하고,              │
- * │  백엔드가 Anthropic / OpenAI API를 실제로 호출합니다.    │
- * │  (브라우저에서 직접 LLM API 호출 시 CORS 차단됨)         │
- * └──────────────────────────────────────────────────────────┘
- *
- * ┌─ Spring Boot 백엔드 구현 가이드 ─────────────────────────┐
- * │                                                          │
- * │  [일반 응답]  POST /api/agent/chat                       │
- * │  Request Headers:                                        │
- * │    X-LLM-Provider : "anthropic" | "openai"              │
- * │    X-LLM-Api-Key  : 사용자가 입력한 API 키              │
- * │    X-LLM-Model    : 모델명 (예: claude-sonnet-4-6)      │
- * │  Request Body:                                           │
- * │    { messages: Message[], systemPrompt: string,          │
- * │      projectContext: object }                            │
- * │  Response: { content: string, usage: object }            │
- * │                                                          │
- * │  [스트리밍]   POST /api/agent/chat/stream                │
- * │  Response: text/event-stream (SSE)                       │
- * │    data: {"delta":"글자씩"}\n\n                          │
- * │    data: [DONE]\n\n                                      │
- * │                                                          │
- * │  의존성 (pom.xml):                                       │
- * │    spring-ai-anthropic-spring-boot-starter               │
- * │    또는 com.theokanning.openai-gpt3-java-client          │
+ * │  프론트는 API 키를 헤더로 pipeline_py에 전달하고,         │
+ * │  pipeline_py가 Anthropic / OpenAI API를 실제로 호출합니다│
  * └──────────────────────────────────────────────────────────┘
  */
 
-import { API_BASE_URL } from "@/lib/authConfig";
+import { RAG_PIPELINE_URL } from "@/lib/authConfig";
 
 /* ── 상수 ── */
 export const AGENT_CONFIG_KEY = "align_agent_config";
@@ -106,7 +83,7 @@ Align-it은 LLM과 지식 그래프를 활용해 PRD·API 명세·DB 스키마·
 export async function sendMessage({ messages, config, projectContext }) {
   const { provider, model } = config;
 
-  const res = await fetch(`${API_BASE_URL}/api/agent/chat`, {
+  const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/chat`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -116,8 +93,7 @@ export async function sendMessage({ messages, config, projectContext }) {
     },
     body: JSON.stringify({
       messages,
-      systemPrompt:   buildSystemPrompt(projectContext),
-      projectContext,
+      system_prompt: buildSystemPrompt(projectContext),
     }),
   });
 
@@ -144,7 +120,7 @@ export async function sendMessageStream({ messages, config, projectContext, syst
   const { provider, model } = config;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/agent/chat/stream`, {
+    const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/chat/stream`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -156,8 +132,7 @@ export async function sendMessageStream({ messages, config, projectContext, syst
       },
       body: JSON.stringify({
         messages,
-        systemPrompt:   systemPrompt || buildSystemPrompt(projectContext),
-        projectContext,
+        system_prompt: systemPrompt || buildSystemPrompt(projectContext),
       }),
       signal,  // AbortController.signal 연결
     });
@@ -199,14 +174,14 @@ export async function sendMessageStream({ messages, config, projectContext, syst
 
 /* ── 백엔드 연결 테스트 ── */
 export async function testApiKey({ provider, model }) {
-  const res = await fetch(`${API_BASE_URL}/api/agent/test`, {
+  const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/test`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type":   "application/json",
       "X-LLM-Provider": provider,
       "X-LLM-Model":    model,
     },
-    body: JSON.stringify({ prompt: "Hello" }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

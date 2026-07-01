@@ -11,8 +11,9 @@
  *   3순위: 빈 상태 안내
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
+import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
   bg:        "var(--surface)",
@@ -49,13 +50,12 @@ function PriorityBadge({ priority }) {
 }
 
 /* ── 기능 카드 (상세, 인라인 편집 가능) ── */
-function FeatureCard({ feature: initialFeature, index }) {
-  const [open, setOpen]       = useState(false);
-  const [feature, setFeature] = useState(initialFeature);
+function FeatureCard({ feature, index, onUpdate }) {
+  const [open,    setOpen]    = useState(false);
   const [editing, setEditing] = useState(null); // "name" | "description" | null
 
   function update(field, val) {
-    setFeature(prev => ({ ...prev, [field]: val }));
+    onUpdate(index, { ...feature, [field]: val });
   }
 
   function EditableText({ field, value, style, multiline }) {
@@ -226,9 +226,9 @@ function FeatureCard({ feature: initialFeature, index }) {
 }
 
 /* ── 심플 기능 행 (featureList만 있을 때) ── */
-function SimpleFeatureRow({ name: initialName, index }) {
-  const [name,    setName]    = useState(initialName);
+function SimpleFeatureRow({ name, index, onUpdate }) {
   const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(name);
 
   return (
     <div style={{
@@ -246,10 +246,10 @@ function SimpleFeatureRow({ name: initialName, index }) {
       {editing ? (
         <input
           autoFocus
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onBlur={() => setEditing(false)}
-          onKeyDown={e => e.key === "Enter" && setEditing(false)}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => { setEditing(false); onUpdate(index, draft); }}
+          onKeyDown={e => { if (e.key === "Enter") { setEditing(false); onUpdate(index, draft); } }}
           style={{
             flex: 1, border: `1px solid rgba(107,105,96,0.3)`, borderRadius: 5,
             padding: "3px 8px", fontSize: 14, fontFamily: "inherit",
@@ -259,7 +259,7 @@ function SimpleFeatureRow({ name: initialName, index }) {
       ) : (
         <span
           style={{ flex: 1, fontSize: 14, color: C.text, cursor: "text" }}
-          onClick={() => setEditing(true)}
+          onClick={() => { setDraft(name); setEditing(true); }}
           title="클릭하여 편집"
         >{name}</span>
       )}
@@ -287,11 +287,20 @@ function featuresToText(coreFeatures, simpleList) {
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
 export function FeaturesPanel({ project }) {
-  const [search, setSearch] = useState("");
+  const [search,          setSearch]          = useState("");
+  const [saving,          setSaving]          = useState(false);
+  const [saved,           setSaved]           = useState(false);
+  const [editedFeatures,  setEditedFeatures]  = useState([]);
+  const [editedSimple,    setEditedSimple]    = useState([]);
 
   const coreFeatures = useMemo(() => {
+    // featureList가 객체 배열이면 우선 사용 (사용자가 저장한 데이터)
+    const list = project?.featureList;
+    if (Array.isArray(list) && list.length > 0 && typeof list[0] === "object") return list;
+    // prdDocument.coreFeatures 폴백
     const doc = project?.prdDocument;
-    if (doc && Array.isArray(doc.coreFeatures) && doc.coreFeatures.length > 0) return doc.coreFeatures;
+    if (doc && Array.isArray(doc.coreFeatures) && doc.coreFeatures.length > 0)
+      return doc.coreFeatures;
     return null;
   }, [project]);
 
@@ -301,23 +310,65 @@ export function FeaturesPanel({ project }) {
     return Array.isArray(list) && list.length > 0 ? list : null;
   }, [coreFeatures, project]);
 
+  // 프로젝트 변경 또는 데이터 로드 완료 시 편집 상태 동기화
+  useEffect(() => {
+    setEditedFeatures(coreFeatures ? [...coreFeatures] : []);
+    setEditedSimple(simpleList ? [...simpleList] : []);
+  }, [project?.id, project?.featureList, project?.prdDocument?.coreFeatures]);
+
+  function handleFeatureUpdate(index, updated) {
+    setEditedFeatures(prev => prev.map((f, i) => i === index ? updated : f));
+  }
+
+  function handleSimpleUpdate(index, newName) {
+    setEditedSimple(prev => prev.map((n, i) => i === index ? newName : n));
+  }
+
+  async function handleSave() {
+    // featureList 아티팩트에 항상 저장 (coreFeatures든 simpleList든)
+    const artifactId = project?.artifactIds?.FEATURE_LIST
+      ?? project?.artifactIds?.PRD;
+    if (!artifactId) {
+      alert("저장할 아티팩트 ID가 없습니다. 파이프라인을 먼저 실행하세요.");
+      return;
+    }
+
+    const dataToSave = coreFeatures ? editedFeatures : editedSimple;
+    const content = JSON.stringify(dataToSave);
+
+    setSaving(true);
+    try {
+      await updateArtifact(artifactId, content);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      alert("저장 실패: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const displayFeatures = coreFeatures ? editedFeatures : null;
+  const displaySimple   = simpleList   ? editedSimple   : null;
+
   const filteredCore = useMemo(() => {
-    if (!coreFeatures) return null;
-    if (!search) return coreFeatures;
+    if (!displayFeatures) return null;
+    if (!search) return displayFeatures;
     const q = search.toLowerCase();
-    return coreFeatures.filter(f =>
+    return displayFeatures.filter(f =>
       f.name?.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)
     );
-  }, [coreFeatures, search]);
+  }, [displayFeatures, search]);
 
   const filteredSimple = useMemo(() => {
-    if (!simpleList) return null;
-    if (!search) return simpleList;
-    return simpleList.filter(n => n?.toLowerCase().includes(search.toLowerCase()));
-  }, [simpleList, search]);
+    if (!displaySimple) return null;
+    if (!search) return displaySimple;
+    return displaySimple.filter(n => n?.toLowerCase().includes(search.toLowerCase()));
+  }, [displaySimple, search]);
 
-  const total = coreFeatures?.length ?? simpleList?.length ?? 0;
-  const currentContent = featuresToText(coreFeatures, simpleList);
+  const total = displayFeatures?.length ?? displaySimple?.length ?? 0;
+  const currentContent = featuresToText(displayFeatures, displaySimple);
+  const canSave = !!(project?.artifactIds?.FEATURE_LIST || project?.artifactIds?.PRD);
 
   return (
     <div style={{
@@ -361,21 +412,56 @@ export function FeaturesPanel({ project }) {
             )}
           </div>
 
-          {/* 검색 */}
-          <div style={{ position: "relative" }}>
-            <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="기능 검색..."
-              style={{
-                padding: "7px 12px 7px 28px", width: 200,
-                background: C.bg, border: `1px solid ${C.border}`,
-                borderRadius: 8, fontSize: 12, color: C.text, outline: "none",
-              }}
-            />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {saved && (
+              <span style={{
+                fontSize: 11, padding: "3px 8px", borderRadius: 5,
+                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
+                color: "#34d399", fontWeight: 600,
+              }}>✓ 저장됨</span>
+            )}
+
+            {/* 저장 버튼 */}
+            {(coreFeatures || simpleList) && (
+              <button
+                onClick={handleSave}
+                disabled={saving || !canSave}
+                title={!canSave ? "파이프라인을 먼저 실행하세요" : ""}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  background: canSave ? "rgba(96,165,250,0.12)" : "rgba(0,0,0,0.04)",
+                  border: `1px solid ${canSave ? "rgba(96,165,250,0.35)" : "rgba(0,0,0,0.08)"}`,
+                  color: canSave ? "#60a5fa" : "#9ca3af",
+                  cursor: saving || !canSave ? "not-allowed" : "pointer",
+                  opacity: saving ? 0.7 : 1, transition: "all 0.15s",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                  <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                {saving ? "저장 중..." : "저장"}
+              </button>
+            )}
+
+            {/* 검색 */}
+            <div style={{ position: "relative" }}>
+              <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+                width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="기능 검색..."
+                style={{
+                  padding: "7px 12px 7px 28px", width: 200,
+                  background: C.bg, border: `1px solid ${C.border}`,
+                  borderRadius: 8, fontSize: 12, color: C.text, outline: "none",
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -389,7 +475,9 @@ export function FeaturesPanel({ project }) {
             {filteredCore && (
               filteredCore.length === 0
                 ? <div style={{ textAlign: "center", padding: "60px 0", color: C.sub, fontSize: 14 }}>검색 결과가 없습니다</div>
-                : filteredCore.map((f, i) => <FeatureCard key={i} feature={f} index={i} />)
+                : filteredCore.map((f, i) => (
+                    <FeatureCard key={i} feature={f} index={i} onUpdate={handleFeatureUpdate} />
+                  ))
             )}
 
             {/* 심플 목록 */}
@@ -400,7 +488,7 @@ export function FeaturesPanel({ project }) {
                   letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12,
                 }}>PM 에이전트 기능 목록</div>
                 {filteredSimple.map((name, i) => (
-                  <SimpleFeatureRow key={i} name={name} index={i} />
+                  <SimpleFeatureRow key={i} name={name} index={i} onUpdate={handleSimpleUpdate} />
                 ))}
               </>
             )}

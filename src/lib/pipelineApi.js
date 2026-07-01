@@ -84,3 +84,29 @@ export async function getArtifacts(executionId) {
   if (!res || !res.ok) return [];
   return res.json();
 }
+
+/**
+ * Artifact 내용 수정
+ * PATCH /api/v1/pipeline/artifacts/{artifactId}
+ */
+export async function updateArtifact(artifactId, content) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/pipeline/artifacts/${artifactId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ content }),
+    }
+  );
+  if (!res || !res.ok) throw new Error(`Artifact 저장 실패 (HTTP ${res?.status})`);
+}
+
+// POST /api/v1/pipeline/restart/{pipelineId}
+// 백엔드 PipelineController에 /restart 엔드포인트 추가 필요
+export async function restartPipeline(pipelineId) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/pipeline/restart/${pipelineId}`,
+    { method: "POST" }
+  );
+  if (!res || !res.ok) throw new Error(`파이프라인 재시작 실패 (HTTP ${res?.status})`);
+  return res.json(); // { executionId, pipelineId }
+}
