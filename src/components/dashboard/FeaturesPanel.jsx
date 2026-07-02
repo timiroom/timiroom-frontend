@@ -314,7 +314,7 @@ export function FeaturesPanel({ project }) {
   useEffect(() => {
     setEditedFeatures(coreFeatures ? [...coreFeatures] : []);
     setEditedSimple(simpleList ? [...simpleList] : []);
-  }, [project?.id, project?.featureList, project?.prdDocument?.coreFeatures]);
+  }, [project?.id, project?.featureList, project?.prdDocument?.coreFeatures, coreFeatures, simpleList]);
 
   function handleFeatureUpdate(index, updated) {
     setEditedFeatures(prev => prev.map((f, i) => i === index ? updated : f));

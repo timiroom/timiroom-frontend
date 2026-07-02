@@ -237,7 +237,7 @@ function GoalsView({ doc }) {
 }
 
 function FeaturesView({ doc }) {
-  const features = doc.coreFeatures || [];
+  const features = useMemo(() => doc.coreFeatures || [], [doc.coreFeatures]);
   const grouped = useMemo(() => {
     const g = { P0:[], P1:[], P2:[], etc:[] };
     features.forEach(f => {
