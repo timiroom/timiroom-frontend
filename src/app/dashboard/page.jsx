@@ -568,6 +568,10 @@ export default function DashboardPage() {
     setShowWizard(false);
   }
 
+  // 빈 객체 {} 는 생성 실패로 간주, null로 처리
+  const nonEmpty = (v) =>
+    v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0 ? v : null;
+
   async function handlePipelineComplete(pipelineResult) {
     const pipelineWorkspaceId = runningPipeline?.teamId ?? activeWorkspaceId;
     const completedProject = {
@@ -576,9 +580,9 @@ export default function DashboardPage() {
       name: pipelineResult?.projectName ?? "새 프로젝트",
       description: "",
       status: "active",
-      prdDocument: pipelineResult?.prdDocument ?? null,
-      dbSchema: pipelineResult?.dbSchema ?? null,
-      apiSpec: pipelineResult?.apiSpec ?? null,
+      prdDocument: nonEmpty(pipelineResult?.prdDocument),
+      dbSchema: nonEmpty(pipelineResult?.dbSchema),
+      apiSpec: nonEmpty(pipelineResult?.apiSpec),
       featureList: pipelineResult?.featureList ?? [],
       marketResearch: pipelineResult?.marketResearch ?? null,
       score: 0,
