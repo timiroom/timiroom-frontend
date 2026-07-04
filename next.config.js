@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      { protocol: 'http',  hostname: 'localhost',          port: '9000' },
+      { protocol: 'https', hostname: 'minio.timiroom.kro.kr' },
+    ],
+  },
   transpilePackages: [
     "@tiptap/react",
     "@tiptap/core",

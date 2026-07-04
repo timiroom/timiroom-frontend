@@ -84,6 +84,16 @@ const CTX_META = {
   qa:       { subtitle: "QA 도우미",          applyLabel: "QA에 적용",     placeholder: "테스트 케이스 요청..." },
 };
 
+function renderInlineMarkdown(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**")
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  );
+}
+
 /* ══════════════════════════════════════
    설정 패널
 ══════════════════════════════════════ */
@@ -296,7 +306,7 @@ function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
           fontSize: 13, color: C.text, lineHeight: 1.7,
           whiteSpace: "pre-wrap", wordBreak: "break-word",
         }}>
-          {msg.content}
+          {renderInlineMarkdown(msg.content)}
           {isStreaming && <span style={{
             display: "inline-block", width: 2, height: 14,
             background: C.aiColor, marginLeft: 2,
@@ -332,8 +342,18 @@ const NO_ANSWERS  = new Set(["아니요", "아니", "no", "ㄴ", "ㄴㄴ", "싫�
 export function AiChatSidebar({ contextType = "prd", project, currentContent, onApplyContent }) {
   const meta = CTX_META[contextType] || CTX_META.prd;
 
-  const [config,       setConfig]       = useState(null);
-  const [messages,     setMessages]     = useState([]);
+  const [config,       setConfig]       = useState(() => {
+    const saved = loadAgentConfig();
+    return saved?.provider ? saved : null;
+  });
+  const [messages,     setMessages]     = useState(() => {
+    const saved = loadAgentConfig();
+    if (!saved?.provider) return [];
+    return [{
+      id: "init", role: "assistant",
+      content: `안녕하세요! ${meta.subtitle}입니다.\n\n${project?.name ? `**${project.name}** 프로젝트의 ` : ""}문서 작성을 도와드릴게요. 수정하거나 추가하고 싶은 내용을 알려주세요.`,
+    }];
+  });
   const [input,        setInput]        = useState("");
   const [streaming,    setStreaming]    = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -344,19 +364,6 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
   const abortRef           = useRef(null);
   const streamingContentRef = useRef("");   // 스트리밍 중 누적 내용
   const pendingConfirmRef  = useRef(null);  // { id, content } — 답변 대기 중인 확인 메시지
-
-  // 설정 로드
-  useEffect(() => {
-    const saved = loadAgentConfig();
-    if (saved?.provider) {
-      setConfig(saved);
-      setMessages([{
-        id: "init", role: "assistant",
-        content: `안녕하세요! ${meta.subtitle}입니다.\n\n${project?.name ? `**${project.name}** 프로젝트의 ` : ""}문서 작성을 도와드릴게요. 수정하거나 추가하고 싶은 내용을 알려주세요.`,
-      }]);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -63,10 +63,10 @@ function GitHubIcon() {
 }
 
 /* ── OAuthButton ── */
-function OAuthButton({ provider, isLoading, onLoadingChange }) {
+function OAuthButton({ provider, isLoading, onLoadingChange, returnTo }) {
   const handleClick = () => {
     onLoadingChange(provider.key);
-    redirectToOAuth(provider.key);
+    redirectToOAuth(provider.key, returnTo);
     // 리다이렉트 후 페이지가 이동하므로 로딩 해제 불필요
   };
 
@@ -116,7 +116,7 @@ function OAuthButton({ provider, isLoading, onLoadingChange }) {
 
 /* ── AuthModal (exported) ── */
 export function AuthModal() {
-  const { authModalOpen, closeAuthModal } = useAuth();
+  const { authModalOpen, closeAuthModal, authReturnTo } = useAuth();
   const [loadingProvider, setLoadingProvider] = useState(null);
 
   // ESC 키로 닫기
@@ -239,6 +239,7 @@ export function AuthModal() {
                 provider={provider}
                 isLoading={loadingProvider}
                 onLoadingChange={setLoadingProvider}
+                returnTo={authReturnTo}
               />
             ))}
           </div>

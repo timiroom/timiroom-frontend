@@ -1,30 +1,12 @@
 "use client";
 
-/**
- * MyPage.jsx
- * ----------
- * 사용자 프로필 및 계정 설정 페이지.
- * - 프로젝트 목록: fetchProjects() (projectApi)
- * - 팀 목록:       getMyTeams()    (teamApi)
- * - 로그아웃:      logout()        (AuthContext → POST /auth/logout)
- */
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { fetchProjects } from "@/lib/projectApi";
-import { getMyTeams } from "@/lib/teamApi";
-
-/* ── 프로젝트 상태 메타 ── */
-const STATUS_META = {
-  active:    { label: "진행 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
-  running:   { label: "생성 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
-  draft:     { label: "초안",    color: "#a8a69f", bg: "rgba(168,166,159,0.12)" },
-  completed: { label: "완료",    color: "#10B981", bg: "rgba(16,185,129,0.1)"  },
-  paused:    { label: "정지",    color: "#f59e0b", bg: "rgba(245,158,11,0.1)"  },
-  archived:  { label: "보관",    color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
-};
+import { getMyTeams, uploadUserAvatar, updateMemberName } from "@/lib/teamApi";
+import { TeamWorkspacePanel } from "@/components/dashboard/mypage/TeamWorkspacePanel";
 
 /* ── 공통 카드 ── */
 function Card({ children, style }) {
@@ -55,38 +37,74 @@ function SectionTitle({ children }) {
 }
 
 /* ── 로딩 스피너 ── */
-function Spinner() {
+function Spinner({ size = 20, color = "var(--text-3)" }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "28px 0" }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2"
-        style={{ animation: "mp-spin 0.9s linear infinite" }}>
-        <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
-        <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
-      </svg>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
+      style={{ animation: "mp-spin 0.9s linear infinite", display: "block" }}>
+      <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+    </svg>
   );
 }
 
-/* ── 아바타 ── */
-function Avatar({ user, size = 72 }) {
+/* ── 아바타 (클릭해서 업로드) ── */
+function AvatarUpload({ user, size = 72, uploading, onClick }) {
+  const [hovered, setHovered] = useState(false);
   const initial = (user?.name || user?.email || "U").charAt(0).toUpperCase();
-  if (user?.avatarUrl) {
-    return (
-      <Image src={user.avatarUrl} alt="profile" width={size} height={size}
-        style={{ borderRadius: "50%", objectFit: "cover", border: "3px solid var(--border)" }}
-        unoptimized />
-    );
-  }
+
   return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: "var(--text-1)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.4, fontWeight: 800, color: "var(--bg)",
-      border: "3px solid var(--border)", flexShrink: 0,
-    }}>
-      {initial}
-    </div>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title="프로필 사진 변경"
+      style={{
+        position: "relative", width: size, height: size,
+        borderRadius: "50%", border: "none", padding: 0,
+        cursor: uploading ? "wait" : "pointer",
+        flexShrink: 0, background: "none",
+        outline: "none",
+      }}
+    >
+      {/* 이미지 or 이니셜 */}
+      {user?.avatarUrl ? (
+        <Image src={user.avatarUrl} alt="profile" width={size} height={size}
+          style={{ borderRadius: "50%", objectFit: "cover", border: "3px solid var(--border)", display: "block" }}
+          unoptimized />
+      ) : (
+        <div style={{
+          width: size, height: size, borderRadius: "50%",
+          background: "var(--text-1)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: size * 0.4, fontWeight: 800, color: "var(--bg)",
+          border: "3px solid var(--border)",
+        }}>
+          {initial}
+        </div>
+      )}
+
+      {/* 호버 / 업로드 중 오버레이 */}
+      {(hovered || uploading) && (
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          background: "rgba(0,0,0,0.45)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 3,
+        }}>
+          {uploading ? (
+            <Spinner size={18} color="white" />
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "white", letterSpacing: ".03em" }}>변경</span>
+            </>
+          )}
+        </div>
+      )}
+    </button>
   );
 }
 
@@ -114,70 +132,13 @@ function BackButton({ onClick }) {
   );
 }
 
-/* ── 프로젝트 행 ── */
-function ProjectRow({ project, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const meta = STATUS_META[project.status] ?? STATUS_META.draft;
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "12px 16px",
-        background: hovered ? "var(--bg)" : "transparent",
-        border: `1px solid ${hovered ? "var(--border-2)" : "var(--border)"}`,
-        borderRadius: "var(--db-radius)",
-        cursor: "pointer", transition: "all 0.15s",
-        marginBottom: 8,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        {/* 컬러 도트 */}
-        <div style={{
-          width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-          background: project.color ?? meta.color,
-        }} />
-        <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 600, color: "var(--text-1)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>
-            {project.name}
-          </div>
-          {project.description && (
-            <div style={{
-              fontSize: 11, color: "var(--text-3)", marginTop: 2,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {project.description}
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-          background: meta.bg, color: meta.color,
-        }}>
-          {meta.label}
-        </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 /* ══════════════════════════════════════
    메인 컴포넌트
 ══════════════════════════════════════ */
 export function MyPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const avatarInputRef = useRef(null);
 
   /* ── 데이터 로딩 ── */
   const [projects,  setProjects]  = useState([]);
@@ -185,29 +146,87 @@ export function MyPage() {
   const [loadingP,  setLoadingP]  = useState(true);
   const [loadingT,  setLoadingT]  = useState(true);
 
+  const refreshTeams = useCallback(async () => {
+    setLoadingT(true);
+    try {
+      const data = await getMyTeams();
+      setTeams(Array.isArray(data) ? data : []);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      setTeams([]);
+      return [];
+    } finally {
+      setLoadingT(false);
+    }
+  }, []);
+
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setProjects([]);
+      setTeams([]);
+      setLoadingP(false);
+      setLoadingT(false);
+      router.replace("/");
+      return;
+    }
+
+    setLoadingP(true);
+    setLoadingT(true);
     fetchProjects()
       .then(setProjects)
       .catch(() => setProjects([]))
       .finally(() => setLoadingP(false));
 
-    getMyTeams()
-      .then(data => setTeams(Array.isArray(data) ? data : []))
-      .catch(() => setTeams([]))
-      .finally(() => setLoadingT(false));
-  }, []);
+    refreshTeams();
+  }, [authLoading, user, refreshTeams, router]);
+
+  /* ── 아바타 업로드 ── */
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarFeedback,  setAvatarFeedback]  = useState(null);
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setAvatarFeedback(null);
+    try {
+      await uploadUserAvatar(file);
+      await refreshUser();
+      setAvatarFeedback({ type: "success", message: "프로필 사진을 저장했어요." });
+    } catch (err) {
+      setAvatarFeedback({ type: "error", message: err instanceof Error ? err.message : "업로드에 실패했습니다." });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  }
 
   /* ── 이름 편집 ── */
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput,   setNameInput]   = useState(user?.name || "");
-  const [savedName,   setSavedName]   = useState(user?.name || "");
+  const [editingName, setEditingName]   = useState(false);
+  const [nameInput,   setNameInput]     = useState("");
+  const [savingName,  setSavingName]    = useState(false);
+  const [nameFeedback, setNameFeedback] = useState(null);
 
-  function handleSaveName() {
-    if (nameInput.trim()) {
-      setSavedName(nameInput.trim());
-      // TODO: PATCH /auth/me 연동
+  useEffect(() => {
+    if (user?.name) setNameInput(user.name);
+  }, [user?.name]);
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setSavingName(true);
+    setNameFeedback(null);
+    try {
+      await updateMemberName(trimmed);
+      await refreshUser();
+      setNameFeedback({ type: "success", message: "이름을 저장했어요." });
+      setEditingName(false);
+    } catch (err) {
+      setNameFeedback({ type: "error", message: err instanceof Error ? err.message : "이름 저장에 실패했습니다." });
+    } finally {
+      setSavingName(false);
     }
-    setEditingName(false);
   }
 
   /* ── 로그아웃 확인 ── */
@@ -216,29 +235,42 @@ export function MyPage() {
 
   async function handleLogout() {
     setLoggingOut(true);
-    await logout(); // AuthContext → POST /auth/logout → window.location.href = "/"
+    await logout();
   }
 
-  const displayName = savedName || user?.name || "사용자";
+  const displayName = user?.name || "사용자";
   const email       = user?.email || "";
   const provider    = email.toLowerCase().includes("gmail") || email.toLowerCase().includes("google")
     ? "Google" : "GitHub";
+  const accountRowStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+    padding: "14px 0",
+    borderBottom: "1px solid var(--border)",
+  };
+
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "var(--bg)", color: "var(--text-3)", fontSize: 13,
+        fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      }}>
+        로그인 상태를 확인하는 중...
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div style={{
-      minHeight: "100vh",
-      background: "var(--bg)",
+      minHeight: "100vh", background: "var(--bg)",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       overflowY: "auto",
     }}>
-      {/* 배경 orb */}
-      <div style={{
-        position: "fixed", top: "-5%", right: "10%",
-        width: 400, height: 400, borderRadius: "50%",
-        background: "rgba(124,58,237,0.06)", filter: "blur(80px)",
-        pointerEvents: "none",
-      }}/>
-
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px 80px", position: "relative" }}>
 
         <BackButton onClick={() => router.push("/dashboard")} />
@@ -255,7 +287,30 @@ export function MyPage() {
 
         {/* ── 1. 프로필 카드 ── */}
         <Card style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 24 }}>
-          <Avatar user={user} size={72} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <AvatarUpload
+              user={user}
+              size={72}
+              uploading={uploadingAvatar}
+              onClick={() => avatarInputRef.current?.click()}
+            />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+            />
+            {avatarFeedback && (
+              <span style={{
+                fontSize: 10, fontWeight: 600, whiteSpace: "nowrap",
+                color: avatarFeedback.type === "success" ? "#10B981" : "#ef4444",
+              }}>
+                {avatarFeedback.message}
+              </span>
+            )}
+          </div>
+
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", marginBottom: 4, letterSpacing: "-.02em" }}>
               {displayName}
@@ -283,41 +338,99 @@ export function MyPage() {
         {/* ── 2. 계정 정보 ── */}
         <Card style={{ marginBottom: 16 }}>
           <SectionTitle>계정 정보</SectionTitle>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", display: "block", marginBottom: 8 }}>이름</label>
-            {editingName ? (
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  value={nameInput}
-                  onChange={e => setNameInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") { setNameInput(savedName); setEditingName(false); } }}
-                  autoFocus
-                  style={{
-                    flex: 1, padding: "9px 13px", borderRadius: "var(--db-radius-sm)",
-                    border: "1.5px solid var(--text-2)", background: "var(--surface)",
-                    color: "var(--text-1)", fontSize: 14, outline: "none", fontFamily: "inherit",
-                  }}
-                />
-                <button onClick={handleSaveName} style={{ padding: "9px 18px", borderRadius: "var(--db-radius-sm)", background: "var(--text-1)", color: "var(--bg)", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>저장</button>
-                <button onClick={() => { setNameInput(savedName); setEditingName(false); }} style={{ padding: "9px 14px", borderRadius: "var(--db-radius-sm)", background: "var(--border)", color: "var(--text-2)", border: "1px solid var(--border-2)", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>취소</button>
+          <div>
+            <div style={accountRowStyle}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>이름</div>
+                {editingName ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") handleSaveName();
+                        if (e.key === "Escape") { setNameInput(user?.name || ""); setEditingName(false); setNameFeedback(null); }
+                      }}
+                      disabled={savingName}
+                      autoFocus
+                      style={{
+                        flex: "1 1 220px", minWidth: 0,
+                        padding: "9px 13px", borderRadius: "var(--db-radius-sm)",
+                        border: "1px solid var(--border-2)", background: "transparent",
+                        color: "var(--text-1)", fontSize: 14, outline: "none", fontFamily: "inherit",
+                        opacity: savingName ? 0.6 : 1,
+                      }}
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={savingName}
+                      style={{
+                        padding: "9px 18px", borderRadius: "var(--db-radius-sm)",
+                        background: "var(--text-1)", color: "var(--bg)", border: "none",
+                        fontSize: 13, fontWeight: 600, cursor: savingName ? "wait" : "pointer",
+                        fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+                      }}
+                    >
+                      {savingName ? <Spinner size={13} color="var(--bg)" /> : null}
+                      저장
+                    </button>
+                    <button
+                      onClick={() => { setNameInput(user?.name || ""); setEditingName(false); setNameFeedback(null); }}
+                      disabled={savingName}
+                      style={{
+                        padding: "9px 14px", borderRadius: "var(--db-radius-sm)",
+                        background: "var(--surface)", color: "var(--text-2)",
+                        border: "1px solid var(--border-2)", fontSize: 13,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 14, color: "var(--text-1)", lineHeight: 1.6 }}>
+                    {displayName}
+                  </div>
+                )}
+                {nameFeedback && !editingName && (
+                  <div style={{
+                    fontSize: 11, marginTop: 6, fontWeight: 600,
+                    color: nameFeedback.type === "success" ? "#10B981" : "#ef4444",
+                  }}>
+                    {nameFeedback.message}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 14, color: "var(--text-1)", padding: "9px 0" }}>{displayName}</span>
+              {!editingName && (
                 <button
-                  onClick={() => { setNameInput(displayName); setEditingName(true); }}
-                  style={{ padding: "6px 14px", borderRadius: "var(--db-radius-sm)", background: "var(--border)", color: "var(--text-2)", border: "1px solid var(--border-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                  onClick={() => { setNameInput(displayName); setEditingName(true); setNameFeedback(null); }}
+                  style={{
+                    padding: "6px 14px", borderRadius: "var(--db-radius-sm)",
+                    background: "transparent", color: "var(--text-2)",
+                    border: "1px solid var(--border-2)", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--text-2)"; e.currentTarget.style.color = "var(--text-1)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
-                >수정</button>
+                >
+                  수정
+                </button>
+              )}
+            </div>
+
+            <div style={{ ...accountRowStyle, borderBottom: "none", paddingBottom: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>이메일</div>
+                <div style={{ fontSize: 14, color: "var(--text-1)", lineHeight: 1.6 }}>
+                  {email || "—"}
+                </div>
               </div>
-            )}
-          </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", display: "block", marginBottom: 8 }}>이메일</label>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14, color: "var(--text-1)", padding: "9px 0" }}>{email || "—"}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 100, background: "var(--border)", color: "var(--text-3)" }}>OAuth 연동</span>
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 100,
+                background: "transparent", color: "var(--text-3)", border: "1px solid var(--border-2)",
+              }}>
+                OAuth 연동
+              </span>
             </div>
           </div>
         </Card>
@@ -327,9 +440,9 @@ export function MyPage() {
           <SectionTitle>활동 요약</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {[
-              { label: "내 프로젝트",  value: loadingP ? "—" : projects.length,           icon: "📁" },
-              { label: "생성된 명세서", value: loadingP ? "—" : projects.reduce((a, p) => a + (p.specCount || 0), 0), icon: "📄" },
-              { label: "소속 팀",       value: loadingT ? "—" : teams.length,              icon: "👥" },
+              { label: "내 프로젝트",   value: loadingP ? "—" : projects.length, icon: "📁" },
+              { label: "생성된 명세서",  value: loadingP ? "—" : projects.reduce((a, p) => a + (p.specCount || 0), 0), icon: "📄" },
+              { label: "소속 팀",        value: loadingT ? "—" : teams.length, icon: "👥" },
             ].map(stat => (
               <div key={stat.label} style={{
                 background: "var(--bg)", border: "1px solid var(--border)",
@@ -345,119 +458,24 @@ export function MyPage() {
           </div>
         </Card>
 
-        {/* ── 4. 내 프로젝트 ── */}
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <SectionTitle style={{ margin: 0 }}>내 프로젝트</SectionTitle>
-            <button
-              onClick={() => router.push("/dashboard")}
-              style={{
-                fontSize: 12, color: "var(--text-3)", background: "none",
-                border: "none", cursor: "pointer", padding: 0,
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = "var(--text-1)"}
-              onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
-            >
-              전체 보기 →
-            </button>
-          </div>
-          {loadingP ? (
-            <Spinner />
-          ) : projects.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: "var(--text-3)", fontSize: 13 }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📁</div>
-              아직 생성된 프로젝트가 없습니다
-            </div>
-          ) : (
-            <>
-              {projects.slice(0, 5).map(project => (
-                <ProjectRow
-                  key={project.id}
-                  project={project}
-                  onClick={() => router.push("/dashboard")}
-                />
-              ))}
-              {projects.length > 5 && (
-                <div style={{ textAlign: "center", paddingTop: 8 }}>
-                  <button
-                    onClick={() => router.push("/dashboard")}
-                    style={{
-                      fontSize: 12, color: "var(--text-3)", background: "none",
-                      border: "none", cursor: "pointer",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.color = "var(--text-1)"}
-                    onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
-                  >
-                    + {projects.length - 5}개 더 보기
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </Card>
+        {/* ── 4. 워크스페이스 / 초대코드 ── */}
+        <TeamWorkspacePanel
+          teams={teams}
+          loading={loadingT}
+          onTeamsChanged={refreshTeams}
+        />
 
-        {/* ── 5. 내 팀 ── */}
-        <Card style={{ marginBottom: 16 }}>
-          <SectionTitle>내 팀</SectionTitle>
-          {loadingT ? (
-            <Spinner />
-          ) : teams.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: "var(--text-3)", fontSize: 13 }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>👥</div>
-              소속된 팀이 없습니다
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {teams.map((team, i) => (
-                <div key={team.teamId ?? team.id ?? i} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "14px 16px",
-                  background: "var(--bg)", border: "1px solid var(--border)",
-                  borderRadius: "var(--db-radius)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10, background: "var(--text-1)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 14, fontWeight: 800, color: "var(--bg)",
-                    }}>
-                      {(team.teamName ?? team.name ?? "T").charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", marginBottom: 2 }}>
-                        {team.teamName ?? team.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--text-3)" }}>
-                        {team.memberCount != null ? `멤버 ${team.memberCount}명` : ""}
-                        {team.projectCount != null ? ` · 프로젝트 ${team.projectCount}개` : ""}
-                      </div>
-                    </div>
-                  </div>
-                  {team.role && (
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                      background: team.role === "owner" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.1)",
-                      color: team.role === "owner" ? "var(--text-1)" : "#3B82F6",
-                    }}>
-                      {team.role === "owner" ? "오너" : "멤버"}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* ── 6. 계정 관리 (로그아웃) ── */}
-        <Card style={{ borderColor: "rgba(239,68,68,0.2)" }}>
+        {/* ── 5. 계정 관리 (로그아웃) ── */}
+        <Card>
           <SectionTitle>계정 관리</SectionTitle>
-          {!confirmLogout ? (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 3 }}>로그아웃</div>
-                <div style={{ fontSize: 12, color: "var(--text-3)" }}>현재 세션에서 로그아웃합니다</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 4 }}>로그아웃</div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6 }}>
+                현재 세션을 종료하고 로그인 화면으로 돌아갑니다.
               </div>
+            </div>
+            {!confirmLogout ? (
               <button
                 onClick={() => setConfirmLogout(true)}
                 style={{
@@ -466,29 +484,20 @@ export function MyPage() {
                   border: "1px solid rgba(239,68,68,0.35)",
                   fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.05)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
               >
                 로그아웃
               </button>
-            </div>
-          ) : (
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "12px 16px",
-              background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)",
-              borderRadius: "var(--db-radius-sm)",
-            }}>
-              <span style={{ fontSize: 13, color: "var(--text-1)", fontWeight: 600 }}>
-                정말 로그아웃하시겠어요?
-              </span>
-              <div style={{ display: "flex", gap: 8 }}>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: "var(--text-3)" }}>정말 로그아웃하시겠어요?</span>
                 <button
                   onClick={() => setConfirmLogout(false)}
                   disabled={loggingOut}
                   style={{
                     padding: "7px 16px", borderRadius: "var(--db-radius-sm)",
-                    background: "var(--border)", color: "var(--text-2)",
+                    background: "var(--surface)", color: "var(--text-2)",
                     border: "1px solid var(--border-2)", fontSize: 13,
                     cursor: loggingOut ? "not-allowed" : "pointer", fontFamily: "inherit",
                   }}
@@ -507,19 +516,12 @@ export function MyPage() {
                   }}
                 >
                   {loggingOut ? (
-                    <>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
-                        style={{ animation: "mp-spin 0.9s linear infinite" }}>
-                        <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
-                        <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
-                      </svg>
-                      로그아웃 중...
-                    </>
+                    <><Spinner size={12} color="white" />로그아웃 중...</>
                   ) : "로그아웃"}
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </Card>
 
       </div>

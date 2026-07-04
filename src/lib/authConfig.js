@@ -20,6 +20,9 @@ export const RAG_PIPELINE_URL =
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+/** OAuth 로그인 후 돌아올 경로 저장 키 */
+export const AUTH_RETURN_TO_KEY = "timiroom.authReturnTo";
+
 /** Spring Security OAuth2 진입점 */
 export const OAUTH_ENDPOINTS = {
   google: `${API_BASE_URL}/oauth2/authorization/google`,
@@ -33,9 +36,12 @@ export const AUTH_API = {
 };
 
 /** OAuth 공급자 로그인 페이지로 이동 */
-export function redirectToOAuth(provider) {
+export function redirectToOAuth(provider, returnTo = null) {
   const url = OAUTH_ENDPOINTS[provider];
   if (!url) throw new Error(`Unknown OAuth provider: ${provider}`);
+  if (typeof window !== "undefined" && returnTo) {
+    window.localStorage.setItem(AUTH_RETURN_TO_KEY, returnTo);
+  }
   window.location.href = url;
 }
 
@@ -57,10 +63,8 @@ export async function apiFetch(url, options = {}) {
 
   if (res.status === 401) {
     const REDIRECT_EXEMPT = ["/", "/auth/callback"];
-    if (
-      typeof window !== "undefined" &&
-      !REDIRECT_EXEMPT.includes(window.location.pathname)
-    ) {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    if (!REDIRECT_EXEMPT.includes(path) && !path.startsWith("/invite/")) {
       window.location.href = "/";
     }
     return null;

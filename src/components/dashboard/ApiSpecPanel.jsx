@@ -714,7 +714,7 @@ function buildTagsFromApiSpec(apiSpec) {
 /* ══════════════════════════════════════
    API SPEC PANEL
 ══════════════════════════════════════ */
-export function ApiSpecPanel({ project }) {
+export function ApiSpecPanel({ project, readOnly = false }) {
   const [search,       setSearch]       = useState("");
   const [localApiSpec, setLocalApiSpec] = useState(null);
   const [editingSpec,  setEditingSpec]  = useState(null); // null | { idx: number|"new", raw: {...}|null }
@@ -724,7 +724,7 @@ export function ApiSpecPanel({ project }) {
   useEffect(() => { setLocalApiSpec(null); }, [project?.id]);
 
   const rawApiSpec = localApiSpec ?? project?.apiSpec;
-  const canEdit    = !!project?.artifactIds?.API_SPEC;
+  const canEdit    = !readOnly && !!project?.artifactIds?.API_SPEC;
 
   const specTags = useMemo(() => buildTagsFromApiSpec(rawApiSpec) || [], [rawApiSpec]);
   const specTitle = project?.name ? `${project.name} API` : "API 명세서";

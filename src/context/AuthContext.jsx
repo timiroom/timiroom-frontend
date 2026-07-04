@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
   const [user,          setUser]          = useState(null);
   const [isLoading,     setIsLoading]     = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authReturnTo,  setAuthReturnTo]  = useState(null);
 
   /** 앱 시작 시: 세션 쿠키로 로그인 상태 복원 */
   useEffect(() => {
@@ -43,8 +44,22 @@ export function AuthProvider({ children }) {
     window.location.href = "/";
   }, []);
 
-  const openAuthModal  = useCallback(() => setAuthModalOpen(true),  []);
-  const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
+  const refreshUser = useCallback(async () => {
+    try {
+      const res  = await apiFetch(AUTH_API.me);
+      const data = res && res.ok ? await res.json() : null;
+      if (data) setUser(data);
+    } catch {}
+  }, []);
+
+  const openAuthModal  = useCallback((returnTo = null) => {
+    setAuthReturnTo(returnTo || null);
+    setAuthModalOpen(true);
+  }, []);
+  const closeAuthModal = useCallback(() => {
+    setAuthModalOpen(false);
+    setAuthReturnTo(null);
+  }, []);
 
   return (
     <AuthContext.Provider value={{
@@ -53,7 +68,9 @@ export function AuthProvider({ children }) {
       isLoggedIn: !!user,
       login,
       logout,
+      refreshUser,
       authModalOpen,
+      authReturnTo,
       openAuthModal,
       closeAuthModal,
     }}>

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ContextPanel — 두 번째 패널 (260px)
+ * ContextPanel — 두 번째 패널 (320px)
  *
  * mode = 'projects'
  *   프로젝트 목록 + 아코디언 서브 문서 트리
@@ -55,7 +55,20 @@ const PROJECT_DOCS = [
 /* ══════════════════════════════════════
    PROJECTS PANEL
 ══════════════════════════════════════ */
-function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
+function ProjectsPanel({
+  projects,
+  selectedProject,
+  onSelectProject,
+  selectedView,
+  onSelectView,
+  onCreateProject,
+  onOpenWorkspaceComposer,
+  onOpenWorkspaceManage,
+  onDeleteProject,
+  workspace,
+  workspaceLoading,
+  onOpenWorkspaceInvite,
+}) {
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
 
@@ -83,8 +96,134 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
 
       {/* 헤더 */}
-      <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+      <div style={{ padding: "18px 18px 14px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{
+          padding: 16,
+          borderRadius: 16,
+          border: `1px solid ${C.inputBdr}`,
+          background: "linear-gradient(180deg, rgba(26,25,22,0.03) 0%, rgba(26,25,22,0.015) 100%)",
+          marginBottom: 16,
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 10,
+            marginBottom: 10,
+          }}>
+            <div style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: C.muted,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+            }}>
+              워크스페이스
+            </div>
+            {workspace && !workspaceLoading ? (
+              <button
+                type="button"
+                onClick={onOpenWorkspaceManage}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.inputBdr}`,
+                  background: "var(--surface)",
+                  color: C.accent,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                관리
+              </button>
+            ) : null}
+          </div>
+
+          {workspaceLoading ? (
+            <div style={{ fontSize: 12, color: C.sub }}>워크스페이스 정보를 불러오고 있어요.</div>
+          ) : workspace ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 2 }}>
+                {workspace.iconUrl && (
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8, overflow: "hidden", flexShrink: 0,
+                    border: "1px solid rgba(0,0,0,0.08)",
+                  }}>
+                    <img src={workspace.iconUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  </div>
+                )}
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: "-.02em" }}>
+                  {workspace.teamName ?? workspace.name ?? "워크스페이스"}
+                </div>
+              </div>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 8,
+              }}>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "4px 9px",
+                  borderRadius: 999,
+                  background: workspace.viewerRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                  color: workspace.viewerRole === "OWNER" ? C.text : "#2563EB",
+                }}>
+                  {workspace.viewerRole === "OWNER" ? "소유자" : "멤버"}
+                </span>
+                <span style={{ fontSize: 12, color: C.sub }}>
+                  프로젝트 {projects.length}개
+                </span>
+              </div>
+              <div style={{
+                fontSize: 12,
+                color: C.sub,
+                marginTop: 10,
+                lineHeight: 1.65,
+              }}>
+                {workspace.description?.trim() || "워크스페이스 설명이 아직 없습니다."}
+              </div>
+              <div style={{
+                fontSize: 11,
+                color: C.muted,
+                marginTop: 10,
+                lineHeight: 1.6,
+              }}>
+                이름, 설명, 초대 코드, 권한 관리는 워크스페이스 관리 탭에서 바로 열 수 있어요.
+              </div>
+            </>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.7 }}>
+                아직 선택된 워크스페이스가 없습니다.
+              </div>
+              <button
+                type="button"
+                onClick={onOpenWorkspaceComposer}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.inputBdr}`,
+                  background: "var(--surface)",
+                  color: C.accent,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                워크스페이스 시작하기
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: C.muted,
             letterSpacing: "0.07em", textTransform: "uppercase",
@@ -97,10 +236,11 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
               title="새 프로젝트"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
-                width: 22, height: 22, borderRadius: 6,
+                width: 26, height: 26, borderRadius: 8,
                 background: "none", border: `1px solid ${C.inputBdr}`,
                 color: C.muted, fontSize: 16, cursor: "pointer",
                 transition: "all 0.12s",
+                fontFamily: "inherit",
               }}
               onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.color = C.accent; }}
               onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.muted; }}
@@ -119,20 +259,20 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
             onChange={e => setSearch(e.target.value)}
             placeholder="프로젝트 검색..."
             style={{
-              width: "100%", padding: "7px 10px 7px 28px",
+              width: "100%", padding: "10px 12px 10px 32px",
               background: C.input, border: `1px solid ${C.inputBdr}`,
-              borderRadius: 8, fontSize: 12, color: C.text,
-              outline: "none", boxSizing: "border-box",
+              borderRadius: 11, fontSize: 12, color: C.text,
+              outline: "none", boxSizing: "border-box", fontFamily: "inherit",
             }}
           />
         </div>
       </div>
 
       {/* 트리 목록 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "4px 6px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 10px 14px" }}>
         {filtered.length === 0 ? (
           <div style={{ padding: "32px 12px", textAlign: "center", color: C.sub, fontSize: 13 }}>
-            {search ? "검색 결과 없음" : "프로젝트가 없습니다"}
+            {search ? "검색 결과가 없습니다" : workspace ? "아직 프로젝트가 없습니다" : "먼저 워크스페이스를 선택해 주세요"}
           </div>
         ) : (
           filtered.map(project => {
@@ -178,6 +318,238 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
   );
 }
 
+function WorkspacePanel({
+  workspace,
+  workspaceMembers = [],
+  workspaceLoading,
+  onOpenWorkspaceComposer,
+  onOpenWorkspaceManage,
+  onOpenWorkspaceInvite,
+  onOpenWorkspaceMembers,
+}) {
+  const previewMembers = workspaceMembers.slice(0, 4);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "18px 18px 14px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: C.muted,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+        }}>
+          워크스페이스 관리
+        </div>
+        <div style={{ fontSize: 13, color: C.sub, marginTop: 8, lineHeight: 1.7 }}>
+          초대 코드, 워크스페이스 정보, 소유자 이전과 멤버 정리를 한 곳에서 관리합니다.
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px 16px" }}>
+        {workspaceLoading ? (
+          <div style={{ padding: "32px 12px", textAlign: "center", color: C.sub, fontSize: 13 }}>
+            워크스페이스 정보를 불러오는 중...
+          </div>
+        ) : !workspace ? (
+          <div style={{
+            padding: 16,
+            borderRadius: 16,
+            border: `1px solid ${C.inputBdr}`,
+            background: "rgba(26,25,22,0.015)",
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 8 }}>
+              아직 관리할 워크스페이스가 없습니다
+            </div>
+            <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.7, marginBottom: 12 }}>
+              새 워크스페이스를 만들거나 초대 코드로 참여해 보세요.
+            </div>
+            <button
+              type="button"
+              onClick={onOpenWorkspaceComposer}
+              style={{
+                width: "100%",
+                padding: "9px 12px",
+                borderRadius: 12,
+                border: `1px solid ${C.inputBdr}`,
+                background: "var(--surface)",
+                color: C.accent,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              워크스페이스 추가 또는 참여
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{
+              padding: 16,
+              borderRadius: 16,
+              border: `1px solid ${C.inputBdr}`,
+              background: "linear-gradient(180deg, rgba(26,25,22,0.03) 0%, rgba(26,25,22,0.015) 100%)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  {workspace.iconUrl && (
+                    <div style={{
+                      width: 26, height: 26, borderRadius: 7, overflow: "hidden", flexShrink: 0,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                    }}>
+                      <img src={workspace.iconUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    </div>
+                  )}
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: "-.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {workspace.teamName ?? workspace.name ?? "워크스페이스"}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  background: workspace.viewerRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                  color: workspace.viewerRole === "OWNER" ? C.text : "#2563EB",
+                  flexShrink: 0,
+                }}>
+                  {workspace.viewerRole === "OWNER" ? "소유자" : "멤버"}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.7 }}>
+                {workspace.description?.trim() || "워크스페이스 설명이 아직 없습니다."}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                <span style={{ fontSize: 11, color: C.sub }}>
+                  멤버 {workspaceMembers.length}명
+                </span>
+                <button
+                  type="button"
+                  onClick={onOpenWorkspaceInvite}
+                  style={{
+                    padding: "7px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${C.inputBdr}`,
+                    background: "var(--surface)",
+                    color: C.accent,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  초대 코드
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenWorkspaceManage}
+                  style={{
+                    padding: "7px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${C.inputBdr}`,
+                    background: "var(--surface)",
+                    color: C.accent,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  기본 정보
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenWorkspaceMembers}
+                  style={{
+                    padding: "7px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${C.inputBdr}`,
+                    background: "var(--surface)",
+                    color: C.accent,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  권한 관리
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              padding: 16,
+              borderRadius: 16,
+              border: `1px solid ${C.inputBdr}`,
+              background: "var(--surface)",
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.muted,
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}>
+                멤버 미리보기
+              </div>
+              {previewMembers.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.7 }}>
+                  아직 참여한 멤버가 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {previewMembers.map((member) => (
+                    <div
+                      key={member.memberId}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        background: "var(--bg)",
+                        border: "1px solid rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {member.memberName}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>
+                          {member.email || "이메일 정보 없음"}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: 999,
+                        background: member.teamRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                        color: member.teamRole === "OWNER" ? C.text : "#2563EB",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {member.teamRole === "OWNER" ? "소유자" : "멤버"}
+                      </span>
+                    </div>
+                  ))}
+                  {workspaceMembers.length > previewMembers.length && (
+                    <div style={{ fontSize: 11, color: C.sub, textAlign: "center", paddingTop: 2 }}>
+                      나머지 멤버와 권한 설정은 오른쪽 관리 화면에서 볼 수 있어요.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── 프로젝트 헤더 행 ── */
 function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false);
@@ -192,15 +564,16 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
         style={{
           display:       "flex",
           alignItems:    "center",
-          gap:           6,
+          gap:           8,
           width:         "100%",
-          padding:       "8px 8px",
-          borderRadius:  7,
-          border:        isSelected ? `1px solid ${C.activeBdr}` : "1px solid transparent",
-          background:    isSelected ? C.active : hovered ? C.hover : "transparent",
+          padding:       "11px 12px",
+          borderRadius:  12,
+          border:        isSelected ? `1px solid ${C.activeBdr}` : `1px solid rgba(0,0,0,0.04)`,
+          background:    isSelected ? C.active : hovered ? C.hover : "rgba(0,0,0,0.015)",
           cursor:        "pointer",
           textAlign:     "left",
           transition:    "all 0.12s",
+          fontFamily:    "inherit",
         }}
       >
         {/* 화살표 */}
@@ -214,20 +587,20 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
 
         {/* 프로젝트 이름 */}
         <span style={{
-          flex: 1, fontSize: 13, fontWeight: 600,
+          flex: 1, fontSize: 13, fontWeight: 700,
           color: isSelected ? C.accent : C.text,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          paddingRight: hovered && onDelete ? 20 : 0,
+          paddingRight: 0,
         }}>
           {project.name}
         </span>
 
-        {/* 상태 배지 (호버 시 숨김) */}
-        {!hovered && (
+        {/* 상태 배지 */}
+        {(
           <span style={{
             display: "flex", alignItems: "center", gap: 4,
-            fontSize: 10, fontWeight: 600, color: status.color,
-            background: `${status.color}18`, padding: "2px 6px",
+            fontSize: 10, fontWeight: 700, color: status.color,
+            background: `${status.color}18`, padding: "4px 7px",
             borderRadius: 100, whiteSpace: "nowrap", flexShrink: 0,
           }}>
             {project.status === "running" && (
@@ -242,18 +615,19 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
         )}
       </button>
 
-      {/* 삭제 버튼 (호버 시만 표시) */}
-      {hovered && onDelete && (
+      {/* 삭제 버튼 제거됨 */}
+      {false && hovered && onDelete && (
         <button
           onClick={onDelete}
           title="프로젝트 삭제"
           style={{
-            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+            position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            width: 22, height: 22, borderRadius: 5,
+            width: 24, height: 24, borderRadius: 7,
             background: "none", border: "none",
             color: "#f87171", cursor: "pointer",
             transition: "all 0.12s",
+            fontFamily: "inherit",
           }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
@@ -283,14 +657,15 @@ function DocItem({ doc, projectName, isActive, onClick }) {
         alignItems:   "center",
         gap:          7,
         width:        "100%",
-        padding:      "6px 8px 6px 18px",
-        borderRadius: 6,
+        padding:      "8px 10px 8px 22px",
+        borderRadius: 10,
         border:       isActive ? `1px solid ${C.activeBdr}` : "1px solid transparent",
         background:   isActive ? C.accentDim : hovered ? C.hover : "transparent",
         cursor:       "pointer",
         textAlign:    "left",
         transition:   "all 0.1s",
-        marginBottom: 1,
+        marginBottom: 3,
+        fontFamily:   "inherit",
       }}
     >
       {/* 들여쓰기 연결선 */}
@@ -299,8 +674,8 @@ function DocItem({ doc, projectName, isActive, onClick }) {
         height:      16,
         background:  isActive ? C.accent : C.sub,
         flexShrink:  0,
-        marginLeft:  -10,
-        marginRight: 3,
+        marginLeft:  -12,
+        marginRight: 5,
         borderRadius: 1,
         opacity:     isActive ? 1 : 0.5,
       }} />
@@ -375,19 +750,19 @@ function CommitPanel({ selectedProject }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* 헤더 */}
-      <div style={{ padding: "14px 14px 12px", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: "18px 18px 14px", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.07em", textTransform: "uppercase" }}>
           커밋 히스토리
         </div>
         {selectedProject && (
-          <div style={{ fontSize: 12, color: C.accent, marginTop: 4, fontWeight: 500 }}>
+          <div style={{ fontSize: 13, color: C.accent, marginTop: 6, fontWeight: 600, lineHeight: 1.5 }}>
             {selectedProject.name}
           </div>
         )}
       </div>
 
       {/* 히스토리 목록 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px 16px" }}>
         {loading ? (
           <div style={{ padding: "32px 0", textAlign: "center" }}>
             <svg style={{ animation: "ctx-spin 0.9s linear infinite", color: C.sub }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -404,12 +779,13 @@ function CommitPanel({ selectedProject }) {
                 fontSize: 11, color: C.accent, background: "none",
                 border: `1px solid ${C.inputBdr}`, borderRadius: 5,
                 padding: "4px 10px", cursor: "pointer",
+                fontFamily: "inherit",
               }}
             >다시 시도</button>
           </div>
         ) : commits.length === 0 ? (
           <div style={{ padding: "40px 12px", textAlign: "center", color: C.sub, fontSize: 12 }}>
-            {selectedProject ? "아직 커밋이 없습니다" : "프로젝트를 선택하세요"}
+            {selectedProject ? "아직 기록된 커밋이 없습니다" : "커밋을 보려면 프로젝트를 선택해 주세요"}
           </div>
         ) : (
           commits.map((commit, idx) => (
@@ -419,21 +795,21 @@ function CommitPanel({ selectedProject }) {
       </div>
 
       {/* 커밋 폼 */}
-      <div style={{ padding: "12px 12px 16px", borderTop: `1px solid ${C.border}`, background: C.panel }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+      <div style={{ padding: "16px 16px 20px", borderTop: `1px solid ${C.border}`, background: "rgba(0,0,0,0.015)" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 10, letterSpacing: "0.05em", textTransform: "uppercase" }}>
           새 커밋
         </div>
 
         <input
           value={summary}
           onChange={e => setSummary(e.target.value)}
-          placeholder="Summary"
+          placeholder="커밋 제목"
           maxLength={80}
           style={{
-            width: "100%", padding: "8px 10px",
+            width: "100%", padding: "10px 12px",
             background: C.input, border: `1px solid ${C.inputBdr}`,
-            borderRadius: 6, fontSize: 12, color: C.text,
-            outline: "none", boxSizing: "border-box", marginBottom: 6,
+            borderRadius: 10, fontSize: 12, color: C.text,
+            outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "inherit",
           }}
           onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
           onBlur={e => e.target.style.borderColor = C.inputBdr}
@@ -442,14 +818,14 @@ function CommitPanel({ selectedProject }) {
         <textarea
           value={desc}
           onChange={e => setDesc(e.target.value)}
-          placeholder="Description (선택사항)"
+          placeholder="상세 설명 (선택)"
           rows={3}
           style={{
-            width: "100%", padding: "8px 10px",
+            width: "100%", padding: "10px 12px",
             background: C.input, border: `1px solid ${C.inputBdr}`,
-            borderRadius: 6, fontSize: 12, color: C.text,
+            borderRadius: 10, fontSize: 12, color: C.text,
             outline: "none", resize: "none", boxSizing: "border-box",
-            marginBottom: 8, lineHeight: "1.6", fontFamily: "inherit",
+            marginBottom: 10, lineHeight: "1.7", fontFamily: "inherit",
           }}
           onFocus={e => e.target.style.borderColor = "rgba(107,105,96,0.4)"}
           onBlur={e => e.target.style.borderColor = C.inputBdr}
@@ -463,7 +839,7 @@ function CommitPanel({ selectedProject }) {
 
         {!selectedProject && (
           <div style={{ fontSize: 11, color: C.sub, marginBottom: 6, textAlign: "center" }}>
-            프로젝트를 먼저 선택해주세요
+            먼저 프로젝트를 선택해 주세요
           </div>
         )}
 
@@ -471,7 +847,7 @@ function CommitPanel({ selectedProject }) {
           onClick={handleCommit}
           disabled={!summary.trim() || submitting || !selectedProject}
           style={{
-            width: "100%", padding: "9px 0", borderRadius: 6, border: "none",
+            width: "100%", padding: "11px 0", borderRadius: 10, border: "none",
             background: committed
               ? "#a8a69f"
               : !summary.trim() || submitting || !selectedProject
@@ -482,6 +858,7 @@ function CommitPanel({ selectedProject }) {
             cursor: !summary.trim() || submitting || !selectedProject ? "not-allowed" : "pointer",
             transition: "all 0.2s",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            fontFamily: "inherit",
           }}
         >
           {committed ? (
@@ -498,7 +875,7 @@ function CommitPanel({ selectedProject }) {
                 <circle cx="12" cy="12" r="4"/>
                 <line x1="12" y1="16" x2="12" y2="22"/>
               </svg>
-              Commit
+              커밋 남기기
             </>
           )}
         </button>
@@ -515,9 +892,10 @@ function CommitItem({ commit, isLatest }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: "flex", flexDirection: "column", gap: 4,
-        padding: "10px 10px", borderRadius: 8,
-        background: hovered ? C.itemHover : "transparent",
-        marginBottom: 2, cursor: "default", transition: "background 0.12s",
+        padding: "12px 12px", borderRadius: 14,
+        border: "1px solid rgba(0,0,0,0.05)",
+        background: hovered ? C.itemHover : "rgba(0,0,0,0.015)",
+        marginBottom: 8, cursor: "default", transition: "background 0.12s",
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -527,16 +905,16 @@ function CommitItem({ commit, isLatest }) {
           border: isLatest ? "2px solid rgba(26,25,22,0.4)" : "none",
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {commit.summary}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-            <span style={{ fontSize: 10, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
               {commit.project}
             </span>
-            <span style={{ fontSize: 10, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
+            <span style={{ fontSize: 11, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "rgba(0,0,0,0.04)", borderRadius: 4, padding: "2px 7px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8, background: "rgba(0,0,0,0.04)", borderRadius: 999, padding: "4px 8px" }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="1.8" strokeLinecap="round">
               <line x1="12" y1="2" x2="12" y2="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="16" x2="12" y2="22"/>
             </svg>
@@ -551,12 +929,28 @@ function CommitItem({ commit, isLatest }) {
 /* ══════════════════════════════════════
    CONTEXT PANEL (exported)
 ══════════════════════════════════════ */
-export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
+export function ContextPanel({
+  mode,
+  projects,
+  selectedProject,
+  onSelectProject,
+  selectedView,
+  onSelectView,
+  onCreateProject,
+  onOpenWorkspaceComposer,
+  onOpenWorkspaceManage,
+  onOpenWorkspaceMembers,
+  onDeleteProject,
+  workspace,
+  workspaceMembers = [],
+  workspaceLoading = false,
+  onOpenWorkspaceInvite,
+}) {
   return (
     <div style={{
-      width: 260, flexShrink: 0, height: "100vh",
+      width: 320, flexShrink: 0, height: "100vh",
       background: C.panel, borderRight: `1px solid ${C.border}`,
-      display: "flex", flexDirection: "column", overflow: "hidden",
+      display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "inherit",
     }}>
       <style>{`@keyframes ctx-spin { to { transform: rotate(360deg); } }`}</style>
       {mode === "projects" ? (
@@ -567,7 +961,22 @@ export function ContextPanel({ mode, projects, selectedProject, onSelectProject,
           selectedView={selectedView}
           onSelectView={onSelectView}
           onCreateProject={onCreateProject}
+          onOpenWorkspaceComposer={onOpenWorkspaceComposer}
+          onOpenWorkspaceManage={onOpenWorkspaceManage}
           onDeleteProject={onDeleteProject}
+          workspace={workspace}
+          workspaceLoading={workspaceLoading}
+          onOpenWorkspaceInvite={onOpenWorkspaceInvite}
+        />
+      ) : mode === "workspace" ? (
+        <WorkspacePanel
+          workspace={workspace}
+          workspaceMembers={workspaceMembers}
+          workspaceLoading={workspaceLoading}
+          onOpenWorkspaceComposer={onOpenWorkspaceComposer}
+          onOpenWorkspaceManage={onOpenWorkspaceManage}
+          onOpenWorkspaceInvite={onOpenWorkspaceInvite}
+          onOpenWorkspaceMembers={onOpenWorkspaceMembers}
         />
       ) : (
         <CommitPanel selectedProject={selectedProject} />
