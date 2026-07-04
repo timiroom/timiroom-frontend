@@ -722,7 +722,7 @@ export function PrdPanel({ project }) {
   useEffect(() => {
     if (!editorRef.current) return;
     if (doc && typeof doc === "object") {
-      const html = doc.type === "html" ? (doc.htmlContent || "<p><br></p>") : prdJsonToHtml(doc);
+      const html = doc.htmlContent || (doc.type === "html" ? "<p><br></p>" : prdJsonToHtml(doc));
       editorRef.current.innerHTML = html;
       setText(editorRef.current.innerText || "");
       setHasDraft(true);
@@ -739,10 +739,8 @@ export function PrdPanel({ project }) {
     if (!artifactId) return;
     const htmlContent = editorRef.current?.innerHTML;
     if (!htmlContent || htmlContent === "<p><br></p>" || htmlContent === "<p></p>") return;
-    const preserved = {};
-    if (doc && Array.isArray(doc.coreFeatures) && doc.coreFeatures.length>0)
-      preserved.coreFeatures = doc.coreFeatures;
-    const content = JSON.stringify({ type:"html", projectOverview:"manual-edit", htmlContent, ...preserved });
+    // 원본 구조화 필드 전체 보존, htmlContent만 추가/갱신
+    const content = JSON.stringify({ ...(doc || {}), htmlContent });
     setSaving(true);
     try {
       await updateArtifact(artifactId, content);

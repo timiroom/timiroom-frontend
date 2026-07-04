@@ -147,8 +147,16 @@ export function enrichProjectWithArtifacts(project, artifacts) {
 
   const tryParse = (val) => {
     if (val == null) return null;
-    if (typeof val === "object") return val;
-    try { return JSON.parse(val); } catch { return null; }
+    if (typeof val === "object") {
+      // 빈 객체/배열은 null로 취급 (파이프라인 생성 실패 결과물 방지)
+      if (Array.isArray(val)) return val.length > 0 ? val : null;
+      return Object.keys(val).length > 0 ? val : null;
+    }
+    try {
+      const parsed = JSON.parse(val);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length === 0) return null;
+      return parsed;
+    } catch { return null; }
   };
 
   return {
