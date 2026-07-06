@@ -135,7 +135,7 @@ export async function fetchProjectArtifacts(projectId) {
 
 /* ══════════════════════════════════════
    Artifact 배열로 project 객체 보강
-   artifactType: PRD | DB_SCHEMA | API_SPEC | FEATURE_LIST | MARKET_RESEARCH
+   artifactType: PRD | DB_SCHEMA | API_SPEC | FEATURE_LIST | MARKET_RESEARCH | QA_REPORT
 ══════════════════════════════════════ */
 export function enrichProjectWithArtifacts(project, artifacts) {
   const map = {};
@@ -161,11 +161,11 @@ export function enrichProjectWithArtifacts(project, artifacts) {
 
   return {
     ...project,
-    prdDocument:    tryParse(map["PRD"])             ?? project.prdDocument    ?? null,
-    dbSchema:       tryParse(map["DB_SCHEMA"])       ?? project.dbSchema       ?? null,
-    apiSpec:        tryParse(map["API_SPEC"])        ?? project.apiSpec        ?? null,
-    featureList:    tryParse(map["FEATURE_LIST"])    ?? project.featureList    ?? [],
-    marketResearch: tryParse(map["MARKET_RESEARCH"]) ?? project.marketResearch ?? null,
+    prdDocument:    tryParse(map["PRD"])              ?? project.prdDocument    ?? null,
+    dbSchema:       tryParse(map["DB_SCHEMA"])        ?? project.dbSchema       ?? null,
+    apiSpec:        tryParse(map["API_SPEC"])         ?? project.apiSpec        ?? null,
+    featureList:    tryParse(map["FEATURE_LIST"])     ?? project.featureList    ?? [],
+    marketResearch: tryParse(map["MARKET_RESEARCH"])  ?? project.marketResearch ?? null,
     artifactIds:    idMap,
   };
 }

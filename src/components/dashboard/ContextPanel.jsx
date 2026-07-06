@@ -44,11 +44,11 @@ const STATUS_MAP = {
 
 /* ── 프로젝트 서브 문서 목록 ── */
 const PROJECT_DOCS = [
-  { id: "prd",      label: "PRD",       icon: "✏️" },
-  { id: "features", label: "기능 명세서", icon: "⚡" },
-  { id: "api",      label: "API 명세서",  icon: "🔗" },
-  { id: "erd",      label: "ERD 명세서",  icon: "🗄️" },
-  { id: "qa",       label: "QA",         icon: "✓"  },
+  { id: "prd",       label: "PRD",        icon: "✏️" },
+  { id: "features",  label: "기능 명세서", icon: "⚡" },
+  { id: "api",       label: "API 명세서",  icon: "🔗" },
+  { id: "erd",       label: "ERD 명세서",  icon: "🗄️" },
+  { id: "qa",        label: "QA",          icon: "✓"  },
 ];
 
 

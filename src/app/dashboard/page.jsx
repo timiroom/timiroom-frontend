@@ -187,13 +187,13 @@ export default function DashboardPage() {
           />
         </div>
       ) : selectedView === "prd" ? (
-        <PrdPanel      project={selectedProject} />
+        <PrdPanel        project={selectedProject} />
       ) : selectedView === "features" ? (
-        <FeaturesPanel project={selectedProject} />
+        <FeaturesPanel   project={selectedProject} />
       ) : selectedView === "api" ? (
-        <ApiSpecPanel  project={selectedProject} />
+        <ApiSpecPanel    project={selectedProject} />
       ) : selectedView === "erd" ? (
-        <ErdPanel      project={selectedProject} />
+        <ErdPanel        project={selectedProject} />
       ) : (
         <AgentPanel    project={selectedProject} view={selectedView} />
       )}
