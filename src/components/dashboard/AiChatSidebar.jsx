@@ -29,7 +29,7 @@ const C = {
   accent:   "#6b6960",
   inputBg:  "var(--bg)",
   inputBdr: "rgba(0,0,0,0.10)",
-  aiColor:  "#7d4cfc",
+  aiColor:  "#1a1916",
 };
 
 /* ── 컨텍스트별 시스템 프롬프트 ── */
@@ -187,6 +187,18 @@ function SettingsPanel({ onSave }) {
 /* ══════════════════════════════════════
    메시지 버블
 ══════════════════════════════════════ */
+function formatMarkdown(text) {
+  if (!text) return { __html: "" };
+  const html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:rgba(0,0,0,0.06);padding:2px 4px;border-radius:4px;font-family:monospace;font-size:0.9em">$1</code>');
+  return { __html: html };
+}
+
 function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
   const [copied, setCopied] = useState(false);
 
@@ -201,14 +213,15 @@ function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
   if (msg.role === "user") {
     return (
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <div style={{
-          maxWidth: "85%", padding: "9px 13px",
-          background: "var(--bg)", border: `1px solid ${C.border}`,
-          borderRadius: "14px 14px 4px 14px",
-          fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap",
-        }}>
-          {msg.content}
-        </div>
+        <div 
+          style={{
+            maxWidth: "85%", padding: "9px 13px",
+            background: "var(--bg)", border: `1px solid ${C.border}`,
+            borderRadius: "14px 14px 4px 14px",
+            fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap",
+          }}
+          dangerouslySetInnerHTML={formatMarkdown(msg.content)}
+        />
       </div>
     );
   }
@@ -219,7 +232,7 @@ function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <div style={{
           width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2,
-          background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+          background: C.aiColor,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, color: "white", fontWeight: 800,
         }}>A</div>
@@ -287,7 +300,7 @@ function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
     <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
       <div style={{
         width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2,
-        background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+        background: C.aiColor,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 11, color: "white", fontWeight: 800,
       }}>A</div>
@@ -296,7 +309,7 @@ function MessageBubble({ msg, isStreaming, onApplyConfirm, onDismissConfirm }) {
           fontSize: 13, color: C.text, lineHeight: 1.7,
           whiteSpace: "pre-wrap", wordBreak: "break-word",
         }}>
-          {msg.content}
+          <span dangerouslySetInnerHTML={formatMarkdown(msg.content)} />
           {isStreaming && <span style={{
             display: "inline-block", width: 2, height: 14,
             background: C.aiColor, marginLeft: 2,
@@ -358,13 +371,42 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 문서 저장 이벤트 리스너 (자동 동기화 시뮬레이션)
+  useEffect(() => {
+    const handleDocSaved = (e) => {
+      const type = e.detail?.contextType || contextType;
+      
+      const docNames = {
+        prd: "PRD",
+        features: "기능 명세서",
+        api: "API 명세서",
+        erd: "ERD",
+        qa: "QA 문서",
+      };
+      
+      const docName = docNames[type] || "문서";
+      
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        role: "assistant",
+        content: `💡 **${docName} 내용 수정이 감지되었습니다.**\n\n방금 수정하신 내용을 바탕으로 **기능 명세서, API 명세서, ERD** 등 연관 문서들을 백그라운드에서 자동으로 동기화했습니다. 🔄\n\n좌측 메뉴를 통해 업데이트된 다른 문서들을 바로 확인해보세요!`
+      }]);
+    };
+    document.addEventListener("aiDocSaved", handleDocSaved);
+    return () => document.removeEventListener("aiDocSaved", handleDocSaved);
+  }, [contextType]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streaming]);
 
   /* 확인 메시지 — 예 클릭 */
   function handleApplyConfirm(confirmId, content) {
-    if (onApplyContent) onApplyContent(content);
+    if (content.includes("💡")) {
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event("mockFeatureAdd"));
+    } else {
+      if (onApplyContent) onApplyContent(content);
+    }
     setMessages(prev => prev.map(m =>
       m.id === confirmId ? { ...m, resolved: true, applied: true } : m
     ));
@@ -388,14 +430,17 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
     if (pending) {
       const lower = text.toLowerCase();
       if (YES_ANSWERS.has(lower)) {
-        if (onApplyContent) onApplyContent(pending.content);
+        if (pending.content.includes("💡")) {
+          if (typeof window !== 'undefined') window.dispatchEvent(new Event("mockFeatureAdd"));
+        } else {
+          if (onApplyContent) onApplyContent(pending.content);
+        }
         setMessages(prev => prev.map(m =>
           m.id === pending.id ? { ...m, resolved: true, applied: true } : m
         ));
         pendingConfirmRef.current = null;
         setInput("");
         if (textareaRef.current) textareaRef.current.style.height = "auto";
-        // 사용자 메시지도 채팅에 표시
         setMessages(prev => [...prev, { id: Date.now(), role: "user", content: text }]);
         return;
       }
@@ -457,7 +502,7 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
         setStreamingId(null);
         /* 스트리밍 완료 → 수정 제안 확인 메시지 자동 추가 */
         const finalContent = streamingContentRef.current.trim();
-        if (finalContent && onApplyContent) {
+        if (finalContent && (onApplyContent || finalContent.includes("💡"))) {
           const confirmId = `confirm_${aiId}`;
           const confirmMsg = {
             id:             confirmId,
@@ -484,9 +529,13 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, streaming, config, messages, project, currentContent]);
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  }
+  const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   function adjustHeight() {
     const el = textareaRef.current;
@@ -534,10 +583,10 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
           display: "flex", alignItems: "center", gap: 8,
         }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+            width: 20, height: 20, borderRadius: 5,
+            background: C.aiColor,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13, color: "white", fontWeight: 800,
+            fontSize: 10, color: "white", fontWeight: 900,
           }}>A</div>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>API 설정</span>
         </div>
@@ -562,7 +611,7 @@ export function AiChatSidebar({ contextType = "prd", project, currentContent, on
       }}>
         <div style={{
           width: 26, height: 26, borderRadius: 7,
-          background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+          background: C.aiColor,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 12, color: "white", fontWeight: 800, flexShrink: 0,
         }}>A</div>

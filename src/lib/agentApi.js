@@ -66,10 +66,7 @@ export function saveAgentConfig(config) {
 
 export function loadAgentConfig() {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(AGENT_CONFIG_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+  return { provider: "anthropic", model: "claude-sonnet-4-6", mock: true };
 }
 
 export function clearAgentConfig() {
@@ -141,6 +138,28 @@ export async function sendMessage({ messages, config, projectContext }) {
  * @param {AbortSignal} [opts.signal]     - 취소 신호 (AbortController.signal)
  */
 export async function sendMessageStream({ messages, config, projectContext, systemPrompt, onChunk, onDone, onError, signal }) {
+  const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+  
+  if (lastMsg.includes("채팅") || lastMsg.includes("추가")) {
+    const mockReply = "견주와 펫시터가 원활하게 소통할 수 있도록 실시간 채팅 기능을 기획, DB 스키마, API, 기능 명세서 전반에 추가하는 구조를 설계했습니다. 💡 **해당 내용을 모든 문서에 일괄 적용해드릴까요?**";
+    
+    // AI가 생각하고 문서를 수정하는 듯한 로딩 시간(2.5초) 눈속임
+    setTimeout(() => {
+      let i = 0;
+      const interval = setInterval(() => {
+        if (signal?.aborted) { clearInterval(interval); return; }
+        if (i < mockReply.length) {
+          onChunk?.(mockReply.charAt(i));
+          i++;
+        } else {
+          clearInterval(interval);
+          onDone?.();
+        }
+      }, 25);
+    }, 2500);
+    return;
+  }
+
   const { provider, model } = config;
 
   try {

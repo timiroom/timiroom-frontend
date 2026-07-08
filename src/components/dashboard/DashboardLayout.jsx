@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { STATUS_META, MOCK_PROJECTS, MEMBER_COLORS } from "@/lib/projectData";
 
@@ -139,6 +139,32 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
 
 /* ── Sidebar ── */
 function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onBackToList }) {
+  const [updatedDocs, setUpdatedDocs] = useState([]);
+
+  useEffect(() => {
+    const handleSave = (e) => {
+      console.log("DashboardLayout received aiDocSaved!", e.detail);
+      const src = e.detail?.contextType || "prd";
+      let toUpdate = [...updatedDocs];
+      if (src === "prd") {
+        if (!toUpdate.includes("specs")) toUpdate.push("specs");
+        if (!toUpdate.includes("graph")) toUpdate.push("graph");
+      } else {
+        if (!toUpdate.includes("prd")) toUpdate.push("prd");
+        if (!toUpdate.includes("graph")) toUpdate.push("graph");
+      }
+      setUpdatedDocs(toUpdate);
+    };
+    document.addEventListener("aiDocSaved", handleSave);
+    return () => document.removeEventListener("aiDocSaved", handleSave);
+  }, [updatedDocs]);
+
+  useEffect(() => {
+    if (updatedDocs.includes(active)) {
+      setUpdatedDocs(prev => prev.filter(id => id !== active));
+    }
+  }, [active, updatedDocs]);
+
   return (
     <aside style={{
       width: collapsed ? 64 : 224,
@@ -179,6 +205,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
       <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
         {NAV.map((item) => {
           const isActive = active === item.id;
+          const isUpdated = updatedDocs.includes(item.id);
           return (
             <button
               key={item.id}
@@ -199,8 +226,26 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
               onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--border)"; }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
-              <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 17, flexShrink: 0, position: "relative" }}>
+                {item.icon}
+                {isUpdated && !isActive && (
+                  <span style={{
+                    position: "absolute", top: -2, right: -4,
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "var(--db-purple-500)",
+                    border: "2px solid var(--surface)",
+                    animation: "db-pulse 2s infinite"
+                  }}/>
+                )}
+              </span>
               {!collapsed && <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>}
+              {!collapsed && isUpdated && !isActive && (
+                <span style={{
+                  marginLeft: "auto", fontSize: 9, fontWeight: 700,
+                  color: "var(--db-purple-500)", background: "rgba(167,139,250,0.15)",
+                  padding: "2px 6px", borderRadius: 10, border: "1px solid rgba(167,139,250,0.3)"
+                }}>업데이트됨</span>
+              )}
               {isActive && !collapsed && (
                 <span style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: "var(--db-purple-400)" }}/>
               )}

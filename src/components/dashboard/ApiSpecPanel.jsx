@@ -9,6 +9,7 @@
 
 import { useState, useMemo } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
+import { DocumentSyncBadge, getDocumentSyncStatus } from "./DocumentSyncBadge";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -313,15 +314,22 @@ const API_SPEC = {
 /* ══════════════════════════════════════
    엔드포인트 카드
 ══════════════════════════════════════ */
-function EndpointCard({ endpoint }) {
+function EndpointCard({ endpoint, isSynced, onDirty }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(endpoint);
   const mc = METHOD_COLOR[endpoint.method] || METHOD_COLOR.GET;
+
+  function update(field, value) {
+    setDraft(prev => ({ ...prev, [field]: value }));
+    onDirty?.();
+  }
 
   return (
     <div style={{
       borderRadius: 8,
-      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
-      background: open ? C.cardOpen : C.card,
+      border: `1px solid ${isSynced ? "rgba(16,185,129,0.38)" : open ? "rgba(107,105,96,0.2)" : C.border}`,
+      background: isSynced ? "rgba(16,185,129,0.06)" : open ? C.cardOpen : C.card,
+      boxShadow: isSynced ? "0 0 0 3px rgba(16,185,129,0.08)" : "none",
       marginBottom: 6,
       overflow: "hidden",
       transition: "all 0.15s",
@@ -351,7 +359,7 @@ function EndpointCard({ endpoint }) {
           fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
           flex: 1,
         }}>
-          {endpoint.path}
+          {draft.path}
         </code>
 
         {/* 요약 */}
@@ -359,7 +367,7 @@ function EndpointCard({ endpoint }) {
           fontSize: 12, color: C.muted, flexShrink: 0,
           maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {endpoint.summary}
+          {draft.summary}
         </span>
 
         {/* 인증 필요 배지 */}
@@ -372,6 +380,7 @@ function EndpointCard({ endpoint }) {
             🔒 JWT
           </span>
         )}
+        {isSynced && <DocumentSyncBadge status="synced" label="PRD 반영" compact />}
 
         {/* 토글 화살표 */}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -385,11 +394,19 @@ function EndpointCard({ endpoint }) {
       {open && (
         <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${C.border}` }}>
           {/* 설명 */}
-          {endpoint.description && (
+          {draft.description && (
             <p style={{ fontSize: 13, color: C.muted, margin: "12px 0 0", lineHeight: 1.6 }}>
-              {endpoint.description}
+              {draft.description}
             </p>
           )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+            <EditableApiField label="경로" value={draft.path} onChange={value => update("path", value)} mono />
+            <EditableApiField label="요약" value={draft.summary || ""} onChange={value => update("summary", value)} />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <EditableApiField label="설명" value={draft.description || ""} onChange={value => update("description", value)} multiline />
+          </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
             {/* 왼쪽: Parameters + Request Body */}
@@ -428,11 +445,11 @@ function EndpointCard({ endpoint }) {
                   {endpoint.requestBody.headers && (
                     <>
                       <div style={{ fontSize: 11, color: C.sub, marginBottom: 4, marginTop: 2 }}>Headers</div>
-                      <SchemaBlock data={endpoint.requestBody.headers} />
+                    <SchemaBlock data={endpoint.requestBody.headers} onDirty={onDirty} />
                     </>
                   )}
                   <div style={{ fontSize: 11, color: C.sub, marginBottom: 4, marginTop: endpoint.requestBody.headers ? 8 : 2 }}>Body</div>
-                  <SchemaBlock data={endpoint.requestBody.schema} />
+                  <SchemaBlock data={endpoint.requestBody.schema} onDirty={onDirty} />
                 </Section>
               )}
 
@@ -450,7 +467,7 @@ function EndpointCard({ endpoint }) {
                       <StatusBadge status={res.status} />
                       <span style={{ fontSize: 12, color: C.muted }}>{res.description}</span>
                     </div>
-                    {res.schema && <SchemaBlock data={res.schema} />}
+                    {res.schema && <SchemaBlock data={res.schema} onDirty={onDirty} />}
                   </div>
                 ))}
               </Section>
@@ -459,6 +476,50 @@ function EndpointCard({ endpoint }) {
         </div>
       )}
     </div>
+  );
+}
+
+function EditableApiField({ label, value, onChange, mono = false, multiline = false }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <span style={{ fontSize: 10, fontWeight: 800, color: C.sub, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        {label}
+      </span>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={event => onChange(event.target.value)}
+          rows={3}
+          style={{
+            resize: "vertical",
+            border: `1px solid ${C.border}`,
+            borderRadius: 7,
+            background: C.card,
+            color: C.text,
+            padding: "8px 10px",
+            fontSize: 12,
+            lineHeight: 1.6,
+            outline: "none",
+            fontFamily: "inherit",
+          }}
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={event => onChange(event.target.value)}
+          style={{
+            border: `1px solid ${C.border}`,
+            borderRadius: 7,
+            background: C.card,
+            color: C.text,
+            padding: "8px 10px",
+            fontSize: 12,
+            outline: "none",
+            fontFamily: mono ? "'JetBrains Mono', 'Fira Code', monospace" : "inherit",
+          }}
+        />
+      )}
+    </label>
   );
 }
 
@@ -478,15 +539,24 @@ function Section({ title, children, style }) {
 }
 
 /* ── JSON 스키마 블록 ── */
-function SchemaBlock({ data }) {
+function SchemaBlock({ data, onDirty }) {
   const text = typeof data === "string"
     ? data
     : JSON.stringify(data, null, 2)
         .replace(/"/g, "")
         .replace(/,$/gm, "");
 
+  const [draft, setDraft] = useState(text);
+
   return (
-    <pre style={{
+    <textarea
+      value={draft}
+      onChange={event => {
+        setDraft(event.target.value);
+        onDirty?.();
+      }}
+      rows={Math.min(10, Math.max(3, draft.split("\n").length + 1))}
+      style={{
       margin: 0, padding: "10px 12px",
       background: C.code, borderRadius: 6,
       border: `1px solid ${C.border}`,
@@ -494,9 +564,12 @@ function SchemaBlock({ data }) {
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       lineHeight: 1.7, overflowX: "auto",
       whiteSpace: "pre-wrap", wordBreak: "break-word",
-    }}>
-      {text}
-    </pre>
+      resize: "vertical",
+      width: "100%",
+      boxSizing: "border-box",
+      outline: "none",
+    }}
+    />
   );
 }
 
@@ -521,28 +594,41 @@ function StatusBadge({ status }) {
 /* ══════════════════════════════════════
    태그 그룹
 ══════════════════════════════════════ */
-function TagGroup({ tag }) {
+function TagGroup({ tag, syncStatus, onDirty, onAddEndpoint, onUpdateTag }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div style={{ marginBottom: 24 }}>
       {/* 태그 헤더 */}
-      <button
-        onClick={() => setCollapsed(v => !v)}
+      <div
         style={{
           display: "flex", alignItems: "center", gap: 10,
           width: "100%", padding: "10px 0", marginBottom: 8,
-          background: "none", border: "none", borderBottom: `2px solid ${C.border}`,
-          cursor: "pointer", textAlign: "left",
+          borderBottom: `2px solid ${C.border}`,
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke={C.accent} strokeWidth="2.5" strokeLinecap="round"
-          style={{ transition: "transform 0.15s", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-        <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{tag.name}</span>
-        <span style={{ fontSize: 12, color: C.muted }}>{tag.description}</span>
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={C.accent} strokeWidth="2.5" strokeLinecap="round"
+            style={{ transition: "transform 0.15s", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <input
+          value={tag.name}
+          onChange={(e) => onUpdateTag && onUpdateTag({ ...tag, name: e.target.value })}
+          placeholder="그룹 이름"
+          style={{ fontSize: 16, fontWeight: 700, color: C.text, border: "none", background: "transparent", outline: "none", width: 150 }}
+        />
+        <input
+          value={tag.description || ""}
+          onChange={(e) => onUpdateTag && onUpdateTag({ ...tag, description: e.target.value })}
+          placeholder="그룹 설명"
+          style={{ fontSize: 12, color: C.muted, border: "none", background: "transparent", outline: "none", flex: 1 }}
+        />
         <span style={{
           marginLeft: "auto", fontSize: 11, color: C.sub,
           padding: "2px 7px", borderRadius: 10,
@@ -550,13 +636,31 @@ function TagGroup({ tag }) {
         }}>
           {tag.endpoints.length}
         </span>
-      </button>
+      </div>
 
       {!collapsed && (
         <div>
           {tag.endpoints.map(ep => (
-            <EndpointCard key={ep.id} endpoint={ep} />
+            <EndpointCard
+              key={ep.id}
+              endpoint={ep}
+              isSynced={syncStatus !== "idle" && (ep.path?.includes("/chat/messages") || ep.summary?.includes("채팅"))}
+              onDirty={onDirty}
+            />
           ))}
+          {/* 새 엔드포인트 추가 버튼 */}
+          <button
+            onClick={onAddEndpoint}
+            style={{
+              width: "100%", padding: "10px", borderRadius: 8, border: "1px dashed rgba(107,85,220,0.5)",
+              background: "rgba(107,85,220,0.03)", color: "var(--db-purple-500)",
+              fontSize: 12, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              marginTop: 8,
+            }}
+          >
+            <span>+</span> 새 엔드포인트 추가
+          </button>
         </div>
       )}
     </div>
@@ -615,26 +719,32 @@ function apiSpecToText(tags) {
 /* ══════════════════════════════════════
    API SPEC PANEL (exported)
 ══════════════════════════════════════ */
-export function ApiSpecPanel({ project }) {
+export function ApiSpecPanel({ project, syncState, onSave }) {
   const [search, setSearch] = useState("");
+  const [isModified, setIsModified] = useState(false);
+  const syncStatus = getDocumentSyncStatus(syncState, "api");
+  const displayStatus = isModified ? "dirty" : syncStatus;
 
-  const specTags = useMemo(() => {
+  const [localTags, setLocalTags] = useState(() => {
     const fromPipeline = project?.apiSpec ? buildTagsFromApiSpec(project.apiSpec) : null;
     return fromPipeline || API_SPEC.tags;
-  }, [project?.apiSpec]);
+  });
+
+  const specTags = localTags;
 
   const specTitle   = project?.name ? `${project.name} API` : API_SPEC.title;
   const specVersion = API_SPEC.version;
 
-  const filteredTags = specTags.map(tag => ({
+  const filteredTags = specTags.map((tag, index) => ({
     ...tag,
+    originalIndex: index,
     endpoints: tag.endpoints.filter(ep =>
       !search ||
       ep.path.toLowerCase().includes(search.toLowerCase()) ||
       (ep.summary || "").toLowerCase().includes(search.toLowerCase()) ||
       ep.method.toLowerCase().includes(search.toLowerCase())
     ),
-  })).filter(tag => tag.endpoints.length > 0);
+  })).filter(tag => tag.endpoints.length > 0 || !search || tag.name.includes(search));
 
   const currentContent = useMemo(() => apiSpecToText(specTags), [specTags]);
 
@@ -674,6 +784,12 @@ export function ApiSpecPanel({ project }) {
             }}>
               API 명세서
             </span>
+            {displayStatus !== "idle" && (
+              <DocumentSyncBadge
+                status={displayStatus}
+                label={displayStatus === "dirty" ? "저장 필요" : syncStatus === "syncing" ? "PRD 반영 중" : "PRD 반영 완료"}
+              />
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -691,6 +807,27 @@ export function ApiSpecPanel({ project }) {
             }}>
               {API_SPEC.version}
             </span>
+
+            <button
+              disabled={!isModified}
+              onClick={() => {
+                setIsModified(false);
+                onSave?.();
+              }}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 7,
+                border: isModified ? "none" : `1px solid ${C.border}`,
+                background: isModified ? "var(--text-1)" : "rgba(0,0,0,0.05)",
+                color: isModified ? "#fff" : "var(--text-3)",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: isModified ? "pointer" : "not-allowed",
+                fontFamily: "inherit",
+              }}
+            >
+              저장
+            </button>
           </div>
         </div>
 
@@ -731,12 +868,73 @@ export function ApiSpecPanel({ project }) {
             </p>
           </div>
 
+          {/* 새 그룹 추가 버튼 */}
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => {
+                const newList = [...(localTags || [])];
+                newList.push({ name: "새로운 그룹", description: "설명을 입력하세요", endpoints: [] });
+                setLocalTags(newList);
+                setIsModified(true);
+              }}
+              style={{
+                width: "100%", padding: "12px", borderRadius: 10, border: "1px dashed var(--db-purple-400)",
+                background: "rgba(107,85,220,0.05)", color: "var(--db-purple-500)",
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "rgba(107,85,220,0.1)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "rgba(107,85,220,0.05)";
+              }}
+            >
+              <span>+</span> 새 그룹 추가
+            </button>
+          </div>
+
           {filteredTags.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 0", color: C.sub, fontSize: 14 }}>
               검색 결과가 없습니다
             </div>
           ) : (
-            filteredTags.map(tag => <TagGroup key={tag.name} tag={tag} />)
+            filteredTags.map((tag) => (
+              <TagGroup
+                key={tag.originalIndex}
+                tag={tag}
+                syncStatus={syncStatus}
+                onDirty={() => setIsModified(true)}
+                onUpdateTag={(newTag) => {
+                  setLocalTags(prev => {
+                    const next = [...prev];
+                    next[tag.originalIndex] = newTag;
+                    return next;
+                  });
+                  setIsModified(true);
+                }}
+                onAddEndpoint={() => {
+                  setLocalTags(prev => {
+                    const next = [...prev];
+                    const updatedGroup = { ...next[tag.originalIndex], endpoints: [...next[tag.originalIndex].endpoints] };
+                    updatedGroup.endpoints.push({
+                      id: "new-ep-" + Date.now(),
+                      method: "GET",
+                      path: "/api/new",
+                      summary: "새 엔드포인트",
+                      description: "",
+                      auth: false,
+                      parameters: [],
+                      responses: []
+                    });
+                    next[tag.originalIndex] = updatedGroup;
+                    return next;
+                  });
+                  setIsModified(true);
+                }}
+              />
+            ))
           )}
         </div>
       </div>

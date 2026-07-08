@@ -1,6 +1,6 @@
 import { RAG_PIPELINE_URL } from "@/lib/authConfig";
 
-const BASE = `${RAG_PIPELINE_URL}/api/v1/recommendation`;
+const BASE = `/api/v1/recommendation`; // Mock Data용 로컬 API 라우트 사용
 
 async function postJson(url, body) {
   try {

@@ -115,15 +115,14 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
   const doneRef       = useRef(false);
 
   useEffect(() => {
-    const es = new EventSource(
-      `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
-      { withCredentials: true }
-    );
-    es.addEventListener("progress", (e) => {
-      const d      = JSON.parse(e.data);
-      const newKey = SSE_TO_STEP[d.step];
-      setPercent(d.percent || 0);
-      setCurrentMsg(d.message || "");
+    // MOCK: Simulate SSE progress
+    let currentStepIndex = 0;
+    const interval = setInterval(() => {
+      const step = PIPELINE_STEPS[currentStepIndex];
+      const newKey = step.key;
+      setPercent(Math.floor(((currentStepIndex + 1) / PIPELINE_STEPS.length) * 100));
+      setCurrentMsg(`${step.label} 진행 중...`);
+      
       if (newKey && newKey !== currentKeyRef.current) {
         const prevKey = currentKeyRef.current;
         currentKeyRef.current = newKey;
@@ -134,31 +133,111 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
           return next;
         });
       }
-    });
-    es.addEventListener("complete", (e) => {
-      doneRef.current = true;
-      const d = JSON.parse(e.data);
-      setPercent(100);
-      setPhase("done");
-      setCurrentMsg("모든 단계 완료!");
-      setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
-      es.close();
-      setTimeout(() => onComplete(d.result), 1500);
-    });
-    es.addEventListener("error", (e) => {
-      doneRef.current = true;
-      try { setErrMsg(JSON.parse(e.data).message); }
-      catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
-      setPhase("error");
-      es.close();
-    });
-    es.onerror = () => {
-      if (doneRef.current || es.readyState === EventSource.CLOSED) return;
-      setErrMsg("서버 연결이 끊어졌습니다.");
-      setPhase("error");
-      es.close();
-    };
-    return () => es.close();
+      
+      currentStepIndex++;
+      if (currentStepIndex >= PIPELINE_STEPS.length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setPercent(100);
+          setPhase("done");
+          setCurrentMsg("모든 단계 완료!");
+          setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
+          setTimeout(() => onComplete({
+            prdDocument: {
+              projectOverview: "WalkMyDog: 반려견 산책 매칭 서비스",
+              background: "바쁜 현대인을 위해 안전하고 신뢰할 수 있는 반려견 산책 파트너를 매칭해주는 플랫폼 필요",
+              goals: ["사용자-펫시터 간 매칭 소요시간 최소화", "실시간 위치 추적을 통한 신뢰성 확보"],
+              kpi: [{ metric: "MAU", target: "10,000", basis: "출시 3개월 내" }],
+              coreFeatures: [
+                { name: "견주-펫시터 매칭", priority: "P0", description: "GPS 기반 근거리 매칭", requirements: ["사용자 위치 기반 탐색", "필터링 (시간, 가격)"] },
+                { name: "실시간 위치 추적", priority: "P0", description: "산책 중인 반려견의 실시간 위치 지도 표시", requirements: ["Google Maps API 연동", "위치 데이터 5초 주기 갱신"] },
+                { name: "에스크로 안전 결제", priority: "P1", description: "매칭 확정 시 결제, 완료 시 정산", requirements: ["Stripe 결제 연동", "산책 완료 버튼 클릭 시 정산 승인"] }
+              ],
+              userPersonas: [
+                { name: "김바쁨", age: "32", job: "직장인", goal: "믿고 맡길 수 있는 펫시터를 빠르게 찾고 싶음", painPoint: "야근 잦아 산책시킬 시간이 부족함" }
+              ],
+              techStack: { Frontend: "Next.js, React", Backend: "Spring Boot", DB: "PostgreSQL", Map: "Google Maps API" },
+              mvpScope: { included: ["매칭", "결제", "위치 추적"], excluded: ["산책 일지", "커뮤니티"], rationale: "핵심 가치인 신뢰할 수 있는 매칭과 안전에 집중" }
+            },
+            dbSchema: {
+              tables: [
+                {
+                  name: "users",
+                  columns: [
+                    { name: "id", type: "BIGINT", constraints: "PK" },
+                    { name: "email", type: "VARCHAR(255)", constraints: "NOT NULL, UNIQUE" },
+                    { name: "role", type: "VARCHAR(20)", constraints: "NOT NULL" }
+                  ],
+                  indexes: ["idx_users_email"]
+                },
+                {
+                  name: "walk_requests",
+                  columns: [
+                    { name: "id", type: "BIGINT", constraints: "PK" },
+                    { name: "owner_id", type: "BIGINT", constraints: "FK" },
+                    { name: "sitter_id", type: "BIGINT", constraints: "FK" },
+                    { name: "status", type: "VARCHAR(20)", constraints: "NOT NULL" }
+                  ],
+                  indexes: ["idx_walk_status"]
+                },
+                {
+                  name: "location_logs",
+                  columns: [
+                    { name: "id", type: "BIGINT", constraints: "PK" },
+                    { name: "walk_id", type: "BIGINT", constraints: "FK" },
+                    { name: "latitude", type: "DECIMAL(10,8)", constraints: "NOT NULL" },
+                    { name: "longitude", type: "DECIMAL(11,8)", constraints: "NOT NULL" }
+                  ]
+                }
+              ],
+              relationships: [
+                "users (owner_id) 1:N walk_requests",
+                "users (sitter_id) 1:N walk_requests",
+                "walk_requests 1:N location_logs"
+              ]
+            },
+            apiSpec: {
+              endpoints: [
+                {
+                  method: "POST",
+                  path: "/api/walk-requests",
+                  description: "견주가 새로운 산책 매칭을 요청합니다.",
+                  summary: "산책 요청 생성",
+                  request: {
+                    headers: { Authorization: "Bearer JWT" },
+                    body: { location: "string", startTime: "ISO8601", duration: "number" }
+                  },
+                  response: {
+                    success: { requestId: "number", status: "PENDING" },
+                    error: "400 Bad Request"
+                  }
+                },
+                {
+                  method: "GET",
+                  path: "/api/walk-requests/{id}/location",
+                  description: "진행 중인 산책의 현재 위치(GPS)를 반환합니다.",
+                  summary: "실시간 위치 조회",
+                  request: { headers: { Authorization: "Bearer JWT" } },
+                  response: {
+                    success: { latitude: "number", longitude: "number", updatedAt: "ISO8601" }
+                  }
+                }
+              ],
+              authentication: "Bearer Token"
+            },
+            featureList: [
+              "견주-펫시터 실시간 근거리 매칭",
+              "Google Maps 기반 실시간 산책 위치 추적",
+              "Stripe 에스크로 안전 결제 및 자동 정산",
+              "펫시터 리뷰 및 평점 시스템",
+              "산책 일지 기록 및 공유 기능"
+            ],
+          }), 1500);
+        }, 500);
+      }
+    }, 800);
+    
+    return () => clearInterval(interval);
   }, [pipelineId, onComplete]);
 
   const isAct       = (key) => statuses[key] === "done";
@@ -225,24 +304,37 @@ export function ProgressScreen({ pipelineId, onComplete, onCancel }) {
 /* ═══════════════════════════════════════════
    채팅 메시지 버블
 ════════════════════════════════════════════ */
+function formatMarkdown(text) {
+  if (!text) return { __html: "" };
+  const html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.15);padding:2px 4px;border-radius:4px;font-family:monospace;font-size:0.9em">$1</code>');
+  return { __html: html };
+}
+
 function MessageBubble({ role, content }) {
   const isUser = role === "user";
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 8 }}>
       {!isUser && (
-        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", color: "var(--bg)", fontWeight: 800 }}>A</div>
       )}
-      <div style={{
-        maxWidth: "72%", padding: "12px 16px",
-        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-        background: isUser ? "var(--db-grad-purple)" : "var(--surface)",
-        border: isUser ? "none" : "1px solid var(--border)",
-        color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
-        boxShadow: isUser ? "var(--db-glow-sm)" : "none",
-        whiteSpace: "pre-wrap", wordBreak: "break-word",
-      }}>
-        {content}
-      </div>
+      <div 
+        style={{
+          maxWidth: "72%", padding: "12px 16px",
+          borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+          background: isUser ? "var(--text-1)" : "var(--surface)",
+          border: isUser ? "none" : "1px solid var(--border)",
+          color: isUser ? "#fff" : "var(--text-1)", fontSize: 14, lineHeight: 1.6,
+          boxShadow: isUser ? "var(--db-glow-sm)" : "none",
+          whiteSpace: "pre-wrap", wordBreak: "break-word",
+        }}
+        dangerouslySetInnerHTML={formatMarkdown(content)}
+      />
       {isUser && (
         <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "var(--bg)", marginLeft: 10, alignSelf: "flex-end" }}>나</div>
       )}
@@ -302,9 +394,12 @@ function SuggestionChips({ suggestions, onSelect, disabled }) {
 ════════════════════════════════════════════ */
 function TypingIndicator() {
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16, gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
-      <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px 18px 18px 4px", display: "flex", gap: 5, alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, boxShadow: "var(--db-glow-sm)", flexShrink: 0, color: "var(--bg)", fontWeight: 800 }}>A</div>
+      <div style={{
+        padding: "16px", background: "var(--surface)", borderRadius: "18px 18px 18px 4px",
+        border: "1px solid var(--border)", display: "flex", gap: 5, alignItems: "center"
+      }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", animation: `dot-bounce 1.2s ${i * 0.2}s infinite ease-in-out` }}/>
         ))}
@@ -327,20 +422,16 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
 
-  // 세션 생성 + 첫 인사
+  // 세션 생성 + 첫 인사 (MOCK)
   useEffect(() => {
     async function init() {
-      try {
-        const { sessionId: sid } = await createChatSession();
-        setSessionId(sid);
+      setTimeout(() => {
+        setSessionId("mock-session-id");
         setMessages([{
           role: "assistant",
-          content: "안녕하세요! 어떤 서비스를 만들고 싶으신가요? 아이디어를 자유롭게 말씀해 주세요.",
+          content: "안녕하세요! Align-it 입니다. 머릿속에 있는 아이디어를 말씀해 주시면, 제가 실제 작동하는 서비스로 만들어 드릴게요. 어떤 서비스를 만들고 싶으신가요?",
         }]);
-        // 첫 메시지는 사용자가 직접 입력 — 제안 없음
-      } catch {
-        setSessionError("채팅 세션을 시작하지 못했습니다. 새로고침 후 다시 시도해 주세요.");
-      }
+      }, 300);
     }
     init();
   }, []);
@@ -350,87 +441,89 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // 파이프라인 시작
+  // 파이프라인 시작 (MOCK)
   const triggerPipeline = useCallback(async (formData) => {
     setIsSubmitting(true);
-    try {
-      const team    = await getOrCreateDefaultTeam();
-      const teamId  = team.teamId ?? team.id;
-      const project = await createProject({
-        teamId,
-        projectName: formData.projectName,
-        description: formData.projectDescription,
-      });
-
-      const reqRes = await apiFetch(`${API_BASE_URL}/api/v1/requirements`, {
-        method: "POST",
-        body: JSON.stringify({
-          projectId: Number(project.id),
-          title:     formData.projectName,
-          content:   JSON.stringify(formData),
-        }),
-      });
-      if (!reqRes || !reqRes.ok) throw new Error(`요구사항 생성 실패 (HTTP ${reqRes?.status})`);
-      const requirement   = await reqRes.json();
-      const requirementId = requirement.requirementId;
-
-      const pipeRes = await apiFetch(
-        `${API_BASE_URL}/api/v1/pipeline/start/${requirementId}`,
-        { method: "POST", body: new FormData() }
-      );
-      if (!pipeRes || !pipeRes.ok) throw new Error(`파이프라인 시작 실패 (HTTP ${pipeRes?.status})`);
-
-      const pipeResult = await pipeRes.json();
-      const id = pipeResult.pipelineId ?? pipeResult.data?.pipelineId;
-      if (!id) throw new Error("pipelineId를 받지 못했습니다");
-
-      onPipelineStart(id, String(project.id), formData.projectName);
-    } catch (err) {
-      console.error("파이프라인 실행 실패:", err);
-      setIsSubmitting(false);
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: `프로젝트 생성 중 오류가 발생했습니다: ${err.message}. 다시 시도해 주세요.`,
-      }]);
-    }
+    setTimeout(() => {
+      const mockPipelineId = "mock-pipeline-" + Date.now();
+      const mockProjectId = "mock-project-" + Date.now();
+      onPipelineStart(mockPipelineId, mockProjectId, formData.projectName);
+    }, 1500);
   }, [onPipelineStart]);
 
-  // text를 직접 받아서 전송 (제안 클릭 시 사용)
   const sendText = useCallback(async (text) => {
     if (!text.trim() || !sessionId || isLoading || isSubmitting) return;
 
+    const currentLen = messages.length;
     setMessages(prev => [...prev, { role: "user", content: text }]);
-    setCurrentSuggestions([]); // 전송하면 제안 즉시 제거
+    setCurrentSuggestions([]);
     setInputText("");
     setIsLoading(true);
 
-    try {
-      const response = await sendChatMessage(sessionId, text);
+    setTimeout(() => {
+      let response = {};
+      
+      if (currentLen === 1) {
+        // 첫 번째 답변: 플랫폼 질문
+        response = {
+          message: `"${text}" 서비스 기획을 시작하겠습니다! 첫 번째 질문입니다. 이 서비스는 모바일 앱(iOS/Android)으로 구현할 계획이신가요, 아니면 웹 서비스로 먼저 시작할 계획이신가요?`,
+          isComplete: false,
+          suggestions: ["접근성이 좋은 모바일 앱으로 만들어줘", "반응형 웹 서비스로 먼저 시작할래", "앱과 웹 모두 필요해"]
+        };
+      } else if (currentLen === 3) {
+        // 두 번째 답변: 기술 스택 질문
+        response = {
+          message: "좋습니다! 두 번째 질문입니다. 백엔드(서버/데이터베이스) 구현과 관련하여 선호하시는 기술 스택이 있으신가요?",
+          isComplete: false,
+          suggestions: ["Node.js와 MongoDB로 빠르고 가볍게 갈래", "안정적인 Spring Boot와 MySQL로 구축해줘", "가장 적합한 최신 스택으로 알아서 추천해줘"]
+        };
+      } else if (currentLen === 5) {
+        // 세 번째 답변: 인증 방식 질문
+        response = {
+          message: "기술 스택 요구사항을 반영하겠습니다! 마지막 구현 질문입니다. 서비스의 사용자 인증(로그인) 방식은 어떻게 구성하는 것이 좋을까요?",
+          isComplete: false,
+          suggestions: ["카카오/네이버/구글 소셜 로그인이 필수야", "일단 기본적인 이메일 회원가입만 있으면 돼", "소셜 로그인과 이메일 둘 다 포함해줘"]
+        };
+      } else if (currentLen >= 7) {
+        // 완료 단계
+        response = {
+          message: "네, 알겠습니다! 답변해주신 구현 세부사항(플랫폼, 기술 스택, 인증 방식)을 모두 반영하여 지금 바로 전체 서비스 기획 및 설계를 시작하겠습니다. 잠시만 기다려 주세요...",
+          isComplete: true,
+          formData: {
+            projectName: "신규 서비스 기획",
+            projectDescription: "사용자가 요청한 맞춤형 플랫폼 및 기술 스택 기반 서비스"
+          }
+        };
+      } else {
+        response = {
+          message: "말씀하신 내용을 바탕으로 추가 기획을 진행합니다. 더 필요하신 구현 제약 사항이 있으신가요?",
+          isComplete: false,
+          suggestions: ["이대로 진행해줘"]
+        };
+        if (text.includes("이대로") || text.includes("진행")) {
+          response.isComplete = true;
+          response.formData = { projectName: "신규 서비스", projectDescription: "" };
+        }
+      }
+
       setMessages(prev => [...prev, { role: "assistant", content: response.message }]);
       setCurrentSuggestions(response.suggestions ?? []);
 
       if (response.isComplete && response.formData) {
         setCurrentSuggestions([]);
-        setTimeout(() => triggerPipeline(response.formData), 1000);
+        setTimeout(() => triggerPipeline(response.formData), 1500);
       }
-    } catch (err) {
-      console.error("메시지 전송 실패:", err);
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "일시적인 오류가 발생했습니다. 다시 시도해 주세요.",
-      }]);
-      setCurrentSuggestions([]);
-    } finally {
       setIsLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [sessionId, isLoading, isSubmitting, triggerPipeline]);
+    }, 1500);
+  }, [messages.length, sessionId, isLoading, isSubmitting, triggerPipeline]);
 
   const handleSend = useCallback(() => {
     sendText(inputText.trim());
   }, [inputText, sendText]);
 
   const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -551,7 +644,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               disabled={!canSend}
               style={{
                 width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                background: canSend ? "var(--db-grad-purple)" : "var(--border)",
+                background: canSend ? "var(--text-1)" : "var(--border)",
                 border: "none", cursor: canSend ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.15s",

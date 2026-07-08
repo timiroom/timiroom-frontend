@@ -553,10 +553,20 @@ export function DocPanel({ project, view }) {
   const draft = MOCK_DRAFTS[view] || "";
 
   const [markdown, setMarkdown] = useState("");
+  const [initialMarkdown, setInitialMarkdown] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
 
+  const isModified = markdown !== "" && markdown !== initialMarkdown;
+
+  function handleSave() {
+    setInitialMarkdown(markdown);
+    document.dispatchEvent(new CustomEvent("aiDocSaved", { detail: { contextType: view } }));
+  }
+
   function applyDraft() {
-    setMarkdown(draft.trim());
+    const text = draft.trim();
+    setMarkdown(text);
+    setInitialMarkdown(text);
     setHasDraft(true);
   }
 
@@ -615,6 +625,19 @@ export function DocPanel({ project, view }) {
             </span>
           )}
 
+          <button 
+            disabled={!isModified}
+            onClick={handleSave}
+            style={{
+              padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+              background: isModified ? "var(--text-1)" : "rgba(0,0,0,0.05)", 
+              border: isModified ? "none" : `1px solid ${C.border}`,
+              color: isModified ? "#fff" : "var(--text-3)", 
+              cursor: isModified ? "pointer" : "not-allowed",
+              transition: "all 0.2s"
+            }}>
+            저장
+          </button>
           <button style={{
             padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
             background: C.accentBg, border: `1px solid ${C.accentBdr}`,

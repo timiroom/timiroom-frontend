@@ -6,7 +6,7 @@ const CARDS = [
   {
     variant: "purple", icon: "🚀", badge: "무료", title: "빠른 시작",
     desc: "PRD를 붙여넣기만 하면 5분 안에 API 명세와 DB 스키마가 자동 생성됩니다. 별도 설정 없이 즉시 체험하세요.",
-    btnVariant: "ghost", btnText: "데모 시작하기 →",
+    btnVariant: "ghost", btnText: "빠르게 시작하기 →",
   },
   {
     variant: "light", icon: "📋", badge: "30일 무료", title: "30일 무료 체험",

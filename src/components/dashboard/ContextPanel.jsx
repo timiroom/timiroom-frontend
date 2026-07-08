@@ -12,7 +12,8 @@
  *   커밋 히스토리 + 커밋 폼
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { DocumentSyncBadge, getDocumentSyncStatus } from "./DocumentSyncBadge";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -43,6 +44,7 @@ const STATUS_MAP = {
 
 /* ── 프로젝트 서브 문서 목록 ── */
 const PROJECT_DOCS = [
+  { id: "team",     label: "팀 및 권한 설정", icon: "👥" },
   { id: "prd",      label: "PRD",       icon: "✏️" },
   { id: "features", label: "기능 명세서", icon: "⚡" },
   { id: "api",      label: "API 명세서",  icon: "🔗" },
@@ -58,12 +60,53 @@ const MOCK_COMMITS = [
   { id: "c004", summary: "QA 시나리오 자동 생성",        project: "테스트 프로젝트", time: "2일 전",   hash: "e1f4a2" },
 ];
 
+const TEAM_STEPS = [
+  { id: "create", label: "팀 생성" },
+  { id: "invite", label: "초대 발송" },
+  { id: "ready",  label: "협업 준비" },
+];
+
 /* ══════════════════════════════════════
    PROJECTS PANEL
 ══════════════════════════════════════ */
-function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
-  const [search,   setSearch]   = useState("");
-  const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
+function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject, documentSync }) {
+  const [search, setSearch]   = useState("");
+  const [expanded, setExpanded] = useState(() => {
+    return selectedProject?.id ? { [selectedProject.id]: true } : {};
+  });
+  const [updatedDocs, setUpdatedDocs] = useState([]);
+
+  useEffect(() => {
+    if (selectedProject?.id && !expanded[selectedProject.id]) {
+      setExpanded(prev => ({ ...prev, [selectedProject.id]: true }));
+    }
+  }, [selectedProject?.id]);
+
+  useEffect(() => {
+    const handleSave = (e) => {
+      const src = e.detail?.contextType || "prd";
+      setUpdatedDocs(prev => {
+        let toUpdate = [...prev];
+        const allDocs = ["prd", "features", "api", "erd"];
+        
+        allDocs.forEach(docId => {
+          if (docId !== src && !toUpdate.includes(docId)) {
+            toUpdate.push(docId);
+          }
+        });
+        
+        return toUpdate;
+      });
+    };
+    document.addEventListener("aiDocSaved", handleSave);
+    return () => document.removeEventListener("aiDocSaved", handleSave);
+  }, []);
+
+  useEffect(() => {
+    if (updatedDocs.includes(selectedView)) {
+      setUpdatedDocs(prev => prev.filter(id => id !== selectedView));
+    }
+  }, [selectedView, updatedDocs]);
 
   const filtered = (projects || []).filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase())
@@ -74,7 +117,6 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
   }
 
   function handleProjectClick(project) {
-    // 프로젝트 헤더 클릭 → 선택 + 펼치기 토글
     onSelectProject(project);
     toggleExpand(project.id);
   }
@@ -169,6 +211,8 @@ function ProjectsPanel({ projects, selectedProject, onSelectProject, selectedVie
                           doc={doc}
                           projectName={project.name}
                           isActive={isDocActive}
+                          isUpdated={updatedDocs.includes(doc.id)}
+                          syncStatus={isSelected ? getDocumentSyncStatus(documentSync, doc.id) : "idle"}
                           onClick={e => handleDocClick(project, doc.id, e)}
                         />
                       );
@@ -277,7 +321,7 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
 }
 
 /* ── 서브 문서 아이템 ── */
-function DocItem({ doc, projectName, isActive, onClick }) {
+function DocItem({ doc, projectName, isActive, isUpdated, syncStatus = "idle", onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -313,6 +357,8 @@ function DocItem({ doc, projectName, isActive, onClick }) {
 
       {/* 문서 타입 라벨 */}
       <span style={{
+        flex: 1,
+        minWidth: 0,
         fontSize:  12,
         fontWeight: isActive ? 600 : 400,
         color:     isActive ? C.accent : C.muted,
@@ -322,6 +368,18 @@ function DocItem({ doc, projectName, isActive, onClick }) {
       }}>
         {projectName}_{doc.label}
       </span>
+      {syncStatus !== "idle" ? (
+        <DocumentSyncBadge status={syncStatus} compact />
+      ) : isUpdated ? (
+        <span style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "#10b981",
+          boxShadow: "0 0 0 3px rgba(16,185,129,0.14)",
+          flexShrink: 0,
+        }} />
+      ) : null}
     </button>
   );
 }
@@ -484,9 +542,145 @@ function CommitItem({ commit, isLatest }) {
 }
 
 /* ══════════════════════════════════════
+   TEAM PANEL
+══════════════════════════════════════ */
+function TeamPanel({ team, invitations }) {
+  const hasInvites = invitations.length > 0;
+  const hasAccepted = invitations.some(invitation => invitation.status === "참여 완료");
+
+  const stepStatus = {
+    create: team.created,
+    invite: hasInvites,
+    ready: hasAccepted,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "14px 14px 12px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+          팀 워크스페이스
+        </div>
+        <div style={{ fontSize: 12, color: C.accent, marginTop: 4, fontWeight: 600 }}>
+          {team.created ? team.name : "생성 전"}
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 12px 0" }}>
+        <div style={{
+          padding: 12,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          background: C.itemHover,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 5 }}>
+            워크스페이스 진행 순서
+          </div>
+          <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.6 }}>
+            팀 생성 후 초대장을 보내고, 참여 처리를 눌러 협업 준비 상태를 보여줍니다.
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {TEAM_STEPS.map((step, index) => {
+          const done = stepStatus[step.id];
+          return (
+            <div key={step.id} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "9px 10px",
+              borderRadius: 8,
+              background: done ? C.active : "transparent",
+              border: `1px solid ${done ? C.activeBdr : C.border}`,
+            }}>
+              <div style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: done ? C.accent : "rgba(0,0,0,0.04)",
+                color: done ? "var(--bg)" : C.sub,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 900,
+                flexShrink: 0,
+              }}>
+                {done ? "✓" : index + 1}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: done ? C.accent : C.muted }}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: "0 12px 12px", fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        초대 목록
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 12px 12px" }}>
+        {invitations.length === 0 ? (
+          <div style={{
+            padding: "24px 10px",
+            border: `1px dashed ${C.border}`,
+            borderRadius: 10,
+            textAlign: "center",
+            color: C.sub,
+            fontSize: 12,
+            lineHeight: 1.6,
+          }}>
+            아직 초대한 멤버가 없습니다.
+          </div>
+        ) : (
+          invitations.map(invitation => (
+            <div key={invitation.id} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "9px 8px",
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              marginBottom: 6,
+              background: invitation.status === "참여 완료" ? "rgba(16,185,129,0.08)" : C.panel,
+            }}>
+              <div style={{
+                width: 26,
+                height: 26,
+                borderRadius: 7,
+                background: C.accentDim,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.accent,
+                fontSize: 11,
+                fontWeight: 900,
+                flexShrink: 0,
+              }}>
+                {invitation.name.slice(0, 1)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {invitation.name}
+                </div>
+                <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>
+                  {invitation.role} · {invitation.status}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
    CONTEXT PANEL (exported)
 ══════════════════════════════════════ */
-export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject }) {
+export function ContextPanel({ mode, projects, selectedProject, onSelectProject, selectedView, onSelectView, onCreateProject, onDeleteProject, team, invitations = [], documentSync }) {
   return (
     <div style={{
       width: 260, flexShrink: 0, height: "100vh",
@@ -494,7 +688,9 @@ export function ContextPanel({ mode, projects, selectedProject, onSelectProject,
       display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       <style>{`@keyframes ctx-spin { to { transform: rotate(360deg); } }`}</style>
-      {mode === "projects" ? (
+      {mode === "team" ? (
+        <TeamPanel team={team} invitations={invitations} />
+      ) : mode === "projects" ? (
         <ProjectsPanel
           projects={projects}
           selectedProject={selectedProject}
@@ -503,6 +699,7 @@ export function ContextPanel({ mode, projects, selectedProject, onSelectProject,
           onSelectView={onSelectView}
           onCreateProject={onCreateProject}
           onDeleteProject={onDeleteProject}
+          documentSync={documentSync}
         />
       ) : (
         <CommitPanel selectedProject={selectedProject} />

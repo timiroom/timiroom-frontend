@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
+import { DocumentSyncBadge, getDocumentSyncStatus } from "./DocumentSyncBadge";
 
 const C = {
   bg:        "var(--surface)",
@@ -492,10 +493,20 @@ function NotionEditor({ editorRef, onTextChange }) {
 /* ══════════════════════════════════════
    PRD PANEL (exported)
 ══════════════════════════════════════ */
-export function PrdPanel({ project }) {
+export function PrdPanel({ project, syncState, onSave }) {
   const editorRef     = useRef(null);
   const [text,         setText]        = useState("");
+  const [initialText,  setInitialText] = useState("");
   const [hasDraft,     setHasDraft]    = useState(false);
+
+  const isModified = text !== "" && text !== initialText;
+  const syncStatus = isModified ? "dirty" : getDocumentSyncStatus(syncState, "prd");
+
+  function handleSave() {
+    setInitialText(text);
+    onSave?.({ content: text });
+    document.dispatchEvent(new CustomEvent("aiDocSaved", { detail: { contextType: "prd" } }));
+  }
 
   /* project.prdDocument → HTML → editor
      project.id 변경(다른 프로젝트 선택) 또는
@@ -506,15 +517,18 @@ export function PrdPanel({ project }) {
     if (doc && typeof doc === "object") {
       const html = prdJsonToHtml(doc);
       editorRef.current.innerHTML = html;
-      setText(editorRef.current.innerText || "");
+      const initial = editorRef.current.innerText || "";
+      setText(initial);
+      setInitialText(initial);
       setHasDraft(true);
     } else {
       editorRef.current.innerHTML = "<p><br></p>";
       setText("");
+      setInitialText("");
       setHasDraft(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, !!project?.prdDocument]);
+  }, [project?.id, project?.prdDocument]);
 
   /* AI 내용 에디터에 삽입 */
   function handleApplyAiContent(aiText) {
@@ -570,6 +584,21 @@ export function PrdPanel({ project }) {
               color: "#34d399", fontWeight: 600,
             }}>✓ AI 초안 적용됨</span>
           )}
+          <DocumentSyncBadge
+            status={syncStatus}
+            label={isModified ? "저장 필요" : undefined}
+          />
+          <button 
+            disabled={!isModified}
+            onClick={handleSave}
+            style={{
+              padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+              background: isModified ? "var(--text-1)" : "rgba(0,0,0,0.05)", 
+              border: isModified ? "none" : `1px solid ${C.border}`,
+              color: isModified ? "#fff" : "var(--text-3)", 
+              cursor: isModified ? "pointer" : "not-allowed",
+              transition: "all 0.2s"
+            }}>저장</button>
           <button style={{
             padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
             background: C.accentBg, border: `1px solid ${C.accentBdr}`,

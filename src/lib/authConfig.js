@@ -9,21 +9,19 @@
  *   - 모든 API 요청에 credentials: "include" 로 세션 쿠키 자동 첨부
  */
 
-/** 백엔드 base URL */
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+/** 백엔드 base URL (Mock Data용 로컬 API 라우트 사용) */
+export const API_BASE_URL = "/api/mock";
 
 /** rag-pipeline base URL */
-export const RAG_PIPELINE_URL =
-  process.env.NEXT_PUBLIC_RAG_PIPELINE_URL || "http://localhost:8081";
+export const RAG_PIPELINE_URL = "/api/v1";
 
 /** 프론트엔드 URL */
-export const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+export const APP_URL = "http://localhost:3000";
 
-/** Spring Security OAuth2 진입점 */
+/** Spring Security OAuth2 진입점 (Mock API 경로로 변경) */
 export const OAUTH_ENDPOINTS = {
-  google: `${API_BASE_URL}/oauth2/authorization/google`,
-  github: `${API_BASE_URL}/oauth2/authorization/github`,
+  google: `/api/mock/oauth2/authorization/google`,
+  github: `/api/mock/oauth2/authorization/github`,
 };
 
 /** 백엔드 REST API 경로 */
@@ -32,7 +30,7 @@ export const AUTH_API = {
   logout: `${API_BASE_URL}/auth/logout`,
 };
 
-/** OAuth 공급자 로그인 페이지로 이동 */
+/** OAuth 공급자 로그인 페이지로 이동 (Mock은 바로 API로 이동 후 리다이렉트 처리) */
 export function redirectToOAuth(provider) {
   const url = OAUTH_ENDPOINTS[provider];
   if (!url) throw new Error(`Unknown OAuth provider: ${provider}`);

@@ -13,6 +13,7 @@
 
 import { useState, useMemo } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
+import { DocumentSyncBadge, getDocumentSyncStatus } from "./DocumentSyncBadge";
 
 const C = {
   bg:        "var(--surface)",
@@ -49,13 +50,14 @@ function PriorityBadge({ priority }) {
 }
 
 /* ── 기능 카드 (상세, 인라인 편집 가능) ── */
-function FeatureCard({ feature: initialFeature, index }) {
+function FeatureCard({ feature: initialFeature, index, isSynced, onDirty }) {
   const [open, setOpen]       = useState(false);
   const [feature, setFeature] = useState(initialFeature);
   const [editing, setEditing] = useState(null); // "name" | "description" | null
 
   function update(field, val) {
     setFeature(prev => ({ ...prev, [field]: val }));
+    onDirty?.();
   }
 
   function EditableText({ field, value, style, multiline }) {
@@ -108,8 +110,9 @@ function FeatureCard({ feature: initialFeature, index }) {
   return (
     <div style={{
       borderRadius: 10,
-      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
-      background: open ? C.surface : C.card,
+      border: `1px solid ${isSynced ? "rgba(16,185,129,0.38)" : open ? "rgba(107,105,96,0.2)" : C.border}`,
+      background: isSynced ? "rgba(16,185,129,0.06)" : open ? C.surface : C.card,
+      boxShadow: isSynced ? "0 0 0 3px rgba(16,185,129,0.08)" : "none",
       marginBottom: 8, overflow: "hidden", transition: "all 0.15s",
     }}>
       {/* 헤더 */}
@@ -133,6 +136,7 @@ function FeatureCard({ feature: initialFeature, index }) {
           {feature.name}
         </span>
         {feature.priority && <PriorityBadge priority={feature.priority} />}
+        {isSynced && <DocumentSyncBadge status="synced" label="PRD 반영" compact />}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke={C.muted} strokeWidth="2" strokeLinecap="round"
           style={{ flexShrink: 0, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
@@ -226,14 +230,18 @@ function FeatureCard({ feature: initialFeature, index }) {
 }
 
 /* ── 심플 기능 행 (featureList만 있을 때) ── */
-function SimpleFeatureRow({ name: initialName, index }) {
+function SimpleFeatureRow({ name: initialName, index, isSynced, onDirty }) {
   const [name,    setName]    = useState(initialName);
   const [editing, setEditing] = useState(false);
 
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 12, padding: "12px 18px",
-      borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, marginBottom: 6,
+      borderRadius: 8,
+      border: `1px solid ${isSynced ? "rgba(16,185,129,0.38)" : C.border}`,
+      background: isSynced ? "rgba(16,185,129,0.06)" : C.card,
+      boxShadow: isSynced ? "0 0 0 3px rgba(16,185,129,0.08)" : "none",
+      marginBottom: 6,
     }}>
       <span style={{
         width: 24, height: 24, borderRadius: 6, flexShrink: 0,
@@ -247,7 +255,10 @@ function SimpleFeatureRow({ name: initialName, index }) {
         <input
           autoFocus
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={e => {
+            setName(e.target.value);
+            onDirty?.();
+          }}
           onBlur={() => setEditing(false)}
           onKeyDown={e => e.key === "Enter" && setEditing(false)}
           style={{
@@ -263,6 +274,7 @@ function SimpleFeatureRow({ name: initialName, index }) {
           title="클릭하여 편집"
         >{name}</span>
       )}
+      {isSynced && <DocumentSyncBadge status="synced" label="PRD 반영" compact />}
     </div>
   );
 }
@@ -286,14 +298,20 @@ function featuresToText(coreFeatures, simpleList) {
 /* ══════════════════════════════════════
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
-export function FeaturesPanel({ project }) {
+export function FeaturesPanel({ project, syncState, onSave }) {
   const [search, setSearch] = useState("");
+  const [isModified, setIsModified] = useState(false);
+  const syncStatus = getDocumentSyncStatus(syncState, "features");
+  const displayStatus = isModified ? "dirty" : syncStatus;
+  const syncKeyword = syncState?.keyword || "실시간 채팅";
 
-  const coreFeatures = useMemo(() => {
+  const [localFeatures, setLocalFeatures] = useState(() => {
     const doc = project?.prdDocument;
     if (doc && Array.isArray(doc.coreFeatures) && doc.coreFeatures.length > 0) return doc.coreFeatures;
     return null;
-  }, [project]);
+  });
+
+  const coreFeatures = localFeatures;
 
   const simpleList = useMemo(() => {
     if (coreFeatures) return null;
@@ -359,10 +377,38 @@ export function FeaturesPanel({ project }) {
                 background: "rgba(0,0,0,0.05)",
               }}>{total}개</span>
             )}
+            {displayStatus !== "idle" && (
+              <DocumentSyncBadge
+                status={displayStatus}
+                label={displayStatus === "dirty" ? "저장 필요" : syncStatus === "syncing" ? "PRD 반영 중" : "PRD 반영 완료"}
+              />
+            )}
           </div>
 
-          {/* 검색 */}
-          <div style={{ position: "relative" }}>
+          {/* 검색 및 액션 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+            <button
+              disabled={!isModified}
+              onClick={() => {
+                setIsModified(false);
+                onSave?.();
+              }}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 7,
+                border: isModified ? "none" : `1px solid ${C.border}`,
+                background: isModified ? "var(--text-1)" : "rgba(0,0,0,0.05)",
+                color: isModified ? "#fff" : "var(--text-3)",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: isModified ? "pointer" : "not-allowed",
+                fontFamily: "inherit",
+              }}
+            >
+              저장
+            </button>
+            <div style={{ position: "relative" }}>
             <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
               width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -376,6 +422,7 @@ export function FeaturesPanel({ project }) {
                 borderRadius: 8, fontSize: 12, color: C.text, outline: "none",
               }}
             />
+            </div>
           </div>
         </div>
 
@@ -385,11 +432,46 @@ export function FeaturesPanel({ project }) {
 
             {!coreFeatures && !simpleList && <EmptyState />}
 
+            {/* 새 기능 추가 버튼 */}
+            <div style={{ marginBottom: 20 }}>
+              <button
+                onClick={() => {
+                  const newList = [...(localFeatures || [])];
+                  newList.push({ name: "새 기능", priority: "P2", description: "설명", requirements: [] });
+                  setLocalFeatures(newList);
+                  setIsModified(true);
+                }}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: 10, border: "1px dashed var(--db-purple-400)",
+                  background: "rgba(107,85,220,0.05)", color: "var(--db-purple-500)",
+                  fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(107,85,220,0.1)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(107,85,220,0.05)";
+                }}
+              >
+                <span>+</span> 새 기능 추가
+              </button>
+            </div>
+
             {/* 상세 카드 */}
             {filteredCore && (
               filteredCore.length === 0
                 ? <div style={{ textAlign: "center", padding: "60px 0", color: C.sub, fontSize: 14 }}>검색 결과가 없습니다</div>
-                : filteredCore.map((f, i) => <FeatureCard key={i} feature={f} index={i} />)
+                : filteredCore.map((f, i) => (
+                  <FeatureCard
+                    key={i}
+                    feature={f}
+                    index={i}
+                    isSynced={syncStatus !== "idle" && f.name?.includes(syncKeyword)}
+                    onDirty={() => setIsModified(true)}
+                  />
+                ))
             )}
 
             {/* 심플 목록 */}
@@ -400,7 +482,13 @@ export function FeaturesPanel({ project }) {
                   letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12,
                 }}>PM 에이전트 기능 목록</div>
                 {filteredSimple.map((name, i) => (
-                  <SimpleFeatureRow key={i} name={name} index={i} />
+                  <SimpleFeatureRow
+                    key={i}
+                    name={name}
+                    index={i}
+                    isSynced={syncStatus !== "idle" && name?.includes(syncKeyword)}
+                    onDirty={() => setIsModified(true)}
+                  />
                 ))}
               </>
             )}
