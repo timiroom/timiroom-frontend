@@ -687,7 +687,7 @@ function NotionEditor({ editorRef, onTextChange }) {
 /* ══════════════════════════════════════
    PRD PANEL
 ══════════════════════════════════════ */
-export function PrdPanel({ project }) {
+export function PrdPanel({ project, readOnly = false }) {
   const editorRef      = useRef(null);
   const [text,          setText]         = useState("");
   const [hasDraft,      setHasDraft]     = useState(false);
@@ -804,7 +804,7 @@ ${content}</body></html>`;
             activeKey={activeSection}
             onSelect={key=>setActiveSection(key)}
             projectName={project?.name}
-            onEditAll={()=>setEditMode(true)}
+            onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
           <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
             <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface, justifyContent:"space-between" }}>
@@ -827,7 +827,7 @@ ${content}</body></html>`;
                   <div style={{ fontSize:32 }}>{"📄"}</div>
                   <div style={{ fontSize:16, fontWeight:700, color:C.text }}>PRD{"가 없습니다"}</div>
                   <div style={{ fontSize:13, color:C.muted }}>{"파이프라인을 실행하거나 편집 모드에서 작성하세요"}</div>
-                  <button onClick={()=>setEditMode(true)} style={{ marginTop:4, padding:"8px 18px", borderRadius:8, fontSize:13, fontWeight:600, background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, cursor:"pointer" }}>{"편집 모드 열기"}</button>
+                  {!readOnly && <button onClick={()=>setEditMode(true)} style={{ marginTop:4, padding:"8px 18px", borderRadius:8, fontSize:13, fontWeight:600, background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, cursor:"pointer" }}>{"편집 모드 열기"}</button>}
                 </div>
               ) : (
                 <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
@@ -851,7 +851,7 @@ ${content}</body></html>`;
           <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD {"편집"}</span>
           <div style={{ flex:1 }} />
           {saved && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ 저장됨"}</span>}
-          <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
+          <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
             {saved ? "저장됨" : saving ? "저장 중..." : (
               <>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

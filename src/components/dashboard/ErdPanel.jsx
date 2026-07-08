@@ -1273,7 +1273,7 @@ function SqlModal({ sql, onClose }) {
 /* ══════════════════════════════════════
    ERD PANEL
 ══════════════════════════════════════ */
-export function ErdPanel({ project }) {
+export function ErdPanel({ project, readOnly = false }) {
   const [search,        setSearch]        = useState("");
   const [expandAll,     setExpandAll]     = useState(null);
   const [showSql,       setShowSql]       = useState(false);
@@ -1293,7 +1293,7 @@ export function ErdPanel({ project }) {
   }, [project, localSchema]);
 
   const warnings = useMemo(() => validateSchema(schema), [schema]);
-  const canEdit  = !!project?.artifactIds?.DB_SCHEMA;
+  const canEdit  = !readOnly && !!project?.artifactIds?.DB_SCHEMA;
 
   /* ── 공통 저장 ── */
   async function persistSchema(newSchema) {

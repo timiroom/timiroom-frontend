@@ -286,7 +286,7 @@ function featuresToText(coreFeatures, simpleList) {
 /* ══════════════════════════════════════
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
-export function FeaturesPanel({ project }) {
+export function FeaturesPanel({ project, readOnly = false }) {
   const [search,          setSearch]          = useState("");
   const [saving,          setSaving]          = useState(false);
   const [saved,           setSaved]           = useState(false);
@@ -368,7 +368,7 @@ export function FeaturesPanel({ project }) {
 
   const total = displayFeatures?.length ?? displaySimple?.length ?? 0;
   const currentContent = featuresToText(displayFeatures, displaySimple);
-  const canSave = !!(project?.artifactIds?.FEATURE_LIST || project?.artifactIds?.PRD);
+  const canSave = !readOnly && !!(project?.artifactIds?.FEATURE_LIST || project?.artifactIds?.PRD);
 
   return (
     <div style={{

@@ -11,6 +11,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { AUTH_RETURN_TO_KEY } from "@/lib/authConfig";
 
 function StatusScreen({ type, message }) {
   const isError = type === "error";
@@ -70,6 +71,9 @@ function CallbackInner() {
     const error = searchParams.get("error");
 
     if (error) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(AUTH_RETURN_TO_KEY);
+      }
       const messages = {
         access_denied:      "로그인이 취소되었습니다.",
         email_not_verified: "이메일 인증이 완료되지 않은 계정입니다.",
@@ -81,9 +85,22 @@ function CallbackInner() {
 
     // 백엔드가 세션을 이미 설정했으므로 /auth/me 호출
     login().then(() => {
+      const returnTo = typeof window !== "undefined"
+        ? window.localStorage.getItem(AUTH_RETURN_TO_KEY)
+        : null;
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(AUTH_RETURN_TO_KEY);
+      }
       setStatus({ type: "loading", message: "대시보드로 이동 중..." });
-      router.replace("/dashboard");
+      if (returnTo && returnTo.startsWith("/")) {
+        router.replace(returnTo);
+      } else {
+        router.replace("/dashboard");
+      }
     }).catch(() => {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(AUTH_RETURN_TO_KEY);
+      }
       setStatus({ type: "error", message: "로그인 정보를 확인하지 못했습니다." });
     });
   }, [searchParams, login, router]);

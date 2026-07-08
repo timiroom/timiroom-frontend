@@ -31,6 +31,14 @@ export async function fetchProjects() {
   return normalizeProjects(body?.data ?? body);
 }
 
+export async function fetchProjectsByTeam(teamId) {
+  if (teamId == null) return [];
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/team/${teamId}`);
+  if (!res || !res.ok) return [];
+  const body = await res.json();
+  return normalizeProjects(body?.data ?? body);
+}
+
 /* ══════════════════════════════════════
    단일 프로젝트 조회
    GET /api/projects/{id}
@@ -94,6 +102,7 @@ function normalizeStatus(s) {
 function normalizeProject(raw) {
   return {
     id:               String(raw.projectId  ?? raw.id  ?? ""),
+    teamId:           raw.teamId ?? null,
     name:             raw.projectName ?? raw.name ?? "",
     description:      raw.description      ?? "",
     status:           normalizeStatus(raw.status),
@@ -119,6 +128,55 @@ function normalizeProject(raw) {
 function normalizeProjects(list) {
   if (!Array.isArray(list)) return [];
   return list.map(normalizeProject);
+}
+
+/* ══════════════════════════════════════
+   프로젝트 멤버 목록
+   GET /api/v1/projects/{id}/members
+══════════════════════════════════════ */
+export async function fetchProjectMembers(projectId) {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${projectId}/members`);
+  if (!res || !res.ok) return [];
+  const body = await res.json();
+  return Array.isArray(body) ? body : (body?.data ?? []);
+}
+
+/* ══════════════════════════════════════
+   프로젝트 멤버 역할 변경
+   PATCH /api/v1/projects/{id}/members/{targetId}
+══════════════════════════════════════ */
+export async function updateProjectMemberRole(projectId, targetMemberId, role) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/projects/${projectId}/members/${targetMemberId}`,
+    { method: "PATCH", body: JSON.stringify({ role }) }
+  );
+  if (!res || !res.ok) throw new Error(`역할 변경 실패 (HTTP ${res?.status})`);
+  return res.json();
+}
+
+/* ══════════════════════════════════════
+   프로젝트 멤버 제거
+   DELETE /api/v1/projects/{id}/members/{targetId}
+══════════════════════════════════════ */
+export async function removeProjectMember(projectId, targetMemberId) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/projects/${projectId}/members/${targetMemberId}`,
+    { method: "DELETE" }
+  );
+  if (!res || !res.ok) throw new Error(`멤버 제거 실패 (HTTP ${res?.status})`);
+}
+
+/* ══════════════════════════════════════
+   프로젝트 멤버 추가
+   POST /api/v1/projects/{id}/members
+══════════════════════════════════════ */
+export async function addProjectMember(projectId, memberId, role) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/projects/${projectId}/members`,
+    { method: "POST", body: JSON.stringify({ memberId: String(memberId), role }) }
+  );
+  if (!res || !res.ok) throw new Error(`멤버 추가 실패 (HTTP ${res?.status})`);
+  return res.json();
 }
 
 /* ══════════════════════════════════════
