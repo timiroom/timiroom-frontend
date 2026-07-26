@@ -28,6 +28,7 @@ import {
   deleteProject,
   enrichProjectWithArtifacts,
   fetchProjectArtifacts,
+  fetchProjectDocument,
   fetchProjectMembers,
   fetchProjectsByTeam,
 } from "@/lib/projectApi";
@@ -39,6 +40,8 @@ const ROLE_DOCUMENT_PERMISSIONS = {
   DESIGNER: ["PRD", "MARKET_RESEARCH", "FEATURE_LIST"],
   INFRA:    ["DB_SCHEMA"],
 };
+
+const PROJECT_DOCUMENT_TYPES = ["PRD", "FEATURE_LIST", "API_SPEC", "DB_SCHEMA", "MARKET_RESEARCH"];
 
 const SCREEN_SPEC_STATE = {
   "DASH-001":  { mode: "projects", view: "prd", showWizard: false },
@@ -428,18 +431,26 @@ export default function DashboardPage() {
     if (!project?.id) return;
 
     try {
-      const artifacts = await fetchProjectArtifacts(project.id);
-      if (artifacts.length > 0) {
+      const [artifacts, documents] = await Promise.all([
+        fetchProjectArtifacts(project.id),
+        Promise.all(PROJECT_DOCUMENT_TYPES.map((type) => fetchProjectDocument(project.id, type))),
+      ]);
+      const mergedArtifacts = [
+        ...(Array.isArray(artifacts) ? artifacts : []),
+        ...documents.filter(Boolean),
+      ];
+
+      if (mergedArtifacts.length > 0) {
         setSelectedProject((current) => {
-          if (!current || current.id !== project.id) return current;
-          return enrichProjectWithArtifacts(current, artifacts);
+          if (!current || String(current.id) !== String(project.id)) return current;
+          return enrichProjectWithArtifacts(current, mergedArtifacts);
         });
         setProjects((prev) => prev.map((p) =>
-          p.id === project.id ? enrichProjectWithArtifacts(p, artifacts) : p
+          String(p.id) === String(project.id) ? enrichProjectWithArtifacts(p, mergedArtifacts) : p
         ));
       }
     } catch (error) {
-      console.error("Artifacts 로드 실패:", error);
+      console.error("문서 로드 실패:", error);
     }
   }, []);
 
