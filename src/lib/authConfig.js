@@ -64,7 +64,10 @@ export async function apiFetch(url, options = {}) {
   if (res.status === 401) {
     const REDIRECT_EXEMPT = ["/", "/auth/callback"];
     const path = typeof window !== "undefined" ? window.location.pathname : "/";
-    if (!REDIRECT_EXEMPT.includes(path) && !path.startsWith("/invite/")) {
+    const isScreenSpecView =
+      typeof window !== "undefined"
+      && (window.location.search.includes("screenSpec=") || path.startsWith("/screen-spec-capture/"));
+    if (!isScreenSpecView && !REDIRECT_EXEMPT.includes(path) && !path.startsWith("/invite/")) {
       window.location.href = "/";
     }
     return null;

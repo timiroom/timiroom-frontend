@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
-import { updateArtifact } from "@/lib/pipelineApi";
+import { saveProjectDocument } from "@/lib/projectApi";
 
 const C = {
   bg:        "var(--surface)",
@@ -695,8 +695,11 @@ export function PrdPanel({ project, readOnly = false }) {
   const [saved,         setSaved]        = useState(false);
   const [editMode,      setEditMode]     = useState(false);
   const [activeSection, setActiveSection]= useState("overview");
+  const [localDoc,      setLocalDoc]     = useState(null);
 
-  const doc       = project?.prdDocument;
+  useEffect(() => { setLocalDoc(null); }, [project?.id]);
+
+  const doc       = localDoc ?? project?.prdDocument;
   const isHtmlDoc = doc?.type === "html";
 
   const htmlSections = useMemo(() => {
@@ -735,15 +738,17 @@ export function PrdPanel({ project, readOnly = false }) {
   }, [project?.id, doc?.projectOverview ?? null, doc?.type ?? null]);
 
   async function handleSave() {
-    const artifactId = project?.artifactIds?.PRD;
-    if (!artifactId) return;
+    const projectId = project?.id;
+    if (!projectId) return;
     const htmlContent = editorRef.current?.innerHTML;
     if (!htmlContent || htmlContent === "<p><br></p>" || htmlContent === "<p></p>") return;
     // 원본 구조화 필드 전체 보존, htmlContent만 추가/갱신
-    const content = JSON.stringify({ ...(doc || {}), htmlContent });
+    const nextDoc = { ...(doc || {}), type: "html", htmlContent };
+    const content = JSON.stringify(nextDoc);
     setSaving(true);
     try {
-      await updateArtifact(artifactId, content);
+      await saveProjectDocument(projectId, "PRD", content);
+      setLocalDoc(nextDoc);
       setSaved(true); setTimeout(()=>setSaved(false), 3000);
     } catch(e) { alert("저장 실패: "+e.message); }
     finally { setSaving(false); }
@@ -851,7 +856,7 @@ ${content}</body></html>`;
           <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD {"편집"}</span>
           <div style={{ flex:1 }} />
           {saved && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ 저장됨"}</span>}
-          <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
+          <button onClick={handleSave} disabled={saving||!project?.id||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.id?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.id?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.id?"#60a5fa":"#9ca3af", cursor:saving||!project?.id?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
             {saved ? "저장됨" : saving ? "저장 중..." : (
               <>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

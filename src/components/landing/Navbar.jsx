@@ -196,6 +196,7 @@ export function Navbar() {
             <a href={href} onClick={smoothScroll(href)}>{label}</a>
           </li>
         ))}
+
       </ul>
 
       {/* CTA / Auth */}

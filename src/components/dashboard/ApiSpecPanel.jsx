@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
-import { updateArtifact } from "@/lib/pipelineApi";
+import { saveProjectDocument } from "@/lib/projectApi";
 
 const C = {
   bg:       "var(--surface)",
@@ -724,16 +724,16 @@ export function ApiSpecPanel({ project, readOnly = false }) {
   useEffect(() => { setLocalApiSpec(null); }, [project?.id]);
 
   const rawApiSpec = localApiSpec ?? project?.apiSpec;
-  const canEdit    = !readOnly && !!project?.artifactIds?.API_SPEC;
+  const canEdit    = !readOnly && !!project?.id;
 
   const specTags = useMemo(() => buildTagsFromApiSpec(rawApiSpec) || [], [rawApiSpec]);
   const specTitle = project?.name ? `${project.name} API` : "API 명세서";
 
   /* ── 저장 공통 헬퍼 ── */
   async function persistSpec(newSpec) {
-    const artifactId = project?.artifactIds?.API_SPEC;
-    if (!artifactId) return;
-    await updateArtifact(artifactId, JSON.stringify(newSpec));
+    const projectId = project?.id;
+    if (!projectId) return;
+    await saveProjectDocument(projectId, "API_SPEC", JSON.stringify(newSpec));
     setLocalApiSpec(newSpec);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

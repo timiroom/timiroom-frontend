@@ -108,6 +108,8 @@ function Spinner() {
 export function WorkspaceInviteLanding({ inviteCode }) {
   const router = useRouter();
   const { user, isLoading: authLoading, openAuthModal } = useAuth();
+  const isScreenSpecView =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/screen-spec-capture/");
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -119,6 +121,19 @@ export function WorkspaceInviteLanding({ inviteCode }) {
 
   useEffect(() => {
     if (!inviteLabel) return;
+    if (isScreenSpecView) {
+      setPreview({
+        teamId: "screen-spec-workspace",
+        teamName: "문서정합성 TF",
+        description: "문서 변경사항과 연결 산출물을 함께 관리하는 협업 공간",
+        ownerName: "최은솔",
+        memberCount: 6,
+      });
+      setLoading(false);
+      setError("");
+      setIsMember(false);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
@@ -149,15 +164,16 @@ export function WorkspaceInviteLanding({ inviteCode }) {
     return () => {
       cancelled = true;
     };
-  }, [inviteLabel, user]);
+  }, [inviteLabel, isScreenSpecView, user]);
 
   useEffect(() => {
     if (authLoading) return;
+    if (isScreenSpecView) return;
     if (user || !preview || authPromptedRef.current) return;
 
     authPromptedRef.current = true;
     openAuthModal(typeof window !== "undefined" ? window.location.pathname : null);
-  }, [authLoading, openAuthModal, preview, user]);
+  }, [authLoading, isScreenSpecView, openAuthModal, preview, user]);
 
   async function handleJoin() {
     if (!inviteLabel) return;

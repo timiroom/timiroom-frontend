@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
-import { updateArtifact } from "@/lib/pipelineApi";
+import { saveProjectDocument } from "@/lib/projectApi";
 
 const C = {
   bg:      "var(--surface)",
@@ -800,6 +800,22 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
   const warnings = [];
   if (!pkCols.length && table.columns?.length > 0) warnings.push("PK 없음");
 
+  // 임시 연관 문서 상태 데이터
+  const docRelations = {
+    users: [
+      { doc: "기능: 소셜 로그인", status: "업데이트됨", desc: "회원 기본 정보 저장을 위한 테이블 참조" },
+      { doc: "API: POST /workspace/invite", status: "", desc: "초대받은 사용자의 회원 존재 여부 검증" }
+    ],
+    oauth_providers: [
+      { doc: "기능: 소셜 로그인", status: "업데이트됨", desc: "카카오/네이버 등 OAuth 공급자별 식별자 저장" }
+    ],
+    projects: [
+      { doc: "기능: 프로젝트 생성", status: "", desc: "프로젝트 메타데이터 저장을 위한 테이블" },
+      { doc: "API: POST /workspace/invite", status: "", desc: "권한 검증 시 프로젝트 정보 참조" }
+    ]
+  };
+  const relations = docRelations[table.name] || [];
+
   return (
     <div style={{
       borderRadius: 12,
@@ -910,6 +926,30 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
           </div>
         )}
       </div>
+
+      {/* ── 연관 문서 및 상태 표시 (임시) ── */}
+      {open && relations.length > 0 && (
+        <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, background: "rgba(249,250,251,0.5)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: "0.05em" }}>연관 문서 및 설명</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {relations.map((rel, idx) => (
+              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12 }}>
+                <span style={{ 
+                  fontWeight: 600, color: "#3b82f6", background: "rgba(59,130,246,0.1)", 
+                  padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap" 
+                }}>{rel.doc}</span>
+                {rel.status && (
+                  <span style={{ 
+                    fontWeight: 700, color: "#10b981", background: "rgba(16,185,129,0.15)", 
+                    padding: "2px 6px", borderRadius: 4, whiteSpace: "nowrap", fontSize: 10
+                  }}>{rel.status}</span>
+                )}
+                <span style={{ color: "#4b5563", lineHeight: 1.5 }}>- {rel.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 컬럼 목록 */}
       {open && (
@@ -1282,6 +1322,9 @@ export function ErdPanel({ project, readOnly = false }) {
   const [editingRelationship, setEditingRelationship] = useState(null); // null | { idx: number|"new", raw: string|null }
   const [opSaving,            setOpSaving]            = useState(false);
   const [saved,               setSaved]               = useState(false);
+  const [showEditWarning,     setShowEditWarning]     = useState(false); // ERD 수정 경고 모달 상태
+  const [pendingAction,       setPendingAction]       = useState(null);
+  const [warningIgnored,      setWarningIgnored]      = useState(false); // 이번 세션에서 한 번 무시했는지 여부
 
   useEffect(() => { setLocalSchema(null); }, [project?.id]);
 
@@ -1293,13 +1336,21 @@ export function ErdPanel({ project, readOnly = false }) {
   }, [project, localSchema]);
 
   const warnings = useMemo(() => validateSchema(schema), [schema]);
-  const canEdit  = !readOnly && !!project?.artifactIds?.DB_SCHEMA;
+  const canEdit  = !readOnly && !!project?.id;
+
+  /* ── 수정 경고 공통 함수 ── */
+  function checkEditAllowed(actionCallback) {
+    if (warningIgnored) return true;
+    setPendingAction(() => actionCallback);
+    setShowEditWarning(true);
+    return false;
+  }
 
   /* ── 공통 저장 ── */
   async function persistSchema(newSchema) {
-    const artifactId = project?.artifactIds?.DB_SCHEMA;
-    if (!artifactId) return;
-    await updateArtifact(artifactId, JSON.stringify(newSchema));
+    const projectId = project?.id;
+    if (!projectId) return;
+    await saveProjectDocument(projectId, "DB_SCHEMA", JSON.stringify(newSchema));
     setLocalSchema(newSchema);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -1307,44 +1358,44 @@ export function ErdPanel({ project, readOnly = false }) {
 
   /* ── 테이블 추가 ── */
   function handleAddTable() {
+    if (!checkEditAllowed(() => setEditingTable({ table: null, isNew: true }))) return;
     setEditingTable({ table: null, isNew: true });
   }
 
   /* ── 테이블 편집 열기 ── */
   function handleEditTable(table) {
+    if (!checkEditAllowed(() => setEditingTable({ table, isNew: false }))) return;
     setEditingTable({ table, isNew: false });
   }
 
   /* ── 테이블 삭제 (관계 연쇄 처리) ── */
   async function handleDeleteTable(table) {
-    const currentSchema = schema ?? { tables: [], relationships: [] };
-    const name = table.name;
+    const doDelete = async () => {
+      const currentSchema = schema ?? { tables: [], relationships: [] };
+      const name = table.name;
+      const affected = (currentSchema.relationships || []).filter(rel => {
+        const { from, to } = parseRel(rel);
+        return from === name || to === name;
+      });
+      const msg = affected.length > 0
+        ? `테이블 "${name}"을 삭제할까요?\n\n아래 관계도 함께 삭제됩니다:\n${affected.map(r => `• ${r}`).join("\n")}`
+        : `테이블 "${name}"을 삭제할까요?`;
 
-    const affected = (currentSchema.relationships || []).filter(rel => {
-      const { from, to } = parseRel(rel);
-      return from === name || to === name;
-    });
+      if (!window.confirm(msg)) return;
 
-    const msg = affected.length > 0
-      ? `테이블 "${name}"을 삭제할까요?\n\n아래 관계도 함께 삭제됩니다:\n${affected.map(r => `• ${r}`).join("\n")}`
-      : `테이블 "${name}"을 삭제할까요?`;
+      const tables = currentSchema.tables.filter(t => t.name !== name);
+      const relationships = (currentSchema.relationships || []).filter(rel => {
+        const { from, to } = parseRel(rel);
+        return from !== name && to !== name;
+      });
 
-    if (!window.confirm(msg)) return;
-
-    const tables = currentSchema.tables.filter(t => t.name !== name);
-    const relationships = (currentSchema.relationships || []).filter(rel => {
-      const { from, to } = parseRel(rel);
-      return from !== name && to !== name;
-    });
-
-    setOpSaving(true);
-    try {
-      await persistSchema({ ...currentSchema, tables, relationships });
-    } catch (e) {
-      alert("삭제 실패: " + e.message);
-    } finally {
-      setOpSaving(false);
-    }
+      setOpSaving(true);
+      try { await persistSchema({ ...currentSchema, tables, relationships }); }
+      catch (e) { alert("삭제 실패: " + e.message); }
+      finally { setOpSaving(false); }
+    };
+    if (!checkEditAllowed(doDelete)) return;
+    doDelete();
   }
 
   /* ── 테이블 저장 (rename 시 관계 자동 치환) ── */
@@ -1382,9 +1433,11 @@ export function ErdPanel({ project, readOnly = false }) {
 
   /* ── 관계 드로어 열기 ── */
   function handleOpenAddRelationship() {
+    if (!checkEditAllowed(() => setEditingRelationship({ idx: "new", raw: null }))) return;
     setEditingRelationship({ idx: "new", raw: null });
   }
   function handleOpenEditRelationship(idx) {
+    if (!checkEditAllowed(() => setEditingRelationship({ idx, raw: (schema?.relationships || [])[idx] ?? null }))) return;
     setEditingRelationship({ idx, raw: (schema?.relationships || [])[idx] ?? null });
   }
 
@@ -1407,13 +1460,17 @@ export function ErdPanel({ project, readOnly = false }) {
 
   /* ── 관계 삭제 ── */
   async function handleDeleteRelationship(idx) {
-    if (!window.confirm("이 관계를 삭제할까요?")) return;
-    const currentSchema = schema ?? { tables: [], relationships: [] };
-    const relationships = (currentSchema.relationships || []).filter((_, i) => i !== idx);
-    setOpSaving(true);
-    try { await persistSchema({ ...currentSchema, relationships }); }
-    catch (e) { alert("저장 실패: " + e.message); }
-    finally { setOpSaving(false); }
+    const doDelete = async () => {
+      if (!window.confirm("이 관계를 삭제할까요?")) return;
+      const currentSchema = schema ?? { tables: [], relationships: [] };
+      const relationships = (currentSchema.relationships || []).filter((_, i) => i !== idx);
+      setOpSaving(true);
+      try { await persistSchema({ ...currentSchema, relationships }); }
+      catch (e) { alert("저장 실패: " + e.message); }
+      finally { setOpSaving(false); }
+    };
+    if (!checkEditAllowed(doDelete)) return;
+    doDelete();
   }
 
   const filteredTables = useMemo(() => {
@@ -1610,6 +1667,57 @@ export function ErdPanel({ project, readOnly = false }) {
 
       {showSql && sqlCode && (
         <SqlModal sql={sqlCode} onClose={() => setShowSql(false)} />
+      )}
+
+      {/* ── ERD 수동 수정 경고 모달 ── */}
+      {showEditWarning && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+          <div style={{ width: 440, background: "#16181c", borderRadius: 16, padding: "32px 28px", border: "1px solid rgba(239, 68, 68, 0.2)", boxShadow: "0 24px 50px rgba(0,0,0,0.6)", textAlign: "center" }}>
+            <div style={{ width: 64, height: 64, margin: "0 auto 20px", borderRadius: "50%", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h2 style={{ color: "#f87171", fontSize: 20, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>
+              ERD 수동 수정 경고
+            </h2>
+            <p style={{ color: "#d1d5db", fontSize: 14, lineHeight: 1.6, marginBottom: 24, wordBreak: "keep-all" }}>
+              ERD 명세를 직접 수정하면 <strong>기능 명세서 및 API 명세와의 정합성 오류</strong>가 발생할 수 있습니다. 
+              <br/><br/>
+              안전한 데이터 무결성과 지식 그래프 동기화를 위해, <strong>AI 에이전트를 통해 기능 명세부터 업데이트</strong>하는 것을 권장합니다.
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button 
+                onClick={() => {
+                  setShowEditWarning(false);
+                  setPendingAction(null);
+                }} 
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              >
+                취소 (돌아가기)
+              </button>
+              <button 
+                onClick={() => {
+                  setShowEditWarning(false);
+                  setWarningIgnored(true); // 이 세션 동안엔 다시 안 물어봄
+                  if (pendingAction) {
+                    pendingAction();
+                    setPendingAction(null);
+                  }
+                }} 
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"}
+              >
+                강제로 수정하기
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

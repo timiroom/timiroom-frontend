@@ -138,6 +138,9 @@ function BackButton({ onClick }) {
 export function MyPage() {
   const { user, logout, refreshUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const isScreenSpecView =
+    typeof window !== "undefined"
+    && (window.location.search.includes("screenSpec=") || window.location.pathname.startsWith("/screen-spec-capture/"));
   const avatarInputRef = useRef(null);
 
   /* ── 데이터 로딩 ── */
@@ -162,6 +165,20 @@ export function MyPage() {
 
   useEffect(() => {
     if (authLoading) return;
+    if (isScreenSpecView) {
+      setProjects([]);
+      setTeams([
+        {
+          teamId: "screen-spec-workspace",
+          teamName: "문서정합성 TF",
+          description: "문서 기반 협업 공간",
+          viewerRole: "OWNER",
+        },
+      ]);
+      setLoadingP(false);
+      setLoadingT(false);
+      return;
+    }
     if (!user) {
       setProjects([]);
       setTeams([]);
@@ -179,7 +196,7 @@ export function MyPage() {
       .finally(() => setLoadingP(false));
 
     refreshTeams();
-  }, [authLoading, user, refreshTeams, router]);
+  }, [authLoading, isScreenSpecView, user, refreshTeams, router]);
 
   /* ── 아바타 업로드 ── */
   const [uploadingAvatar, setUploadingAvatar] = useState(false);

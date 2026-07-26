@@ -182,6 +182,8 @@ function Btn({ onClick, disabled, loading, children, danger, secondary }) {
 export function ProjectManagementView({ projectId }) {
   const router = useRouter();
   const { user } = useAuth();
+  const isScreenSpecView =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/screen-spec-capture/");
 
   /* ── 상태 ── */
   const [project,        setProject]        = useState(null);
@@ -215,6 +217,33 @@ export function ProjectManagementView({ projectId }) {
 
   /* ── 데이터 로드 ── */
   const load = useCallback(async () => {
+    if (isScreenSpecView) {
+      const previewProject = {
+        id: projectId,
+        name: "Align-it MVP",
+        description: "문서 변경사항과 연결 산출물을 함께 관리하는 프로젝트",
+        status: "IN_PROGRESS",
+        teamId: "screen-spec-workspace",
+      };
+      setProject(previewProject);
+      setNameDraft(previewProject.name);
+      setDescDraft(previewProject.description);
+      setStatusDraft(previewProject.status);
+      setProjectMembers([
+        { memberId: "screen-spec-user", name: "최은솔", projectRole: "PM" },
+        { memberId: "screen-spec-backend", name: "정하윤", projectRole: "BACKEND" },
+        { memberId: "screen-spec-front", name: "김민서", projectRole: "FRONTEND" },
+      ]);
+      setTeamMembers([
+        { memberId: "screen-spec-user", name: "최은솔" },
+        { memberId: "screen-spec-backend", name: "정하윤" },
+        { memberId: "screen-spec-front", name: "김민서" },
+      ]);
+      setTeamName("문서정합성 TF");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -239,7 +268,7 @@ export function ProjectManagementView({ projectId }) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [isScreenSpecView, projectId]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => () => { if (highlightTO.current) clearTimeout(highlightTO.current); }, []);

@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActivityBar } from "@/components/dashboard/ActivityBar";
 import { ContextPanel } from "@/components/dashboard/ContextPanel";
 import { AgentPanel } from "@/components/dashboard/AgentPanel";
@@ -18,6 +18,8 @@ import { ApiSpecPanel } from "@/components/dashboard/ApiSpecPanel";
 import { PrdPanel } from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel } from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel } from "@/components/dashboard/ErdPanel";
+import KnowledgeGraph from "@/components/KnowledgeGraph";
+import BranchVisualization from "@/components/BranchVisualization";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { WorkspaceManagementView } from "@/components/dashboard/workspace/WorkspaceManagementView";
@@ -36,6 +38,90 @@ const ROLE_DOCUMENT_PERMISSIONS = {
   FRONTEND: ["API_SPEC", "FEATURE_LIST"],
   DESIGNER: ["PRD", "MARKET_RESEARCH", "FEATURE_LIST"],
   INFRA:    ["DB_SCHEMA"],
+};
+
+const SCREEN_SPEC_STATE = {
+  "DASH-001":  { mode: "projects", view: "prd", showWizard: false },
+  "WORK-001":  { mode: "workspace", view: null, showWizard: false, focus: "overview" },
+  "PROJ-001":  { mode: "projects", view: null, showWizard: true },
+  "DOC-001":   { mode: "projects", view: "prd", showWizard: false },
+  "DOC-002":   { mode: "projects", view: "features", showWizard: false },
+  "DOC-003":   { mode: "projects", view: "api", showWizard: false },
+  "DOC-004":   { mode: "projects", view: "erd", showWizard: false },
+  "GRAPH-001": { mode: "projects", view: "graph", showWizard: false },
+  "AGENT-001": { mode: "projects", view: "agent", showWizard: false },
+  "HIST-001":  { mode: "commit", view: "prd", showWizard: false },
+};
+
+function normalizeScreenSpecId(screenSpec) {
+  if (!screenSpec) return null;
+  if (screenSpec.startsWith("DOC-001")) return "DOC-001";
+  if (screenSpec.startsWith("DOC-002")) return "DOC-002";
+  if (screenSpec.startsWith("DOC-003")) return "DOC-003";
+  if (screenSpec.startsWith("DOC-004")) return "DOC-004";
+  return screenSpec;
+}
+
+const SCREEN_SPEC_WORKSPACE_ID = "screen-spec-workspace";
+
+const SCREEN_SPEC_WORKSPACE = {
+  id: SCREEN_SPEC_WORKSPACE_ID,
+  teamId: SCREEN_SPEC_WORKSPACE_ID,
+  teamName: "문서정합성 TF",
+  name: "문서정합성 TF",
+  description: "문서 변경사항과 연결 산출물을 함께 관리하는 협업 공간",
+  viewerRole: "OWNER",
+};
+
+const SCREEN_SPEC_PROJECT = {
+  id: "screen-spec-project",
+  teamId: SCREEN_SPEC_WORKSPACE_ID,
+  name: "Align-it MVP",
+  description: "PRD, 기능 명세, API 명세, ERD를 연결해 관리하는 프로젝트",
+  status: "active",
+  prdDocument: {
+    title: "문서 협업 플랫폼 PRD",
+    content: "문서 변경사항을 저장하고 관련 산출물에 반영 상태를 표시한다.",
+  },
+  dbSchema: {
+    tables: [
+      { name: "projects", columns: ["id", "team_id", "name", "created_at"] },
+      { name: "documents", columns: ["id", "project_id", "type", "content"] },
+      { name: "document_links", columns: ["source_document_id", "target_document_id"] },
+    ],
+  },
+  apiSpec: {
+    endpoints: [
+      { method: "POST", path: "/api/documents/{id}/save", summary: "문서 저장" },
+      { method: "GET", path: "/api/projects/{id}/artifacts", summary: "산출물 조회" },
+    ],
+  },
+  featureList: [
+    { title: "문서 수동 저장", description: "수정 감지 시 저장 버튼 활성화", priority: "P1" },
+    { title: "연결 문서 반영", description: "저장 후 관련 문서 상태 갱신", priority: "P1" },
+    { title: "키워드 시각화", description: "문서 간 연결 노드 표시", priority: "P2" },
+  ],
+  marketResearch: null,
+  score: 86,
+  consistencyScore: 86,
+  progress: 72,
+  tags: ["문서 관리", "협업", "정합성"],
+  members: [],
+  lastActivity: "방금 전",
+  created: "2026.07.12",
+  prdCount: 1,
+  issueCount: 4,
+  specCount: 4,
+  color: "var(--text-1)",
+};
+
+const SCREEN_SPEC_WORKSPACE_DETAIL = {
+  team: SCREEN_SPEC_WORKSPACE,
+  members: [
+    { memberId: "screen-spec-user", name: "최은솔", projectRole: "PM", teamRole: "OWNER" },
+    { memberId: "screen-spec-backend", name: "정하윤", projectRole: "BACKEND", teamRole: "MEMBER" },
+    { memberId: "screen-spec-design", name: "박도윤", projectRole: "DESIGNER", teamRole: "MEMBER" },
+  ],
 };
 
 function canEditDocType(role, docType) {
@@ -213,6 +299,13 @@ function DashboardToast({ notice }) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const pathScreenSpec =
+    pathname.match(/\/dashboard\/screen-spec\/([^/]+)/)?.[1]
+    ?? pathname.match(/\/screen-spec-capture\/([^/]+)/)?.[1]
+    ?? null;
+  const screenSpec = normalizeScreenSpecId(searchParams.get("screenSpec") ?? pathScreenSpec);
   const { user, isLoading: authLoading } = useAuth();
   const [activeMode, setActiveMode] = useState("projects");
   const [projects, setProjects] = useState([]);
@@ -245,21 +338,31 @@ export default function DashboardPage() {
     () => workspaces.find((workspace) => getWorkspaceId(workspace) === activeWorkspaceId) ?? null,
     [workspaces, activeWorkspaceId]
   );
+  const screenSpecState = screenSpec ? SCREEN_SPEC_STATE[screenSpec] : null;
+  const isScreenSpecView = Boolean(screenSpecState);
+  const effectiveActiveMode = screenSpecState?.mode ?? activeMode;
+  const effectiveSelectedView = screenSpecState?.view ?? selectedView;
+  const effectiveShowWizard = screenSpecState?.showWizard ?? showWizard;
 
   const isRunningActiveWorkspace = runningPipeline && runningPipeline.teamId === activeWorkspaceId;
 
   useEffect(() => {
     if (authLoading) return;
+    if (isScreenSpecView) return;
     if (!user) {
       router.replace("/");
     }
-  }, [authLoading, router, user]);
+  }, [authLoading, isScreenSpecView, router, user]);
 
   useEffect(() => {
     selectedProjectIdRef.current = selectedProject?.id ?? null;
   }, [selectedProject?.id]);
 
   useEffect(() => {
+    if (isScreenSpecView) {
+      setMyProjectRole("PM");
+      return;
+    }
     if (!selectedProject?.id || !user?.id) { setMyProjectRole(null); return; }
     fetchProjectMembers(selectedProject.id)
       .then(members => {
@@ -267,7 +370,7 @@ export default function DashboardPage() {
         setMyProjectRole(me?.projectRole ?? null);
       })
       .catch(() => setMyProjectRole(null));
-  }, [selectedProject?.id, user?.id]);
+  }, [isScreenSpecView, selectedProject?.id, user?.id]);
 
   useEffect(() => {
     runningPipelineRef.current = runningPipeline;
@@ -278,6 +381,27 @@ export default function DashboardPage() {
     const timeoutId = window.setTimeout(() => setNotice(null), 2400);
     return () => window.clearTimeout(timeoutId);
   }, [notice]);
+
+  useEffect(() => {
+    if (!screenSpec) return;
+    const specState = SCREEN_SPEC_STATE[screenSpec];
+    if (!specState) return;
+
+    setWorkspaces([SCREEN_SPEC_WORKSPACE]);
+    setWorkspaceDetail(SCREEN_SPEC_WORKSPACE_DETAIL);
+    setActiveWorkspaceIdState(SCREEN_SPEC_WORKSPACE_ID);
+    setProjects([SCREEN_SPEC_PROJECT]);
+    setSelectedProject(SCREEN_SPEC_PROJECT);
+    setIsLoadingWorkspaces(false);
+    setIsLoadingWorkspaceDetail(false);
+    setIsLoadingProjects(false);
+    setActiveMode(specState.mode);
+    setSelectedView(specState.view);
+    setShowWizard(specState.showWizard);
+    if (specState.focus) {
+      setWorkspaceManagementFocus(specState.focus);
+    }
+  }, [screenSpec, selectedProject?.id]);
 
   function showNotice(type, message) {
     setNotice({ type, message });
@@ -432,6 +556,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (isScreenSpecView) return;
     if (authLoading) return;
     if (!user) {
       setWorkspaces([]);
@@ -441,9 +566,10 @@ export default function DashboardPage() {
       return;
     }
     loadWorkspaces(activeWorkspaceId);
-  }, [authLoading, user, loadWorkspaces, activeWorkspaceId]);
+  }, [authLoading, isScreenSpecView, user, loadWorkspaces, activeWorkspaceId]);
 
   useEffect(() => {
+    if (isScreenSpecView) return;
     if (authLoading) return;
     if (!user) {
       setProjects([]);
@@ -456,9 +582,9 @@ export default function DashboardPage() {
     }
     loadWorkspaceDetail(activeWorkspaceId);
     loadProjects(activeWorkspaceId);
-  }, [authLoading, user, activeWorkspaceId, loadProjects, loadWorkspaceDetail]);
+  }, [authLoading, isScreenSpecView, user, activeWorkspaceId, loadProjects, loadWorkspaceDetail]);
 
-  if (authLoading) {
+  if (authLoading && !isScreenSpecView) {
     return (
       <div style={{
         display: "flex",
@@ -476,7 +602,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
+  if (!user && !isScreenSpecView) {
     return null;
   }
 
@@ -683,7 +809,7 @@ export default function DashboardPage() {
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
         <ActivityBar
-          activeMode={activeMode}
+          activeMode={effectiveActiveMode}
           onModeChange={handleModeChange}
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
@@ -695,11 +821,11 @@ export default function DashboardPage() {
           }}
         />
         <ContextPanel
-          mode={activeMode}
+          mode={effectiveActiveMode}
           projects={projects}
           selectedProject={selectedProject}
           onSelectProject={handleSelectProject}
-          selectedView={selectedView}
+          selectedView={effectiveSelectedView}
           onSelectView={setSelectedView}
           onCreateProject={handleOpenCreateProject}
           onOpenWorkspaceComposer={() => {
@@ -715,7 +841,7 @@ export default function DashboardPage() {
           onOpenWorkspaceInvite={() => openWorkspaceManager("invite")}
         />
 
-        {activeMode === "workspace" ? (
+        {effectiveActiveMode === "workspace" ? (
           <WorkspaceManagementView
             activeWorkspaceId={activeWorkspaceId}
             workspaceDetail={workspaceDetail}
@@ -730,7 +856,7 @@ export default function DashboardPage() {
             onReloadWorkspaces={loadWorkspaces}
             onBack={() => setActiveMode("projects")}
           />
-        ) : showWizard ? (
+        ) : effectiveShowWizard ? (
           activeWorkspaceId ? (
             <div style={{ flex: 1, overflow: "hidden" }}>
               <ProjectChatWizard
@@ -769,16 +895,24 @@ export default function DashboardPage() {
           </div>
         ) : selectedProject ? (
           <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", animation: "dash-panel-in 0.18s ease" }}>
-            {selectedView === "prd" ? (
+            {effectiveSelectedView === "prd" ? (
               <PrdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "PRD")} />
-            ) : selectedView === "features" ? (
+            ) : effectiveSelectedView === "features" ? (
               <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} />
-            ) : selectedView === "api" ? (
+            ) : effectiveSelectedView === "api" ? (
               <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} />
-            ) : selectedView === "erd" ? (
+            ) : effectiveSelectedView === "erd" ? (
               <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} />
+            ) : effectiveSelectedView === "graph" ? (
+              <div style={{ flex: 1, padding: '24px', overflow: 'hidden' }}>
+                <KnowledgeGraph />
+              </div>
+            ) : effectiveSelectedView === "branch" ? (
+              <div style={{ flex: 1, padding: '24px', overflowY: 'auto', backgroundColor: '#fdfdfd' }}>
+                <BranchVisualization />
+              </div>
             ) : (
-              <AgentPanel project={selectedProject} view={selectedView} />
+              <AgentPanel project={selectedProject} view={effectiveSelectedView} />
             )}
           </div>
         ) : isLoadingProjects ? (

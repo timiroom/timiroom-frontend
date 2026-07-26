@@ -13,7 +13,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
-import { updateArtifact } from "@/lib/pipelineApi";
+import { saveProjectDocument } from "@/lib/projectApi";
 
 const C = {
   bg:        "var(--surface)",
@@ -325,11 +325,9 @@ export function FeaturesPanel({ project, readOnly = false }) {
   }
 
   async function handleSave() {
-    // featureList 아티팩트에 항상 저장 (coreFeatures든 simpleList든)
-    const artifactId = project?.artifactIds?.FEATURE_LIST
-      ?? project?.artifactIds?.PRD;
-    if (!artifactId) {
-      alert("저장할 아티팩트 ID가 없습니다. 파이프라인을 먼저 실행하세요.");
+    const projectId = project?.id;
+    if (!projectId) {
+      alert("저장할 프로젝트가 없습니다.");
       return;
     }
 
@@ -338,7 +336,7 @@ export function FeaturesPanel({ project, readOnly = false }) {
 
     setSaving(true);
     try {
-      await updateArtifact(artifactId, content);
+      await saveProjectDocument(projectId, "FEATURE_LIST", content);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
@@ -368,7 +366,7 @@ export function FeaturesPanel({ project, readOnly = false }) {
 
   const total = displayFeatures?.length ?? displaySimple?.length ?? 0;
   const currentContent = featuresToText(displayFeatures, displaySimple);
-  const canSave = !readOnly && !!(project?.artifactIds?.FEATURE_LIST || project?.artifactIds?.PRD);
+  const canSave = !readOnly && !!project?.id;
 
   return (
     <div style={{
@@ -426,7 +424,7 @@ export function FeaturesPanel({ project, readOnly = false }) {
               <button
                 onClick={handleSave}
                 disabled={saving || !canSave}
-                title={!canSave ? "파이프라인을 먼저 실행하세요" : ""}
+                title={!canSave ? "저장할 프로젝트가 없습니다" : ""}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
                   padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,

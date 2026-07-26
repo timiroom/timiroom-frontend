@@ -191,6 +191,25 @@ export async function fetchProjectArtifacts(projectId) {
   return Array.isArray(body) ? body : (body?.data ?? []);
 }
 
+export async function fetchProjectDocument(projectId, type) {
+  if (!projectId || !type) return null;
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${projectId}/documents/${type}`);
+  if (!res || !res.ok) return null;
+  const body = await res.json();
+  return body?.data ?? body;
+}
+
+export async function saveProjectDocument(projectId, type, content) {
+  if (!projectId || !type) throw new Error("문서 저장 대상이 없습니다.");
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${projectId}/documents/${type}`, {
+    method: "PATCH",
+    body: JSON.stringify({ content }),
+  });
+  if (!res || !res.ok) throw new Error(`문서 저장 실패 (HTTP ${res?.status})`);
+  const body = await res.json();
+  return body?.data ?? body;
+}
+
 /* ══════════════════════════════════════
    Artifact 배열로 project 객체 보강
    artifactType: PRD | DB_SCHEMA | API_SPEC | FEATURE_LIST | MARKET_RESEARCH | QA_REPORT

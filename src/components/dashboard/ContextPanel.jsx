@@ -49,6 +49,8 @@ const PROJECT_DOCS = [
   { id: "api",       label: "API 명세서",  icon: "🔗" },
   { id: "erd",       label: "ERD 명세서",  icon: "🗄️" },
   { id: "qa",        label: "QA",          icon: "✓"  },
+  { id: "graph",     label: "지식 그래프", icon: "🌌" },
+  { id: "branch",    label: "작업 브랜치", icon: "🌳" },
 ];
 
 
@@ -71,6 +73,12 @@ function ProjectsPanel({
 }) {
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
+  
+  // 임시: 문서 동기화 경고 시각화 상태 (API, ERD에 변경 감지됨)
+  const [syncAlerts, setSyncAlerts] = useState({
+    api: true,
+    erd: true,
+  });
 
   const filtered = (projects || []).filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase())
@@ -90,6 +98,11 @@ function ProjectsPanel({
     e.stopPropagation();
     onSelectProject(project);
     onSelectView?.(docId);
+
+    // 해당 문서 탭 클릭 시 동기화 경고 해제 (확인 처리)
+    if (syncAlerts[docId]) {
+      setSyncAlerts(prev => ({ ...prev, [docId]: false }));
+    }
   }
 
   return (
@@ -223,6 +236,30 @@ function ProjectsPanel({
           )}
         </div>
 
+        {/* ── 글로벌 브랜치 선택기 (임시 구현) ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>현재 작업 브랜치</span>
+            <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>+ 새 브랜치</button>
+          </div>
+          <select style={{
+            width: "100%", padding: "9px 12px", borderRadius: 10,
+            border: `1px solid ${C.inputBdr}`, background: "rgba(26,25,22,0.02)",
+            fontSize: 13, color: C.text, fontWeight: 700, outline: "none",
+            cursor: "pointer", fontFamily: "inherit",
+            appearance: "none",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 12px center",
+            paddingRight: 32,
+          }}>
+            <option value="main">🌳 main (통합)</option>
+            <option value="doc/prd">🌿 doc/prd (기획서)</option>
+            <option value="doc/erd">🌿 doc/erd (ERD 명세)</option>
+            <option value="doc/api">🌿 doc/api (API 명세)</option>
+          </select>
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: C.muted,
@@ -297,12 +334,16 @@ function ProjectsPanel({
                   <div style={{ paddingLeft: 8, marginTop: 1 }}>
                     {PROJECT_DOCS.map(doc => {
                       const isDocActive = isSelected && selectedView === doc.id;
+                      // 선택된 프로젝트의 API/ERD 에만 임시로 알림 표시
+                      const showSyncAlert = isSelected && syncAlerts[doc.id];
+                      
                       return (
                         <DocItem
                           key={doc.id}
                           doc={doc}
                           projectName={project.name}
                           isActive={isDocActive}
+                          syncAlert={showSyncAlert}
                           onClick={e => handleDocClick(project, doc.id, e)}
                         />
                       );
@@ -645,7 +686,7 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
 }
 
 /* ── 서브 문서 아이템 ── */
-function DocItem({ doc, projectName, isActive, onClick }) {
+function DocItem({ doc, projectName, isActive, syncAlert, onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -666,6 +707,7 @@ function DocItem({ doc, projectName, isActive, onClick }) {
         transition:   "all 0.1s",
         marginBottom: 3,
         fontFamily:   "inherit",
+        position:     "relative",
       }}
     >
       {/* 들여쓰기 연결선 */}
@@ -688,9 +730,33 @@ function DocItem({ doc, projectName, isActive, onClick }) {
         overflow:  "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
+        flex: 1,
       }}>
         {projectName}_{doc.label}
       </span>
+
+      {/* 동기화 필요 알림 뱃지 */}
+      {syncAlert && (
+        <span 
+          title="다른 문서 변경으로 인해 업데이트 확인 필요"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 10,
+            fontWeight: 800,
+            color: "#d97706",
+            background: "#fef3c7",
+            padding: "2px 6px",
+            borderRadius: 12,
+            flexShrink: 0,
+            border: "1px solid #fde68a"
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+          동기화
+        </span>
+      )}
     </button>
   );
 }
