@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { fetchProjects } from "@/lib/projectApi";
-import { getMyTeams, uploadUserAvatar, updateMemberName } from "@/lib/teamApi";
+import { getMyTeams, uploadUserAvatar, updateMemberGithubLogin, updateMemberName } from "@/lib/teamApi";
 import { TeamWorkspacePanel } from "@/components/dashboard/mypage/TeamWorkspacePanel";
 
 /* ── 공통 카드 ── */
@@ -229,6 +229,35 @@ export function MyPage() {
     }
   }
 
+  /* ── GitHub 계정 편집 ── */
+  const [editingGithub, setEditingGithub] = useState(false);
+  const [githubInput, setGithubInput] = useState("");
+  const [savingGithub, setSavingGithub] = useState(false);
+  const [githubFeedback, setGithubFeedback] = useState(null);
+
+  useEffect(() => {
+    setGithubInput(user?.githubLogin || "");
+  }, [user?.githubLogin]);
+
+  async function handleSaveGithub() {
+    const normalized = githubInput.trim().replace(/^@/, "");
+    setSavingGithub(true);
+    setGithubFeedback(null);
+    try {
+      await updateMemberGithubLogin(normalized);
+      await refreshUser();
+      setGithubFeedback({
+        type: "success",
+        message: normalized ? "GitHub 계정을 저장했어요." : "GitHub 계정 연결을 해제했어요.",
+      });
+      setEditingGithub(false);
+    } catch (err) {
+      setGithubFeedback({ type: "error", message: err instanceof Error ? err.message : "GitHub 계정 저장에 실패했습니다." });
+    } finally {
+      setSavingGithub(false);
+    }
+  }
+
   /* ── 로그아웃 확인 ── */
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut,    setLoggingOut]    = useState(false);
@@ -414,6 +443,57 @@ export function MyPage() {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
                 >
                   수정
+                </button>
+              )}
+            </div>
+
+            <div style={accountRowStyle}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>GitHub 계정</div>
+                {editingGithub ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ flex: "1 1 220px", display: "flex", alignItems: "center", border: "1px solid var(--border-2)", borderRadius: "var(--db-radius-sm)", paddingLeft: 12 }}>
+                      <span style={{ color: "var(--text-3)", fontSize: 14 }}>@</span>
+                      <input
+                        value={githubInput.replace(/^@/, "")}
+                        onChange={e => setGithubInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleSaveGithub();
+                          if (e.key === "Escape") { setGithubInput(user?.githubLogin || ""); setEditingGithub(false); setGithubFeedback(null); }
+                        }}
+                        disabled={savingGithub}
+                        autoFocus
+                        placeholder="github-username"
+                        aria-label="GitHub 사용자명"
+                        style={{ flex: 1, minWidth: 0, padding: "9px 10px 9px 4px", border: "none", background: "transparent", color: "var(--text-1)", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+                      />
+                    </div>
+                    <button onClick={handleSaveGithub} disabled={savingGithub} style={{ padding: "9px 18px", borderRadius: "var(--db-radius-sm)", background: "var(--text-1)", color: "var(--bg)", border: "none", fontSize: 13, fontWeight: 600, cursor: savingGithub ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+                      {savingGithub ? <Spinner size={13} color="var(--bg)" /> : null} 저장
+                    </button>
+                    <button onClick={() => { setGithubInput(user?.githubLogin || ""); setEditingGithub(false); setGithubFeedback(null); }} disabled={savingGithub} style={{ padding: "9px 14px", borderRadius: "var(--db-radius-sm)", background: "var(--surface)", color: "var(--text-2)", border: "1px solid var(--border-2)", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 14, color: user?.githubLogin ? "var(--text-1)" : "var(--text-3)", lineHeight: 1.6 }}>
+                      {user?.githubLogin ? `@${user.githubLogin}` : "미등록"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
+                      기능 작업의 GitHub Issue 담당자 지정에 사용됩니다.
+                    </div>
+                  </>
+                )}
+                {githubFeedback && !editingGithub && (
+                  <div style={{ fontSize: 11, marginTop: 6, fontWeight: 600, color: githubFeedback.type === "success" ? "#10B981" : "#ef4444" }}>
+                    {githubFeedback.message}
+                  </div>
+                )}
+              </div>
+              {!editingGithub && (
+                <button onClick={() => { setGithubInput(user?.githubLogin || ""); setEditingGithub(true); setGithubFeedback(null); }} style={{ padding: "6px 14px", borderRadius: "var(--db-radius-sm)", background: "transparent", color: "var(--text-2)", border: "1px solid var(--border-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  {user?.githubLogin ? "수정" : "등록"}
                 </button>
               )}
             </div>

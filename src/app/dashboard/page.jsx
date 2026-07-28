@@ -21,6 +21,9 @@ import { ErdPanel } from "@/components/dashboard/ErdPanel";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { WorkspaceManagementView } from "@/components/dashboard/workspace/WorkspaceManagementView";
+import { GithubIssuesPanel } from "@/components/dashboard/GithubIssuesPanel";
+import { GithubPullRequestsPanel } from "@/components/dashboard/GithubPullRequestsPanel";
+import { GithubWorkspacePanel } from "@/components/dashboard/GithubWorkspacePanel";
 import { useAuth } from "@/context/AuthContext";
 import {
   deleteProject,
@@ -777,6 +780,12 @@ export default function DashboardPage() {
               <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} />
             ) : selectedView === "erd" ? (
               <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} />
+            ) : selectedView === "github" ? (
+              <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
+            ) : selectedView === "issues" ? (
+              <GithubIssuesPanel project={selectedProject} canManage={myProjectRole === "PM"} />
+            ) : selectedView === "pulls" ? (
+              <GithubPullRequestsPanel project={selectedProject} canManage={myProjectRole === "PM"} />
             ) : (
               <AgentPanel project={selectedProject} view={selectedView} />
             )}

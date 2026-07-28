@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   fetchProject,
+  fetchProjectArtifacts,
   fetchProjectMembers,
+  enrichProjectWithArtifacts,
   updateProject,
   deleteProject,
   updateProjectMemberRole,
@@ -13,6 +15,18 @@ import {
   addProjectMember,
 } from "@/lib/projectApi";
 import { getTeamWorkspace } from "@/lib/teamApi";
+import {
+  fetchTeamGithubInstallations,
+  fetchInstallationRepositories,
+  fetchProjectRepositories,
+  linkProjectRepository,
+  unlinkProjectRepository,
+} from "@/lib/githubApi";
+import {
+  classifyRepository,
+  roleLabel as repositoryRoleLabel,
+  techStackRoles,
+} from "@/lib/repoRouting";
 
 /* ── 상수 ── */
 const STATUS_OPTIONS = [
@@ -27,6 +41,15 @@ const ROLE_OPTIONS = [
   { value: "FRONTEND", label: "프론트엔드" },
   { value: "DESIGNER", label: "디자이너"   },
   { value: "INFRA",    label: "인프라"     },
+];
+
+const REPOSITORY_ROLE_OPTIONS = [
+  { value: "",         label: "역할 지정 안 함" },
+  { value: "BACKEND",  label: "백엔드" },
+  { value: "FRONTEND", label: "프론트엔드" },
+  { value: "PIPELINE", label: "파이프라인" },
+  { value: "CONSISTENCY", label: "정합성 AI" },
+  { value: "INFRA",    label: "인프라" },
 ];
 
 function rawStatus(s) {
@@ -203,6 +226,18 @@ export function ProjectManagementView({ projectId }) {
   const [addRole,      setAddRole]      = useState("BACKEND");
   const [adding,       setAdding]       = useState(false);
 
+  const [linkedRepos, setLinkedRepos] = useState([]);
+  const [repoConnectorOpen, setRepoConnectorOpen] = useState(false);
+  const [installations, setInstallations] = useState([]);
+  const [availableRepos, setAvailableRepos] = useState([]);
+  const [selectedInstallationId, setSelectedInstallationId] = useState("");
+  const [selectedGithubRepoId, setSelectedGithubRepoId] = useState("");
+  const [repoRoleHint, setRepoRoleHint] = useState("");
+  const [installationsLoading, setInstallationsLoading] = useState(false);
+  const [availableReposLoading, setAvailableReposLoading] = useState(false);
+  const [connectingRepo, setConnectingRepo] = useState(false);
+  const [unlinkingRepoId, setUnlinkingRepoId] = useState(null);
+
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting,      setDeleting]      = useState(false);
 
@@ -210,6 +245,7 @@ export function ProjectManagementView({ projectId }) {
   const [highlightedSection, setHighlightedSection] = useState(null);
   const settingsRef = useRef(null);
   const membersRef  = useRef(null);
+  const reposRef    = useRef(null);
   const dangerRef   = useRef(null);
   const highlightTO = useRef(null);
 
@@ -220,20 +256,24 @@ export function ProjectManagementView({ projectId }) {
       setError(null);
       const proj = await fetchProject(projectId);
       if (!proj) { setError("프로젝트를 찾을 수 없습니다."); return; }
+      const artifacts = await fetchProjectArtifacts(projectId).catch(() => []);
+      const enrichedProject = enrichProjectWithArtifacts(proj, artifacts);
 
-      setProject(proj);
-      setNameDraft(proj.name ?? "");
-      setDescDraft(proj.description ?? "");
-      setStatusDraft(rawStatus(proj.status));
+      setProject(enrichedProject);
+      setNameDraft(enrichedProject.name ?? "");
+      setDescDraft(enrichedProject.description ?? "");
+      setStatusDraft(rawStatus(enrichedProject.status));
 
-      const [members, workspace] = await Promise.all([
+      const [members, workspace, repos] = await Promise.all([
         fetchProjectMembers(projectId),
-        proj.teamId ? getTeamWorkspace(proj.teamId).catch(() => null) : null,
+        enrichedProject.teamId ? getTeamWorkspace(enrichedProject.teamId).catch(() => null) : null,
+        fetchProjectRepositories(projectId).catch(() => []),
       ]);
 
       setProjectMembers(Array.isArray(members) ? members : []);
       setTeamMembers(workspace?.members ?? []);
       setTeamName(workspace?.team?.teamName ?? workspace?.team?.name ?? "");
+      setLinkedRepos(repos);
     } catch {
       setError("데이터를 불러오지 못했습니다.");
     } finally {
@@ -251,7 +291,7 @@ export function ProjectManagementView({ projectId }) {
 
   /* ── 탭 스크롤 ── */
   function focusSection(key) {
-    const map = { settings: settingsRef, members: membersRef, danger: dangerRef };
+    const map = { settings: settingsRef, members: membersRef, repositories: reposRef, danger: dangerRef };
     map[key]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActiveSection(key);
     setHighlightedSection(key);
@@ -269,7 +309,12 @@ export function ProjectManagementView({ projectId }) {
         description: descDraft.trim(),
         status:      statusDraft,
       });
-      setProject(updated);
+      setProject(current => ({
+        ...current,
+        ...updated,
+        prdDocument: current?.prdDocument ?? updated.prdDocument ?? null,
+        featureList: current?.featureList ?? updated.featureList ?? [],
+      }));
       setNameDraft(updated.name ?? nameDraft);
       setDescDraft(updated.description ?? descDraft);
       setStatusDraft(rawStatus(updated.status));
@@ -327,6 +372,109 @@ export function ProjectManagementView({ projectId }) {
     }
   }
 
+  function suggestedRepositoryRole(repo) {
+    if (!repo) return "";
+    const repositoryRole = classifyRepository(repo);
+    if (repositoryRole !== "GENERAL") return repositoryRole;
+    const prdRoles = techStackRoles(project?.prdDocument?.techStack);
+    return prdRoles.length === 1 ? prdRoles[0] : "";
+  }
+
+  function handleRepositorySelection(repoId) {
+    setSelectedGithubRepoId(repoId);
+    const repo = availableRepos.find((item) => String(item.repoId) === String(repoId));
+    setRepoRoleHint(suggestedRepositoryRole(repo));
+  }
+
+  async function loadInstallationRepositories(installationId) {
+    if (!installationId || !project?.teamId) {
+      setAvailableRepos([]);
+      setSelectedGithubRepoId("");
+      setRepoRoleHint("");
+      return;
+    }
+    setAvailableReposLoading(true);
+    try {
+      const repos = await fetchInstallationRepositories(project.teamId, installationId);
+      setAvailableRepos(repos);
+      const linkedIds = new Set(linkedRepos.map((repo) => String(repo.githubRepoId)));
+      const firstAvailable = repos.find((repo) => !linkedIds.has(String(repo.repoId)));
+      setSelectedGithubRepoId(firstAvailable ? String(firstAvailable.repoId) : "");
+      setRepoRoleHint(suggestedRepositoryRole(firstAvailable));
+    } catch (error) {
+      setAvailableRepos([]);
+      setSelectedGithubRepoId("");
+      setRepoRoleHint("");
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "설치 레포 목록을 불러오지 못했습니다." });
+    } finally {
+      setAvailableReposLoading(false);
+    }
+  }
+
+  /** 이 프로젝트가 속한 워크스페이스에 이미 연결된 GitHub 설치 목록. 설치 자체(동기화)는 워크스페이스 설정에서 관리한다. */
+  async function loadInstallations() {
+    if (!project?.teamId) return;
+    setInstallationsLoading(true);
+    try {
+      const nextInstallations = await fetchTeamGithubInstallations(project.teamId);
+      setInstallations(nextInstallations);
+      const firstId = nextInstallations[0]?.installationId;
+      setSelectedInstallationId(firstId == null ? "" : String(firstId));
+      await loadInstallationRepositories(firstId);
+    } catch (error) {
+      setInstallations([]);
+      setAvailableRepos([]);
+      setSelectedInstallationId("");
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "GitHub 설치 목록을 불러오지 못했습니다." });
+    } finally {
+      setInstallationsLoading(false);
+    }
+  }
+
+  async function handleOpenRepositoryConnector() {
+    setRepoConnectorOpen(true);
+    setRepoRoleHint("");
+    setSelectedGithubRepoId("");
+    await loadInstallations();
+  }
+
+  async function handleInstallationChange(installationId) {
+    setSelectedInstallationId(installationId);
+    await loadInstallationRepositories(Number(installationId));
+  }
+
+  async function handleConnectRepository() {
+    if (!selectedInstallationId || !selectedGithubRepoId) return;
+    setConnectingRepo(true);
+    try {
+      const linked = await linkProjectRepository(projectId, {
+        installationId: Number(selectedInstallationId),
+        githubRepoId: Number(selectedGithubRepoId),
+        roleHint: repoRoleHint || null,
+      });
+      setLinkedRepos((current) => [...current, linked]);
+      setRepoConnectorOpen(false);
+      setFeedback({ type: "success", message: `${linked.fullName} 레포를 연결했어요.` });
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "레포 연결에 실패했습니다." });
+    } finally {
+      setConnectingRepo(false);
+    }
+  }
+
+  async function handleUnlinkRepository(repo) {
+    setUnlinkingRepoId(repo.id);
+    try {
+      await unlinkProjectRepository(projectId, repo.id);
+      setLinkedRepos((current) => current.filter((item) => item.id !== repo.id));
+      setFeedback({ type: "success", message: `${repo.fullName} 레포 연결을 해제했어요.` });
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "레포 연결 해제에 실패했습니다." });
+    } finally {
+      setUnlinkingRepoId(null);
+    }
+  }
+
   /* ── 삭제 ── */
   async function handleDelete() {
     try {
@@ -348,6 +496,13 @@ export function ProjectManagementView({ projectId }) {
 
   const projectMemberIds = new Set(projectMembers.map(m => String(m.memberId)));
   const addableMembers   = teamMembers.filter(tm => !projectMemberIds.has(String(tm.memberId)));
+  const hasConnectableRepository = availableRepos.some(
+    (repo) => !linkedRepos.some((linked) => String(linked.githubRepoId) === String(repo.repoId))
+  );
+  const selectedAvailableRepo = availableRepos.find(
+    (repo) => String(repo.repoId) === String(selectedGithubRepoId)
+  );
+  const suggestedRole = suggestedRepositoryRole(selectedAvailableRepo);
 
   const hasChanges = project && (
     nameDraft.trim()   !== (project.name ?? "")        ||
@@ -453,6 +608,7 @@ export function ProjectManagementView({ projectId }) {
               {[
                 { key: "settings", label: "기본 정보" },
                 { key: "members",  label: "멤버"     },
+                { key: "repositories", label: "레포 연결" },
                 { key: "danger",   label: "위험 구역" },
               ].map(({ key, label }) => (
                 <QuickJumpBtn key={key} active={activeSection === key} onClick={() => focusSection(key)}>
@@ -492,6 +648,47 @@ export function ProjectManagementView({ projectId }) {
                   <span style={{ fontSize: 11, color: C.text3 }}>변경 사항 없음</span>
                 )}
               </div>
+            </SectionBox>
+
+            {/* ── GitHub 레포 연결 ── */}
+            <SectionBox title="GitHub 레포 연결" sRef={reposRef} highlighted={highlightedSection === "repositories"}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.65 }}>
+                    연결된 레포는 브랜치 히스토리와 이후 이슈·PR 기능의 범위가 됩니다.
+                  </div>
+                  <div style={{ fontSize: 11, color: C.text3, marginTop: 4 }}>
+                    연결과 해제는 PM만 할 수 있어요.
+                  </div>
+                </div>
+                {isPm && (
+                  <Btn onClick={handleOpenRepositoryConnector}>레포 연결</Btn>
+                )}
+              </div>
+
+              {linkedRepos.length === 0 ? (
+                <div style={{ padding: "22px 14px", textAlign: "center", borderRadius: C.radiusSm, border: `1px dashed ${C.border}`, color: C.text3, fontSize: 12 }}>
+                  아직 연결된 GitHub 레포가 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {linkedRepos.map((repo) => (
+                    <div key={repo.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", border: `1px solid ${C.border}`, borderRadius: C.radiusSm, background: C.bg }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.text1, overflowWrap: "anywhere" }}>{repo.fullName}</span>
+                          {repo.isPrivate && <span style={{ fontSize: 10, fontWeight: 700, color: C.text2, background: C.border, borderRadius: 999, padding: "3px 7px" }}>비공개</span>}
+                          {repo.roleHint && <span style={{ fontSize: 10, fontWeight: 700, color: C.text2, border: `1px solid ${C.border2}`, borderRadius: 999, padding: "2px 7px" }}>{repo.roleHint}</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.text3, marginTop: 4 }}>기본 브랜치: {repo.defaultBranch || "미지정"}</div>
+                      </div>
+                      {isPm && (
+                        <Btn secondary onClick={() => handleUnlinkRepository(repo)} loading={unlinkingRepoId === repo.id}>연결 해제</Btn>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </SectionBox>
 
             {/* ── 멤버 ── */}
@@ -647,6 +844,62 @@ export function ProjectManagementView({ projectId }) {
                 )}
               </div>
             </SectionBox>
+
+            {repoConnectorOpen && (
+              <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(26,25,22,0.28)" }}>
+                <div role="dialog" aria-modal="true" aria-label="GitHub 레포 연결" style={{ width: "min(520px, 100%)", maxHeight: "calc(100vh - 40px)", overflowY: "auto", padding: 24, borderRadius: 16, background: C.surface, border: `1px solid ${C.border2}`, boxShadow: "0 20px 56px rgba(0,0,0,0.2)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: 18, color: C.text1 }}>GitHub 레포 연결</h2>
+                      <p style={{ margin: "6px 0 0", fontSize: 12, lineHeight: 1.65, color: C.text3 }}>GitHub App 설치에서 접근 가능한 레포만 연결할 수 있어요.</p>
+                    </div>
+                    <button type="button" onClick={() => setRepoConnectorOpen(false)} aria-label="닫기" style={{ width: 30, height: 30, border: "none", background: "transparent", color: C.text3, fontSize: 22, cursor: "pointer", fontFamily: "inherit" }}>×</button>
+                  </div>
+
+                  {installationsLoading ? <Spinner /> : installations.length === 0 ? (
+                    <div style={{ padding: "24px 8px", textAlign: "center", color: C.text3, fontSize: 12, lineHeight: 1.7 }}>
+                      이 워크스페이스에 연결된 GitHub App 설치가 없습니다.<br />
+                      워크스페이스 설정에서 GitHub App을 먼저 연결해 주세요.
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: 14 }}>
+                        <FieldLabel>GitHub App 설치</FieldLabel>
+                        <select value={selectedInstallationId} onChange={(event) => handleInstallationChange(event.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: C.radiusSm, border: `1px solid ${C.border}`, background: C.surface, color: C.text1, fontSize: 13, fontFamily: "inherit" }}>
+                          {installations.map((installation) => <option key={installation.installationId} value={installation.installationId}>{installation.accountLogin} ({installation.accountType})</option>)}
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: 14 }}>
+                        <FieldLabel>레포지토리</FieldLabel>
+                        <select value={selectedGithubRepoId} onChange={(event) => handleRepositorySelection(event.target.value)} disabled={availableReposLoading || !hasConnectableRepository} style={{ width: "100%", padding: "10px 12px", borderRadius: C.radiusSm, border: `1px solid ${C.border}`, background: C.surface, color: C.text1, fontSize: 13, fontFamily: "inherit" }}>
+                          {availableReposLoading ? <option>레포를 불러오는 중…</option> : !hasConnectableRepository ? <option value="">연결 가능한 레포가 없습니다</option> : availableRepos.filter((repo) => !linkedRepos.some((linked) => String(linked.githubRepoId) === String(repo.repoId))).map((repo) => (
+                            <option key={repo.repoId} value={repo.repoId}>{repo.fullName}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: 22 }}>
+                        <FieldLabel>레포 역할</FieldLabel>
+                        <select value={repoRoleHint} onChange={(event) => setRepoRoleHint(event.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: C.radiusSm, border: `1px solid ${C.border}`, background: C.surface, color: C.text1, fontSize: 13, fontFamily: "inherit" }}>
+                          {REPOSITORY_ROLE_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+                        </select>
+                        <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.55, color: suggestedRole ? "#2563eb" : C.text3 }}>
+                          {suggestedRole
+                            ? `PRD 기술 스택과 레포 이름을 기준으로 ${repositoryRoleLabel(suggestedRole)} 레포를 추천했어요. 필요하면 변경할 수 있습니다.`
+                            : "역할을 자동으로 구분하기 어려운 레포입니다. 한 번만 직접 지정하면 기능명세서에서 계속 자동 매칭됩니다."}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                        <Btn secondary onClick={() => setRepoConnectorOpen(false)}>취소</Btn>
+                        <Btn onClick={handleConnectRepository} disabled={!selectedInstallationId || !selectedGithubRepoId} loading={connectingRepo}>연결</Btn>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
