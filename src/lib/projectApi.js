@@ -142,6 +142,27 @@ export async function fetchProjectMembers(projectId) {
 }
 
 /* ══════════════════════════════════════
+   프로젝트 문서 저장
+   PATCH /api/v1/projects/{id}/documents/{type}
+   문서가 없으면 최신 파이프라인 실행에 새 artifact를 생성한다.
+══════════════════════════════════════ */
+export async function saveProjectDocument(projectId, type, content) {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/v1/projects/${projectId}/documents/${encodeURIComponent(type)}`,
+    { method: "PATCH", body: JSON.stringify({ content }) }
+  );
+  if (!res || !res.ok) {
+    let message = "문서 저장에 실패했습니다";
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {}
+    throw new Error(`${message} (HTTP ${res?.status ?? "network"})`);
+  }
+  return res.json();
+}
+
+/* ══════════════════════════════════════
    프로젝트 멤버 역할 변경
    PATCH /api/v1/projects/{id}/members/{targetId}
 ══════════════════════════════════════ */

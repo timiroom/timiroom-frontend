@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { WorkspaceDetailPanel } from "@/components/dashboard/mypage/teamWorkspace/WorkspaceDetailPanel";
 import { EmptyState, Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import { getDefaultTransferTarget, getTeamId } from "@/components/dashboard/mypage/teamWorkspace/helpers";
+import { GithubConnectionSection } from "@/components/dashboard/workspace/GithubConnectionSection";
 import {
   deleteTeam,
   leaveTeam,
@@ -17,6 +18,7 @@ import {
   uploadWorkspaceIcon,
 } from "@/lib/teamApi";
 import { fetchProjectsByTeam } from "@/lib/projectApi";
+import { fetchTeamGithubInstallations } from "@/lib/githubApi";
 
 const C = {
   bg: "var(--bg)",
@@ -136,6 +138,8 @@ export function WorkspaceManagementView({
   const router = useRouter();
   const [workspaceProjects, setWorkspaceProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [githubInstallations, setGithubInstallations] = useState([]);
+  const [githubInstallationsLoading, setGithubInstallationsLoading] = useState(false);
   const [teamNameDraft, setTeamNameDraft] = useState("");
   const [teamDescriptionDraft, setTeamDescriptionDraft] = useState("");
   const [transferTargetId, setTransferTargetId] = useState("");
@@ -155,6 +159,7 @@ export function WorkspaceManagementView({
   const [iconHovered, setIconHovered] = useState(false);
   const overviewRef = useRef(null);
   const projectsRef = useRef(null);
+  const githubRef = useRef(null);
   const inviteRef = useRef(null);
   const settingsRef = useRef(null);
   const membersRef = useRef(null);
@@ -195,10 +200,25 @@ export function WorkspaceManagementView({
     return () => { cancelled = true; };
   }, [activeWorkspaceId]);
 
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      setGithubInstallations([]);
+      return;
+    }
+    let cancelled = false;
+    setGithubInstallationsLoading(true);
+    fetchTeamGithubInstallations(activeWorkspaceId)
+      .then(data => { if (!cancelled) setGithubInstallations(data); })
+      .catch(() => { if (!cancelled) setGithubInstallations([]); })
+      .finally(() => { if (!cancelled) setGithubInstallationsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeWorkspaceId]);
+
   function focusSection(sectionKey) {
     const sectionMap = {
       overview: overviewRef,
       projects: projectsRef,
+      github: githubRef,
       invite: inviteRef,
       settings: settingsRef,
       members: membersRef,
@@ -534,12 +554,14 @@ export function WorkspaceManagementView({
   const sectionLinks = isOwner
     ? [
         { key: "projects", label: "프로젝트" },
+        { key: "github", label: "GitHub 연동" },
         { key: "invite", label: "초대 코드" },
         { key: "settings", label: "기본 정보" },
         { key: "members", label: "권한·멤버" },
       ]
     : [
         { key: "projects", label: "프로젝트" },
+        { key: "github", label: "GitHub 연동" },
         { key: "invite", label: "초대 코드" },
         { key: "settings", label: "내 워크스페이스" },
         { key: "members", label: "멤버" },
@@ -748,6 +770,16 @@ export function WorkspaceManagementView({
               ))
             )}
           </div>
+
+          <GithubConnectionSection
+            sectionRef={githubRef}
+            highlighted={highlightedSection === "github"}
+            teamId={activeWorkspaceId}
+            isOwner={isOwner}
+            installations={githubInstallations}
+            installationsLoading={githubInstallationsLoading}
+            onInstallationsChange={setGithubInstallations}
+          />
 
           <div style={{
             display: "flex",

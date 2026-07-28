@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
+import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
@@ -851,6 +852,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="API" />}
             {saved && (
               <span style={{
                 fontSize: 11, padding: "3px 8px", borderRadius: 5,

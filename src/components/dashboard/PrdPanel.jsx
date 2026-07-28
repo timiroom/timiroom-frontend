@@ -39,6 +39,12 @@ function esc(s) {
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+function asList(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null || value === "") return [];
+  return [value];
+}
+
 const SOURCE_RE = /(\(출처[:：][^)]*\))/g;
 
 /* 본문 중 "(출처: 기관명, YYYY년)" 표기를 작고 흐린 텍스트로 분리 렌더링 */
@@ -100,19 +106,25 @@ function prdJsonToHtml(doc) {
   const out = [];
   if (doc.projectOverview) out.push(`<h1>${esc(doc.projectOverview)}</h1>`);
   if (doc.background)      out.push(`<h2>배경</h2><p>${escSource(doc.background)}</p>`);
-  if (doc.goals?.length)   out.push(`<h2>목표</h2><ul>${doc.goals.map(g=>`<li>${escSource(g)}</li>`).join("")}</ul>`);
-  if (doc.kpi?.length)     out.push(`<h2>KPI</h2><ul>${doc.kpi.map(k=>`<li><strong>${esc(k.metric)}</strong>: ${esc(k.target)} (${esc(k.basis)})</li>`).join("")}</ul>`);
-  if (doc.coreFeatures?.length) {
+  const goals = asList(doc.goals);
+  const kpi = asList(doc.kpi);
+  const coreFeatures = asList(doc.coreFeatures);
+  const userPersonas = asList(doc.userPersonas);
+  const releaseSchedule = asList(doc.releaseSchedule);
+  if (goals.length) out.push(`<h2>목표</h2><ul>${goals.map(g=>`<li>${escSource(g)}</li>`).join("")}</ul>`);
+  if (kpi.length) out.push(`<h2>KPI</h2><ul>${kpi.map(k=>`<li><strong>${esc(k.metric)}</strong>: ${esc(k.target)} (${esc(k.basis)})</li>`).join("")}</ul>`);
+  if (coreFeatures.length) {
     out.push(`<h2>핵심 기능</h2>`);
-    doc.coreFeatures.forEach(f => {
+    coreFeatures.forEach(f => {
       out.push(`<h3>${esc(f.name)}${f.priority?` <code>${esc(f.priority)}</code>`:""}</h3>`);
       if (f.description) out.push(`<p>${escSource(f.description)}</p>`);
-      if (f.requirements?.length) out.push(`<ul>${f.requirements.map(r=>`<li>${escSource(r)}</li>`).join("")}</ul>`);
+      const requirements = asList(f.requirements);
+      if (requirements.length) out.push(`<ul>${requirements.map(r=>`<li>${escSource(r)}</li>`).join("")}</ul>`);
     });
   }
-  if (doc.userPersonas?.length) {
+  if (userPersonas.length) {
     out.push(`<h2>사용자 페르소나</h2>`);
-    doc.userPersonas.forEach(p => {
+    userPersonas.forEach(p => {
       out.push(`<h3>${esc(p.name)} (${esc(p.age)}, ${esc(p.job)})</h3>`);
       if (p.goal)      out.push(`<p><strong>목표:</strong> ${escSource(p.goal)}</p>`);
       if (p.painPoint) out.push(`<p><strong>불편함:</strong> ${escSource(p.painPoint)}</p>`);
@@ -120,8 +132,10 @@ function prdJsonToHtml(doc) {
   }
   if (doc.mvpScope) {
     out.push(`<h2>MVP 범위</h2>`);
-    if (doc.mvpScope.included?.length)  out.push(`<p><strong>포함:</strong> ${esc(doc.mvpScope.included.join(", "))}</p>`);
-    if (doc.mvpScope.excluded?.length)  out.push(`<p><strong>제외:</strong> ${esc(doc.mvpScope.excluded.join(", "))}</p>`);
+    const included = asList(doc.mvpScope.included);
+    const excluded = asList(doc.mvpScope.excluded);
+    if (included.length) out.push(`<p><strong>포함:</strong> ${esc(included.join(", "))}</p>`);
+    if (excluded.length) out.push(`<p><strong>제외:</strong> ${esc(excluded.join(", "))}</p>`);
     if (doc.mvpScope.rationale) out.push(`<p>${escSource(doc.mvpScope.rationale)}</p>`);
   }
   if (doc.techStack && typeof doc.techStack === "object") {
@@ -129,12 +143,13 @@ function prdJsonToHtml(doc) {
     Object.entries(doc.techStack).forEach(([k,v]) => out.push(`<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`));
     out.push(`</ul>`);
   }
-  if (doc.releaseSchedule?.length) {
+  if (releaseSchedule.length) {
     out.push(`<h2>릴리즈 일정</h2>`);
-    doc.releaseSchedule.forEach(r => {
+    releaseSchedule.forEach(r => {
       out.push(`<h3>${esc(r.milestone)} (${esc(r.date)})</h3>`);
       if (r.description)          out.push(`<p>${escSource(r.description)}</p>`);
-      if (r.deliverables?.length) out.push(`<ul>${r.deliverables.map(d=>`<li>${esc(d)}</li>`).join("")}</ul>`);
+      const deliverables = asList(r.deliverables);
+      if (deliverables.length) out.push(`<ul>${deliverables.map(d=>`<li>${esc(d)}</li>`).join("")}</ul>`);
     });
   }
   return out.join("\n") || "<p><br></p>";
@@ -199,14 +214,16 @@ function OverviewView({ doc }) {
 }
 
 function GoalsView({ doc }) {
+  const goals = asList(doc.goals);
+  const kpi = asList(doc.kpi);
   return (
     <div>
       <SectionTitle icon={"🎯"} title={"목표 & KPI"} />
-      {doc.goals?.length > 0 && (
+      {goals.length > 0 && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:10 }}>{"목표"}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {doc.goals.map((g,i) => (
+            {goals.map((g,i) => (
               <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"12px 16px", borderRadius:10, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.03)" }}>
                 <span style={{ fontSize:11, fontWeight:800, color:"#6b6960", background:"rgba(107,105,96,0.1)", border:"1px solid rgba(107,105,96,0.2)", padding:"2px 7px", borderRadius:5, flexShrink:0, marginTop:1 }}>{i+1}</span>
                 <span style={{ fontSize:14, color:C.text, lineHeight:1.7 }}><SourceText text={g} /></span>
@@ -215,11 +232,11 @@ function GoalsView({ doc }) {
           </div>
         </div>
       )}
-      {doc.kpi?.length > 0 && (
+      {kpi.length > 0 && (
         <div>
           <div style={{ fontSize:12, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:10 }}>KPI</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {doc.kpi.map((k,i) => (
+            {kpi.map((k,i) => (
               <div key={i} style={{ padding:"14px 18px", borderRadius:10, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.03)" }}>
                 <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:4 }}>{k.metric}</div>
                 <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
@@ -231,13 +248,13 @@ function GoalsView({ doc }) {
           </div>
         </div>
       )}
-      {!doc.goals?.length && !doc.kpi?.length && <EmptySectionState label={"목표 & KPI"} />}
+      {!goals.length && !kpi.length && <EmptySectionState label={"목표 & KPI"} />}
     </div>
   );
 }
 
 function FeaturesView({ doc }) {
-  const features = useMemo(() => doc.coreFeatures || [], [doc.coreFeatures]);
+  const features = useMemo(() => asList(doc.coreFeatures), [doc.coreFeatures]);
   const grouped = useMemo(() => {
     const g = { P0:[], P1:[], P2:[], etc:[] };
     features.forEach(f => {
@@ -270,11 +287,11 @@ function FeaturesView({ doc }) {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {group.items.map((f,i) => (
                 <div key={i} style={{ padding:"16px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
-                  <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:f.description||f.requirements?.length?8:0 }}>{f.name}</div>
+                  <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:f.description||asList(f.requirements).length?8:0 }}>{f.name}</div>
                   {f.description && <p style={{ margin:"0 0 10px", fontSize:13, color:"#374151", lineHeight:1.7 }}><SourceText text={f.description} /></p>}
-                  {f.requirements?.length>0 && (
+                  {asList(f.requirements).length>0 && (
                     <ul style={{ margin:0, paddingLeft:18 }}>
-                      {f.requirements.map((r,j)=><li key={j} style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:2 }}><SourceText text={r} /></li>)}
+                      {asList(f.requirements).map((r,j)=><li key={j} style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:2 }}><SourceText text={r} /></li>)}
                     </ul>
                   )}
                 </div>
@@ -288,7 +305,7 @@ function FeaturesView({ doc }) {
 }
 
 function PersonasView({ doc }) {
-  const personas = doc.userPersonas || [];
+  const personas = asList(doc.userPersonas);
   if (!personas.length) return (
     <div><SectionTitle icon={"👥"} title={"사용자 페르소나"} /><EmptySectionState label={"사용자 페르소나"} /></div>
   );
@@ -329,23 +346,25 @@ function MvpView({ doc }) {
   if (!mvp) return (
     <div><SectionTitle icon={"📦"} title={"MVP 범위"} /><EmptySectionState label={"MVP 범위"} /></div>
   );
+  const included = asList(mvp.included);
+  const excluded = asList(mvp.excluded);
   return (
     <div>
       <SectionTitle icon={"📦"} title={"MVP 범위"} />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
-        {mvp.included?.length>0 && (
+        {included.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#f0fdf4", border:"1px solid #bbf7d0" }}>
             <div style={{ fontSize:12, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"✅ 포함"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
-              {mvp.included.map((item,i)=><li key={i} style={{ fontSize:13, color:"#166534", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
+              {included.map((item,i)=><li key={i} style={{ fontSize:13, color:"#166534", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
           </div>
         )}
-        {mvp.excluded?.length>0 && (
+        {excluded.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#fef2f2", border:"1px solid #fecaca" }}>
             <div style={{ fontSize:12, fontWeight:700, color:"#dc2626", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"❌ 제외"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
-              {mvp.excluded.map((item,i)=><li key={i} style={{ fontSize:13, color:"#991b1b", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
+              {excluded.map((item,i)=><li key={i} style={{ fontSize:13, color:"#991b1b", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
           </div>
         )}
@@ -387,7 +406,7 @@ function TechStackView({ doc }) {
 }
 
 function ScheduleView({ doc }) {
-  const schedule = doc.releaseSchedule;
+  const schedule = asList(doc.releaseSchedule);
   if (!schedule?.length) return (
     <div><SectionTitle icon={"📅"} title={"릴리즈 일정"} /><EmptySectionState label={"릴리즈 일정"} /></div>
   );
@@ -405,9 +424,9 @@ function ScheduleView({ doc }) {
                 {r.date && <span style={{ fontSize:11, color:C.muted, background:"rgba(0,0,0,0.04)", padding:"2px 8px", borderRadius:10 }}>{r.date}</span>}
               </div>
               {r.description && <p style={{ margin:"0 0 8px", fontSize:13, color:"#374151", lineHeight:1.7 }}><SourceText text={r.description} /></p>}
-              {r.deliverables?.length>0 && (
+              {asList(r.deliverables).length>0 && (
                 <ul style={{ margin:0, paddingLeft:16 }}>
-                  {r.deliverables.map((d,j)=><li key={j} style={{ fontSize:13, color:C.muted, lineHeight:1.6, marginBottom:2 }}>{d}</li>)}
+                  {asList(r.deliverables).map((d,j)=><li key={j} style={{ fontSize:13, color:C.muted, lineHeight:1.6, marginBottom:2 }}>{d}</li>)}
                 </ul>
               )}
             </div>
