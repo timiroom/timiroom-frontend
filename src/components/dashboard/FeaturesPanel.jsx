@@ -11,6 +11,9 @@
  *   3순위: 빈 상태 안내
  */
 
+import { useState, useMemo, useEffect } from "react";
+import { AiChatDock } from "./AiChatDock";
+import { updateArtifact } from "@/lib/pipelineApi";
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatSidebar } from "./AiChatSidebar";
 import { useAuth } from "@/context/AuthContext";
@@ -1088,6 +1091,34 @@ export function FeaturesPanel({ project, readOnly = false }) {
       : feature));
   }
 
+  /* 저장 대상과 내용을 결정한다.
+
+     FEATURE_LIST 아티팩트가 있으면 거기에 기능 배열을 그대로 저장한다.
+     없을 때 PRD 아티팩트로 폴백하는데, 예전에는 기능 배열을 PRD 아티팩트에
+     통째로 덮어써서 PRD 문서 전체(개요·KPI·페르소나 등)가 날아갔다.
+     PRD에 쓸 때는 반드시 문서 안의 coreFeatures 필드만 갱신해야 한다. */
+  function buildSavePayload(list) {
+    const featureListId = project?.artifactIds?.FEATURE_LIST;
+    if (featureListId) {
+      return { artifactId: featureListId, content: JSON.stringify(list) };
+    }
+
+    const prdId = project?.artifactIds?.PRD;
+    const doc = project?.prdDocument;
+    const isObjectList = list.length > 0 && typeof list[0] === "object";
+    if (prdId && doc && typeof doc === "object" && isObjectList) {
+      return { artifactId: prdId, content: JSON.stringify({ ...doc, coreFeatures: list }) };
+    }
+    return null;
+  }
+
+  async function handleSave() {
+    const dataToSave = coreFeatures ? editedFeatures : editedSimple;
+    const payload = buildSavePayload(dataToSave);
+    if (!payload) {
+      alert("저장할 아티팩트를 찾을 수 없습니다. 파이프라인을 먼저 실행하세요.");
+      return;
+    }
   function taskDraft(feature, taskIndex, repo = null, preferredType = null) {
     const type = preferredType && TASK_TYPE_META[preferredType] ? preferredType : taskTypeFromRepo(repo);
     return normalizeTask({
@@ -1155,6 +1186,9 @@ export function FeaturesPanel({ project, readOnly = false }) {
   async function handleSave() {
     setSaving(true);
     try {
+      await updateArtifact(payload.artifactId, payload.content);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
       const updatedIssues = await syncLinkedIssues(editedFeatures);
       await persistFeatures(editedFeatures);
       if (updatedIssues.length > 0) {
@@ -1174,6 +1208,34 @@ export function FeaturesPanel({ project, readOnly = false }) {
     }
   }
 
+  /* ── AI 수정안 적용 ──
+     기능 목록은 객체 배열(coreFeatures)과 단순 문자열 배열 두 형태를 모두 지원한다.
+     AI가 형태를 바꿔버리면 렌더링이 깨지므로(f.name이 undefined) 적용 전에 막는다. */
+  async function handleApplyEdits(edits) {
+    const edit = edits.find(e => e.section === "features");
+    if (!edit || !Array.isArray(edit.after) || edit.after.length === 0) return;
+
+    const next = edit.after;
+    const wantsObjects = !!coreFeatures;
+    const gotObjects = typeof next[0] === "object";
+    if (wantsObjects !== gotObjects) {
+      throw new Error("AI가 기능 목록의 형식을 바꾸려 해서 적용하지 않았습니다. 다시 요청해 주세요.");
+    }
+
+    const payload = buildSavePayload(next);
+    if (!payload) {
+      throw new Error("저장 대상 기능 명세서를 찾을 수 없습니다. 파이프라인을 먼저 실행해 주세요.");
+    }
+
+    await updateArtifact(payload.artifactId, payload.content);
+    if (wantsObjects) setEditedFeatures(next);
+    else              setEditedSimple(next);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  const displayFeatures = coreFeatures ? editedFeatures : null;
+  const displaySimple   = simpleList   ? editedSimple   : null;
   function memberName(memberId) {
     if (!memberId) return "미지정";
     return members.find(member => String(member.memberId) === String(memberId))?.displayName ?? `멤버 ${memberId}`;
@@ -1539,6 +1601,13 @@ export function FeaturesPanel({ project, readOnly = false }) {
       </div>
 
       {/* ── 오른쪽: AI 채팅 ── */}
+      <AiChatDock
+        contextType="features"
+        project={project}
+        currentContent={currentContent}
+        document={canSave && total > 0 ? { features: displayFeatures ?? displaySimple } : null}
+        onApplyEdits={canSave && total > 0 ? handleApplyEdits : undefined}
+      />
       <div className={`features-ai-shell${aiOpen ? " is-open" : ""}`}>
         <AiChatSidebar
           contextType="features"

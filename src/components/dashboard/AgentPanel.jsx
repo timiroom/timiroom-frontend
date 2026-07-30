@@ -8,20 +8,15 @@
  * 레이아웃:
  *   [상단 바: 프로젝트명 + 액션]
  *   [메시지 영역: max-width 680px 중앙 정렬]
- *   [입력 영역: Claude 스타일 라운드 컨테이너]
- *
- * 뷰 상태:
- *   showSettings === true  →  설정 패널 오버레이
- *   그 외                   →  채팅 화면
+ *   [입력 영역: 라운드 컨테이너]
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  PROVIDERS,
-  loadAgentConfig,
-  saveAgentConfig,
-  sendMessageStream,
-} from "@/lib/agentApi";
+import { sendMessageStream } from "@/lib/agentApi";
+
+/* 모델은 EXAONE 하나로 고정 — API 키는 pipeline_py가 들고 있어
+   사용자가 프로바이더나 키를 설정할 필요가 없다 */
+const MODEL_LABEL = "EXAONE";
 
 /* ══════════════════════════════════════
    디자인 토큰
@@ -168,169 +163,6 @@ function MessageBubble({ msg }) {
 }
 
 /* ══════════════════════════════════════
-   설정 패널 (오버레이)
-══════════════════════════════════════ */
-function SettingsPanel({ config, onSave, onClose }) {
-  const [provider, setProvider] = useState(config?.provider || "anthropic");
-  const [apiKey,   setApiKey]   = useState(config?.apiKey   || "");
-  const [model,    setModel]    = useState(config?.model     || PROVIDERS.anthropic.models[1].id);
-  const [showKey,  setShowKey]  = useState(false);
-
-  const handleProviderChange = (p) => {
-    setProvider(p);
-    setModel(PROVIDERS[p].models[0].id);
-  };
-
-  const handleSave = () => {
-    if (!apiKey.trim()) return;
-    onSave({ provider, apiKey: apiKey.trim(), model });
-  };
-
-  return (
-    <div style={{
-      position: "absolute", inset: 0, zIndex: 20,
-      background: "rgba(0,0,0,0.6)",
-      backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
-        width: 440, background: "var(--surface)",
-        border: `1px solid ${C.border}`,
-        borderRadius: 14,
-        boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
-        overflow: "hidden",
-        fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
-      }}>
-        {/* 헤더 */}
-        <div style={{
-          padding: "18px 22px",
-          borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Agent 설정</div>
-            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>LLM 제공사 및 API 키를 설정하세요</div>
-          </div>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: C.muted, fontSize: 20, lineHeight: 1, padding: 4,
-          }}>×</button>
-        </div>
-
-        {/* 본문 */}
-        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 18 }}>
-          {/* 제공사 선택 */}
-          <div>
-            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
-              LLM 제공사
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {Object.entries(PROVIDERS).map(([key, info]) => (
-                <button key={key} onClick={() => handleProviderChange(key)} style={{
-                  flex: 1, padding: "9px 12px",
-                  background: provider === key ? C.accentBg : C.hover,
-                  border: `1px solid ${provider === key ? C.accentBdr : C.border}`,
-                  borderRadius: 8, cursor: "pointer",
-                  color: provider === key ? C.accent : C.muted,
-                  fontSize: 12, fontWeight: 600,
-                  transition: "all 0.12s", fontFamily: "inherit",
-                }}>
-                  {info.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* API 키 */}
-          <div>
-            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
-              API Key
-            </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={e => setApiKey(e.target.value)}
-                placeholder={provider === "anthropic" ? "sk-ant-..." : "sk-..."}
-                style={{
-                  width: "100%", padding: "10px 44px 10px 12px",
-                  background: C.inputBg, border: `1px solid ${C.inputBdr}`,
-                  borderRadius: 8, color: C.text, fontSize: 13,
-                  fontFamily: "monospace", outline: "none",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => e.target.style.borderColor = C.accentBdr}
-                onBlur={e => e.target.style.borderColor = C.inputBdr}
-              />
-              <button onClick={() => setShowKey(s => !s)} style={{
-                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                background: "none", border: "none", cursor: "pointer",
-                color: C.muted, fontSize: 13,
-              }}>
-                {showKey ? "숨김" : "표시"}
-              </button>
-            </div>
-            <p style={{ fontSize: 11, color: C.subtle, marginTop: 6 }}>
-              키는 브라우저 로컬에 저장되며 백엔드 프록시를 통해 LLM API로 전달됩니다.
-            </p>
-          </div>
-
-          {/* 모델 */}
-          <div>
-            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 8, letterSpacing: ".03em" }}>
-              모델
-            </label>
-            <select
-              value={model}
-              onChange={e => setModel(e.target.value)}
-              style={{
-                width: "100%", padding: "10px 12px",
-                background: C.inputBg, border: `1px solid ${C.inputBdr}`,
-                borderRadius: 8, color: C.text, fontSize: 13,
-                outline: "none", cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              {(PROVIDERS[provider]?.models || []).map(m => (
-                <option key={m.id} value={m.id}>{m.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* 푸터 */}
-        <div style={{
-          padding: "14px 22px",
-          borderTop: `1px solid ${C.border}`,
-          display: "flex", gap: 8, justifyContent: "flex-end",
-        }}>
-          <button onClick={onClose} style={{
-            padding: "8px 18px", borderRadius: 8,
-            background: "transparent", border: `1px solid ${C.border}`,
-            color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit",
-          }}>
-            취소
-          </button>
-          <button onClick={handleSave} disabled={!apiKey.trim()} style={{
-            padding: "8px 20px", borderRadius: 8, cursor: apiKey.trim() ? "pointer" : "not-allowed",
-            background: apiKey.trim() ? C.sendBg : "var(--border-2)",
-            border: "none",
-            color: apiKey.trim() ? "#fff" : C.muted,
-            fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-            transition: "background 0.15s",
-          }}>
-            저장
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════
    메인 컴포넌트
 ══════════════════════════════════════ */
 const VIEW_LABELS = {
@@ -342,23 +174,14 @@ const VIEW_LABELS = {
 };
 
 export function AgentPanel({ project, view }) {
-  const [config,       setConfig]       = useState(null);
-  const [messages,     setMessages]     = useState([]);
-  const [input,        setInput]        = useState("");
-  const [isLoading,    setIsLoading]    = useState(false);
-  const [streamText,   setStreamText]   = useState("");
-  const [showSettings, setShowSettings] = useState(false);
+  const [messages,   setMessages]   = useState([]);
+  const [input,      setInput]      = useState("");
+  const [isLoading,  setIsLoading]  = useState(false);
+  const [streamText, setStreamText] = useState("");
 
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
   const abortRef    = useRef(null);
-
-  /* 설정 로드 */
-  useEffect(() => {
-    const saved = loadAgentConfig();
-    if (saved) setConfig(saved);
-    else setShowSettings(true); // 첫 방문이면 설정 자동 오픈
-  }, []);
 
   /* 언마운트 시 스트림 취소 */
   useEffect(() => {
@@ -378,17 +201,10 @@ export function AgentPanel({ project, view }) {
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   }, []);
 
-  /* 설정 저장 */
-  const handleSaveConfig = (newConfig) => {
-    saveAgentConfig(newConfig);
-    setConfig(newConfig);
-    setShowSettings(false);
-  };
-
   /* 메시지 전송 */
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isLoading || !config) return;
+    if (!text || isLoading) return;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -411,7 +227,6 @@ export function AgentPanel({ project, view }) {
 
     await sendMessageStream({
       messages:       history,
-      config,
       projectContext: project,
       signal:         controller.signal,
       onChunk: (delta) => {
@@ -432,7 +247,7 @@ export function AgentPanel({ project, view }) {
           ...prev,
           {
             role: "assistant",
-            content: `오류가 발생했습니다: ${errMsg}\n\n백엔드 서버가 실행 중인지, API 키가 올바른지 확인해주세요.`,
+            content: `오류가 발생했습니다: ${errMsg}\n\nrag-pipeline 서버(8081)가 실행 중인지 확인해주세요.`,
             timestamp: new Date(),
             isError: true,
           },
@@ -442,7 +257,7 @@ export function AgentPanel({ project, view }) {
         abortRef.current = null;
       },
     });
-  }, [input, isLoading, messages, config, project]);
+  }, [input, isLoading, messages, project]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -450,11 +265,6 @@ export function AgentPanel({ project, view }) {
       handleSend();
     }
   };
-
-  /* 모델 표시 레이블 */
-  const modelLabel = config
-    ? (PROVIDERS[config.provider]?.models.find(m => m.id === config.model)?.label?.split(" ")[0] ?? config.model)
-    : null;
 
   const isEmpty = messages.length === 0 && !isLoading;
 
@@ -470,10 +280,9 @@ export function AgentPanel({ project, view }) {
       <TopBar
         project={project}
         view={view}
-        modelLabel={modelLabel}
+        modelLabel={MODEL_LABEL}
         hasMessages={messages.length > 0}
         onClear={() => { setMessages([]); setStreamText(""); }}
-        onOpenSettings={() => setShowSettings(true)}
       />
 
       {/* ── 메시지 영역 ── */}
@@ -481,8 +290,6 @@ export function AgentPanel({ project, view }) {
         {isEmpty ? (
           <EmptyState
             project={project}
-            hasConfig={!!config}
-            onOpenSettings={() => setShowSettings(true)}
             onSelectSuggestion={s => {
               setInput(s);
               setTimeout(() => { textareaRef.current?.focus(); adjustHeight(); }, 50);
@@ -521,29 +328,18 @@ export function AgentPanel({ project, view }) {
         input={input}
         setInput={setInput}
         isLoading={isLoading}
-        config={config}
         onSend={handleSend}
         onKeyDown={handleKeyDown}
         onInput={adjustHeight}
         textareaRef={textareaRef}
-        onOpenSettings={() => setShowSettings(true)}
         onStop={() => { abortRef.current?.abort(); setIsLoading(false); setStreamText(""); }}
       />
-
-      {/* ── 설정 오버레이 ── */}
-      {showSettings && (
-        <SettingsPanel
-          config={config}
-          onSave={handleSaveConfig}
-          onClose={() => config && setShowSettings(false)}
-        />
-      )}
     </div>
   );
 }
 
 /* ── 상단 바 ── */
-function TopBar({ project, view, modelLabel, hasMessages, onClear, onOpenSettings }) {
+function TopBar({ project, view, modelLabel, hasMessages, onClear }) {
   const viewLabel = view ? VIEW_LABELS[view] : null;
   return (
     <div style={{
@@ -608,12 +404,6 @@ function TopBar({ project, view, modelLabel, hasMessages, onClear, onOpenSetting
             </svg>
           </TopBarBtn>
         )}
-        <TopBarBtn onClick={onOpenSettings} title="설정">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </TopBarBtn>
       </div>
     </div>
   );
@@ -641,7 +431,7 @@ function TopBarBtn({ onClick, title, children }) {
 }
 
 /* ── 빈 상태 (프로젝트 선택 / 첫 메시지) ── */
-function EmptyState({ project, hasConfig, onOpenSettings, onSelectSuggestion }) {
+function EmptyState({ project, onSelectSuggestion }) {
   return (
     <div style={{
       maxWidth: MAX_W, margin: "0 auto",
@@ -669,24 +459,8 @@ function EmptyState({ project, hasConfig, onOpenSettings, onSelectSuggestion }) 
           : "왼쪽 사이드바에서 프로젝트를 선택하거나 새로 만들어보세요."}
       </p>
 
-      {!hasConfig && (
-        <button
-          onClick={onOpenSettings}
-          style={{
-            padding: "10px 22px", borderRadius: 10,
-            background: "var(--text-1)",
-            border: "none", cursor: "pointer",
-            color: "var(--bg)", fontSize: 13, fontWeight: 700,
-            boxShadow: "0 4px 16px rgba(26,25,22,0.35)",
-            marginBottom: 32, fontFamily: "inherit",
-          }}
-        >
-          ⚙️ API 키 설정하기
-        </button>
-      )}
-
       {/* 제안 프롬프트 */}
-      {project && hasConfig && (
+      {project && (
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, 1fr)",
@@ -732,7 +506,7 @@ function SuggestionChip({ icon, text, onClick }) {
 }
 
 /* ── 입력 영역 ── */
-function ChatInput({ input, setInput, isLoading, config, onSend, onKeyDown, onInput, textareaRef, onOpenSettings, onStop }) {
+function ChatInput({ input, setInput, isLoading, onSend, onKeyDown, onInput, textareaRef, onStop }) {
   const [focused, setFocused] = useState(false);
 
   return (
@@ -756,8 +530,7 @@ function ChatInput({ input, setInput, isLoading, config, onSend, onKeyDown, onIn
           onKeyDown={onKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder={config ? "메시지를 입력하세요... (Shift+Enter로 줄바꿈)" : "API 키를 먼저 설정해주세요"}
-          disabled={!config}
+          placeholder="메시지를 입력하세요... (Shift+Enter로 줄바꿈)"
           rows={1}
           style={{
             width: "100%", padding: "14px 16px 10px",
@@ -775,26 +548,15 @@ function ChatInput({ input, setInput, isLoading, config, onSend, onKeyDown, onIn
           padding: "8px 12px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          {/* 왼쪽: 설정 없으면 API 키 버튼 */}
-          {!config ? (
-            <button onClick={onOpenSettings} style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: C.accent, fontSize: 12, fontFamily: "inherit",
-              display: "flex", alignItems: "center", gap: 5,
-            }}>
-              ⚙️ API 키 설정
-            </button>
-          ) : (
-            <div style={{ fontSize: 11, color: C.subtle }}>
-              Enter 전송 · Shift+Enter 줄바꿈
-            </div>
-          )}
+          <div style={{ fontSize: 11, color: C.subtle }}>
+            Enter 전송 · Shift+Enter 줄바꿈
+          </div>
 
           {/* 오른쪽: 전송 / 중지 */}
           {isLoading ? (
             <StopButton onClick={onStop} />
           ) : (
-            <SendButton onClick={onSend} disabled={!input.trim() || !config} />
+            <SendButton onClick={onSend} disabled={!input.trim()} />
           )}
         </div>
       </div>

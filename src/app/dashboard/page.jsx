@@ -483,6 +483,11 @@ export default function DashboardPage() {
     return null;
   }
 
+  /* 프로젝트 삭제는 워크스페이스 OWNER만 가능하다 (서버: ProjectService.delete → requireOwner).
+     WorkspaceManagementView와 같은 기준으로 판정해 두 화면이 어긋나지 않게 한다. */
+  const viewerRole = workspaceDetail?.viewerRole ?? workspaceDetail?.team?.viewerRole ?? "";
+  const isWorkspaceOwner = viewerRole === "OWNER";
+
   async function handleDeleteProject(project) {
     if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
 
@@ -517,6 +522,19 @@ export default function DashboardPage() {
     if (!alreadyLoaded && (!isRunningActiveWorkspace || String(project.id) !== String(runningPipeline?.projectId))) {
       loadArtifacts(project);
     }
+  }
+
+  /* AI 어시스턴트가 PRD 섹션을 수정하면 저장은 PrdPanel이 이미 마쳤다.
+     여기서는 화면 상태만 새 문서로 맞춘다 — 선택된 프로젝트와 목록 양쪽 모두. */
+  function handlePrdDocumentChange(nextDoc) {
+    const projectId = selectedProject?.id;
+    if (!projectId) return;
+    setSelectedProject((current) =>
+      current && current.id === projectId ? { ...current, prdDocument: nextDoc } : current
+    );
+    setProjects((prev) => prev.map((p) =>
+      p.id === projectId ? { ...p, prdDocument: nextDoc } : p
+    ));
   }
 
   function handleOpenCreateProject() {
@@ -711,7 +729,7 @@ export default function DashboardPage() {
           }}
           onOpenWorkspaceManage={() => openWorkspaceManager("overview")}
           onOpenWorkspaceMembers={() => openWorkspaceManager("members")}
-          onDeleteProject={handleDeleteProject}
+          onDeleteProject={isWorkspaceOwner ? handleDeleteProject : undefined}
           workspace={workspaceDetail?.team ?? activeWorkspace}
           workspaceMembers={workspaceDetail?.members ?? []}
           workspaceLoading={isLoadingWorkspaceDetail}
@@ -773,7 +791,11 @@ export default function DashboardPage() {
         ) : selectedProject ? (
           <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", animation: "dash-panel-in 0.18s ease" }}>
             {selectedView === "prd" ? (
-              <PrdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "PRD")} />
+              <PrdPanel
+                project={selectedProject}
+                readOnly={!canEditDocType(myProjectRole, "PRD")}
+                onDocumentChange={handlePrdDocumentChange}
+              />
             ) : selectedView === "features" ? (
               <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} />
             ) : selectedView === "api" ? (

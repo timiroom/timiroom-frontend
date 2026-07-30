@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { AiChatDock } from "./AiChatDock";
 import { AiChatSidebar } from "./AiChatSidebar";
 import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
@@ -246,9 +247,24 @@ function TypeBadge({ type }) {
   );
 }
 
+/* ── 제약조건 정규화 ──
+   백엔드(dba_agent)는 제약조건을 언더스코어 토큰(PRIMARY_KEY / FOREIGN_KEY / NOT_NULL /
+   DEFAULT_TRUE)으로 표준화해서 내려준다. 공백 형태로 되돌려 놓아야 PK/FK 판별과 DDL 생성이
+   같은 기준으로 동작한다 — 이 변환이 없어서 ERD에 PK·FK 배지가 하나도 뜨지 않았다. */
+function normConstraints(raw = "") {
+  return String(raw)
+    .toUpperCase()
+    .replace(/PRIMARY[_\s]+KEY/g, "PRIMARY KEY")
+    .replace(/FOREIGN[_\s]+KEY/g, "FOREIGN KEY")
+    .replace(/NOT[_\s]+NULL/g, "NOT NULL")
+    .replace(/DEFAULT[_\s]+/g, "DEFAULT ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /* ── 컬럼 역할 판별 ── */
 function colRole(constraints = "") {
-  const u = constraints.toUpperCase();
+  const u = normConstraints(constraints);
   if (u.includes("PK") || u.includes("PRIMARY KEY")) return "pk";
   if (u.includes("FK") || u.includes("FOREIGN KEY")) return "fk";
   if (u.includes("UNIQUE"))                           return "uq";
@@ -1179,15 +1195,15 @@ function schemaToSql(schema) {
     lines.push(`CREATE TABLE ${table.name} (`);
     const cols = table.columns || [];
     cols.forEach((col, ci) => {
-      const raw = col.constraints || "";
-      const u = raw.toUpperCase();
+      const u = normConstraints(col.constraints);
       const isPk = u.includes("PK") || u.includes("PRIMARY KEY");
       const isFk = u.includes("FK") || u.includes("FOREIGN KEY");
       const tokens = [col.name, col.type];
       if (!isPk && u.includes("NOT NULL")) tokens.push("NOT NULL");
       if (u.includes("UNIQUE")) tokens.push("UNIQUE");
       if (isPk) tokens.push("PRIMARY KEY");
-      const defMatch = raw.match(/DEFAULT\s+(\S+)/i);
+      if (u.includes("AUTO_INCREMENT")) tokens.push("AUTO_INCREMENT");
+      const defMatch = u.match(/DEFAULT\s+(\S+)/);
       if (defMatch) tokens.push(`DEFAULT ${defMatch[1]}`);
       const comment = isFk ? "  -- FK" : "";
       const comma = ci < cols.length - 1 ? "," : "";
@@ -1304,6 +1320,19 @@ export function ErdPanel({ project, readOnly = false }) {
     setLocalSchema(newSchema);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  }
+
+  /* ── AI 수정안 적용 ──
+     승인된 섹션(tables / relationships)만 갈아끼우고 곧바로 저장한다. 저장 실패는
+     예외로 올려보내 사이드바가 '적용 실패'로 알리게 한다. */
+  async function handleApplyEdits(edits) {
+    const artifactId = project?.artifactIds?.DB_SCHEMA;
+    if (!artifactId) {
+      throw new Error("저장 대상 ERD를 찾을 수 없습니다. 문서를 다시 불러온 뒤 시도해 주세요.");
+    }
+    const nextSchema = { ...(schema || { tables: [], relationships: [] }) };
+    edits.forEach(e => { nextSchema[e.section] = e.after; });
+    await persistSchema(nextSchema);
   }
 
   /* ── 테이블 추가 ── */
@@ -1603,11 +1632,12 @@ export function ErdPanel({ project, readOnly = false }) {
       </div>
 
       {/* ── 오른쪽: AI 채팅 ── */}
-      <AiChatSidebar
+      <AiChatDock
         contextType="erd"
         project={project}
         currentContent={currentContent}
-        onApplyContent={undefined}
+        document={canEdit && schema ? schema : null}
+        onApplyEdits={canEdit && schema ? handleApplyEdits : undefined}
       />
 
       {showSql && sqlCode && (

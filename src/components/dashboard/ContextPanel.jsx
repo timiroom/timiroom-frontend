@@ -574,7 +574,8 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
           alignItems:    "center",
           gap:           8,
           width:         "100%",
-          padding:       "11px 12px",
+          // 삭제 버튼이 절대배치로 오른쪽에 겹쳐 뜨므로 그만큼 자리를 비워 상태 배지를 밀어준다
+          padding:       hovered && onDelete ? "11px 40px 11px 12px" : "11px 12px",
           borderRadius:  12,
           border:        isSelected ? `1px solid ${C.activeBdr}` : `1px solid rgba(0,0,0,0.04)`,
           background:    isSelected ? C.active : hovered ? C.hover : "rgba(0,0,0,0.015)",
@@ -623,8 +624,9 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
         )}
       </button>
 
-      {/* 삭제 버튼 제거됨 */}
-      {false && hovered && onDelete && (
+      {/* 삭제 버튼 — 워크스페이스 OWNER에게만 onDelete가 내려온다.
+          서버도 ProjectService.delete에서 requireOwner로 막고 있어 여기는 노출 제어일 뿐이다. */}
+      {hovered && onDelete && (
         <button
           onClick={onDelete}
           title="프로젝트 삭제"

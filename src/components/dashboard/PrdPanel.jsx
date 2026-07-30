@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { AiChatSidebar } from "./AiChatSidebar";
+import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
@@ -153,24 +153,6 @@ function prdJsonToHtml(doc) {
     });
   }
   return out.join("\n") || "<p><br></p>";
-}
-
-function mdToHtml(text) {
-  if (!text) return "";
-  const lines = text.split("\n"); const parts = []; let inUL=false, inOL=false;
-  function closeList() { if(inUL){parts.push("</ul>");inUL=false;} if(inOL){parts.push("</ol>");inOL=false;} }
-  function inline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>").replace(/`(.+?)`/g,"<code>$1</code>"); }
-  for (const line of lines) {
-    if (line.startsWith("### "))       { closeList(); parts.push(`<h3>${inline(line.slice(4))}</h3>`); }
-    else if (line.startsWith("## "))   { closeList(); parts.push(`<h2>${inline(line.slice(3))}</h2>`); }
-    else if (line.startsWith("# "))    { closeList(); parts.push(`<h1>${inline(line.slice(2))}</h1>`); }
-    else if (/^[-*] /.test(line))      { if(inOL){parts.push("</ol>");inOL=false;} if(!inUL){parts.push("<ul>");inUL=true;} parts.push(`<li>${inline(line.replace(/^[-*] /,""))}</li>`); }
-    else if (/^\d+\. /.test(line))     { if(inUL){parts.push("</ul>");inUL=false;} if(!inOL){parts.push("<ol>");inOL=true;} parts.push(`<li>${inline(line.replace(/^\d+\. /,""))}</li>`); }
-    else if (line.trim()==="")         { closeList(); }
-    else                               { closeList(); parts.push(`<p>${inline(line)}</p>`); }
-  }
-  closeList();
-  return parts.join("");
 }
 
 /* ══════════════════════════════════════
@@ -706,7 +688,7 @@ function NotionEditor({ editorRef, onTextChange }) {
 /* ══════════════════════════════════════
    PRD PANEL
 ══════════════════════════════════════ */
-export function PrdPanel({ project, readOnly = false }) {
+export function PrdPanel({ project, readOnly = false, onDocumentChange }) {
   const editorRef      = useRef(null);
   const [text,          setText]         = useState("");
   const [hasDraft,      setHasDraft]     = useState(false);
@@ -768,12 +750,42 @@ export function PrdPanel({ project, readOnly = false }) {
     finally { setSaving(false); }
   }
 
-  function handleApplyAiContent(aiText) {
-    if (!editorRef.current) return;
-    const html = mdToHtml(aiText);
-    editorRef.current.focus();
-    document.execCommand("insertHTML", false, html || `<p>${esc(aiText)}</p>`);
-    setText(editorRef.current.innerText || "");
+  /**
+   * AI가 제안한 섹션 수정안을 문서에 반영한다.
+   *
+   * 예전에는 AI 답변 텍스트를 커서 위치에 insertHTML로 끼워 넣었다 — 대화체까지
+   * 그대로 문서에 박히고 기존 내용은 전혀 교체되지 않았다. 지금은 구조화된
+   * PRD JSON의 해당 섹션만 통째로 갈아끼우고, htmlContent를 다시 생성해
+   * 편집기와 저장본이 어긋나지 않게 맞춘다.
+   *
+   * 실패하면 예외를 던진다 — 사이드바가 그걸 받아 사용자에게 알린다.
+   */
+  async function handleApplyEdits(edits) {
+    if (!doc || !edits?.length) return;
+
+    // 저장할 곳이 없으면 화면만 바꿔놓고 "적용했다"고 안내하는 상태가 된다 —
+    // 새로고침하면 사라지므로 차라리 실패로 알린다
+    const artifactId = project?.artifactIds?.PRD;
+    if (!artifactId) {
+      throw new Error("저장 대상 PRD를 찾을 수 없습니다. 문서를 다시 불러온 뒤 시도해 주세요.");
+    }
+
+    const nextDoc = { ...doc };
+    edits.forEach(e => { nextDoc[e.section] = e.after; });
+    nextDoc.htmlContent = prdJsonToHtml(nextDoc);
+
+    // 승인한 수정은 곧바로 저장한다. 저장이 실패하면 편집기를 건드리지 않고
+    // 예외를 그대로 올려보내 사이드바가 실패를 알리게 한다
+    await updateArtifact(artifactId, JSON.stringify(nextDoc));
+
+    if (editorRef.current) {
+      editorRef.current.innerHTML = nextDoc.htmlContent;
+      setText(editorRef.current.innerText || "");
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+
+    onDocumentChange?.(nextDoc);
   }
 
   function handleExportPdf() {
@@ -886,7 +898,14 @@ ${content}</body></html>`;
         <NotionEditor editorRef={editorRef} onTextChange={setText} />
       </div>
 
-      <AiChatSidebar contextType="prd" project={project} currentContent={text} onApplyContent={handleApplyAiContent} />
+      {/* html 타입 문서는 섹션 키가 없어 구조화 편집이 불가능하다 — 상담 모드로만 붙인다 */}
+      <AiChatDock
+        contextType="prd"
+        project={project}
+        currentContent={text}
+        document={!readOnly && doc && !isHtmlDoc ? doc : null}
+        onApplyEdits={!readOnly && doc && !isHtmlDoc ? handleApplyEdits : undefined}
+      />
     </div>
   );
 }
