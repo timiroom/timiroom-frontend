@@ -188,6 +188,9 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       setTimeout(() => onComplete(d.result), 1500);
     });
     es.addEventListener("error", (e) => {
+      // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
+      // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
+      if (doneRef.current || !e.data) return;
       doneRef.current = true;
       try { setErrMsg(JSON.parse(e.data).message); }
       catch { setErrMsg("파이프라인 오류가 발생했습니다"); }

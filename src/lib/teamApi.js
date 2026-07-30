@@ -313,3 +313,17 @@ export async function updateMemberName(name) {
   }
   return res.json();
 }
+
+/** GitHub 사용자명 수정 — Issue 담당자 자동 지정에 사용 */
+export async function updateMemberGithubLogin(githubLogin) {
+  const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
+    method: "PATCH",
+    body: JSON.stringify({ githubLogin }),
+  });
+  if (!res || !res.ok) {
+    let message = "GitHub 계정 저장 실패";
+    try { const data = await res.json(); if (data?.error) message = data.error; } catch {}
+    throw new Error(message);
+  }
+  return res.json();
+}

@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
+import { AiChatSidebar } from "./AiChatSidebar";
+import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
@@ -1517,6 +1519,7 @@ export function ErdPanel({ project, readOnly = false }) {
           <div style={{ flex: 1 }} />
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="DB" />}
             {saved && (
               <span style={{
                 fontSize: 11, padding: "3px 8px", borderRadius: 5,
