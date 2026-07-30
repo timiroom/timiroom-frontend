@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { AiChatSidebar } from "./AiChatSidebar";
+import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
@@ -739,6 +739,20 @@ export function ApiSpecPanel({ project, readOnly = false }) {
     setTimeout(() => setSaved(false), 3000);
   }
 
+  /* ── AI 수정안 적용 ──
+     승인된 섹션(endpoints)만 갈아끼우고 곧바로 저장한다. 저장에 실패하면 예외를
+     그대로 올려보내 사이드바가 '적용 실패'로 알리게 한다 — 화면만 바뀌고 새로고침하면
+     사라지는 상태를 만들지 않는다. */
+  async function handleApplyEdits(edits) {
+    const artifactId = project?.artifactIds?.API_SPEC;
+    if (!artifactId) {
+      throw new Error("저장 대상 API 명세서를 찾을 수 없습니다. 문서를 다시 불러온 뒤 시도해 주세요.");
+    }
+    const nextSpec = { ...(rawApiSpec || { endpoints: [] }) };
+    edits.forEach(e => { nextSpec[e.section] = e.after; });
+    await persistSpec(nextSpec);
+  }
+
   /* ── 추가 ── */
   function handleAddEndpoint() {
     setEditingSpec({ idx: "new", raw: null });
@@ -961,11 +975,12 @@ export function ApiSpecPanel({ project, readOnly = false }) {
       </div>
 
       {/* ── 오른쪽: AI 채팅 ── */}
-      <AiChatSidebar
+      <AiChatDock
         contextType="api"
         project={project}
         currentContent={currentContent}
-        onApplyContent={undefined}
+        document={canEdit && rawApiSpec?.endpoints?.length ? rawApiSpec : null}
+        onApplyEdits={canEdit && rawApiSpec?.endpoints?.length ? handleApplyEdits : undefined}
       />
     </div>
   );

@@ -5,8 +5,8 @@
  * ------------
  * 기능 명세서 / ERD 명세서 / QA 뷰에서 사용하는 범용 마크다운 에디터 패널.
  *
- * 왼쪽: 마크다운 에디터 + 미리보기 토글
- * 오른쪽: AiChatSidebar
+ * 마크다운 에디터 + 미리보기 토글.
+ * AI 어시스턴트는 오른쪽 아래 아이콘으로 여는 플로팅 창(AiChatDock)이라 자리를 차지하지 않는다.
  *
  * Props:
  *   project   현재 선택된 프로젝트
@@ -14,7 +14,7 @@
  */
 
 import { useState } from "react";
-import { AiChatSidebar } from "./AiChatSidebar";
+import { AiChatDock } from "./AiChatDock";
 
 const C = {
   bg:        "var(--surface)",
@@ -632,7 +632,7 @@ export function DocPanel({ project, view }) {
       </div>
 
       {/* 오른쪽: AI 채팅 */}
-      <AiChatSidebar contextType={view} onApplyDraft={applyDraft} />
+      <AiChatDock contextType={view} />
     </div>
   );
 }
