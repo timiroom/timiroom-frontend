@@ -11,11 +11,9 @@
  *   3순위: 빈 상태 안내
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
-import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { AiChatSidebar } from "./AiChatSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { fetchProjectMembers, saveProjectDocument } from "@/lib/projectApi";
 import { getTeamWorkspace } from "@/lib/teamApi";
@@ -981,7 +979,6 @@ export function FeaturesPanel({ project, readOnly = false }) {
   const [planningError,   setPlanningError]   = useState("");
   const [creatingIssueKeys, setCreatingIssueKeys] = useState(new Set());
   const [bulkCreating,    setBulkCreating]    = useState(false);
-  const [aiOpen,          setAiOpen]          = useState(false);
   const savedFeaturesRef = useRef([]);
 
   const coreFeatures = useMemo(() => {
@@ -1112,13 +1109,6 @@ export function FeaturesPanel({ project, readOnly = false }) {
     return null;
   }
 
-  async function handleSave() {
-    const dataToSave = coreFeatures ? editedFeatures : editedSimple;
-    const payload = buildSavePayload(dataToSave);
-    if (!payload) {
-      alert("저장할 아티팩트를 찾을 수 없습니다. 파이프라인을 먼저 실행하세요.");
-      return;
-    }
   function taskDraft(feature, taskIndex, repo = null, preferredType = null) {
     const type = preferredType && TASK_TYPE_META[preferredType] ? preferredType : taskTypeFromRepo(repo);
     return normalizeTask({
@@ -1180,15 +1170,25 @@ export function FeaturesPanel({ project, readOnly = false }) {
 
   async function persistFeatures(features) {
     if (!project?.id) throw new Error("프로젝트가 선택되지 않았습니다.");
+
+    /* FEATURE_LIST 아티팩트가 아직 없으면 PRD 아티팩트로 폴백한다.
+       이때 buildSavePayload가 PRD 문서의 coreFeatures 필드만 갱신해 주므로
+       PRD 전체(개요·KPI·페르소나 등)를 덮어쓰지 않는다. */
+    if (!project?.artifactIds?.FEATURE_LIST) {
+      const payload = buildSavePayload(features);
+      if (!payload) {
+        throw new Error("저장할 아티팩트를 찾을 수 없습니다. 파이프라인을 먼저 실행하세요.");
+      }
+      await updateArtifact(payload.artifactId, payload.content);
+      return;
+    }
+
     await saveProjectDocument(project.id, "FEATURE_LIST", JSON.stringify(features));
   }
 
   async function handleSave() {
     setSaving(true);
     try {
-      await updateArtifact(payload.artifactId, payload.content);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
       const updatedIssues = await syncLinkedIssues(editedFeatures);
       await persistFeatures(editedFeatures);
       if (updatedIssues.length > 0) {
@@ -1209,16 +1209,14 @@ export function FeaturesPanel({ project, readOnly = false }) {
   }
 
   /* ── AI 수정안 적용 ──
-     기능 목록은 객체 배열(coreFeatures)과 단순 문자열 배열 두 형태를 모두 지원한다.
+     기능 목록은 객체 배열(coreFeatures)만 지원한다.
      AI가 형태를 바꿔버리면 렌더링이 깨지므로(f.name이 undefined) 적용 전에 막는다. */
   async function handleApplyEdits(edits) {
     const edit = edits.find(e => e.section === "features");
     if (!edit || !Array.isArray(edit.after) || edit.after.length === 0) return;
 
     const next = edit.after;
-    const wantsObjects = !!coreFeatures;
-    const gotObjects = typeof next[0] === "object";
-    if (wantsObjects !== gotObjects) {
+    if (next.some(feature => typeof feature !== "object" || feature === null)) {
       throw new Error("AI가 기능 목록의 형식을 바꾸려 해서 적용하지 않았습니다. 다시 요청해 주세요.");
     }
 
@@ -1228,14 +1226,11 @@ export function FeaturesPanel({ project, readOnly = false }) {
     }
 
     await updateArtifact(payload.artifactId, payload.content);
-    if (wantsObjects) setEditedFeatures(next);
-    else              setEditedSimple(next);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setEditedFeatures(next.map(normalizeFeature));
+    markSaved();
   }
 
   const displayFeatures = coreFeatures ? editedFeatures : null;
-  const displaySimple   = simpleList   ? editedSimple   : null;
   function memberName(memberId) {
     if (!memberId) return "미지정";
     return members.find(member => String(member.memberId) === String(memberId))?.displayName ?? `멤버 ${memberId}`;
@@ -1505,19 +1500,6 @@ export function FeaturesPanel({ project, readOnly = false }) {
               </button>
             )}
 
-            <button
-              type="button"
-              className="features-ai-toggle"
-              onClick={() => setAiOpen(open => !open)}
-              aria-expanded={aiOpen}
-              style={{
-                display: "none", alignItems: "center", gap: 4, padding: "5px 9px",
-                borderRadius: 7, border: "1px solid rgba(124,58,237,.22)",
-                background: "#f5f3ff", color: "#6d28d9", fontFamily: "inherit",
-                fontSize: 11, fontWeight: 750, cursor: "pointer",
-              }}
-            >{aiOpen ? "AI 닫기" : "AI 열기"}</button>
-
             {/* 검색 */}
             <div className="features-panel-search" style={{ position: "relative" }}>
               <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
@@ -1605,38 +1587,10 @@ export function FeaturesPanel({ project, readOnly = false }) {
         contextType="features"
         project={project}
         currentContent={currentContent}
-        document={canSave && total > 0 ? { features: displayFeatures ?? displaySimple } : null}
+        document={canSave && total > 0 ? { features: displayFeatures } : null}
         onApplyEdits={canSave && total > 0 ? handleApplyEdits : undefined}
       />
-      <div className={`features-ai-shell${aiOpen ? " is-open" : ""}`}>
-        <AiChatSidebar
-          contextType="features"
-          project={project}
-          currentContent={currentContent}
-          onApplyContent={undefined}
-        />
-      </div>
-
       <style>{`
-        .features-ai-shell { display: flex; min-width: 0; }
-
-        @container features-panel (max-width: 900px) {
-          .features-ai-toggle { display: inline-flex !important; }
-          .features-ai-shell {
-            display: none;
-            position: absolute;
-            z-index: 30;
-            top: 52px;
-            right: 0;
-            bottom: 0;
-            width: min(320px, 100%);
-            max-width: 100%;
-            box-shadow: -14px 0 34px rgba(15,23,42,.13);
-          }
-          .features-ai-shell.is-open { display: flex; }
-          .features-ai-shell > div { max-width: 100%; }
-        }
-
         @container features-panel (max-width: 640px) {
           .features-panel-header {
             height: auto !important;
@@ -1652,7 +1606,6 @@ export function FeaturesPanel({ project, readOnly = false }) {
           .features-panel-search { flex: 1; min-width: 100px; }
           .features-panel-search input { width: 100% !important; box-sizing: border-box; }
           .features-panel-content { padding: 14px 12px 44px !important; }
-          .features-ai-shell { top: 96px; }
         }
 
         @container feature-card (max-width: 600px) {

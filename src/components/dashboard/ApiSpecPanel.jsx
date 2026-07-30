@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { AiChatDock } from "./AiChatDock";
-import { AiChatSidebar } from "./AiChatSidebar";
 import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
 
