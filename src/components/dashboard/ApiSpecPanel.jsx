@@ -4,6 +4,14 @@ import { useState, useMemo, useEffect } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
+import { API_BASE_URL } from "@/lib/authConfig";
+import {
+  generateAxiosCode,
+  generateReactQueryCode,
+  generateTypeScriptTypes,
+  generateCurlCommand,
+} from "@/lib/codeGenerator";
+import { exportToPostman, exportToOpenApi } from "@/lib/apiSpecExport";
 
 const C = {
   bg:       "var(--surface)",
@@ -439,7 +447,140 @@ function StatusBadge({ status }) {
 /* ══════════════════════════════════════
    엔드포인트 카드 (편집/삭제 버튼 포함)
 ══════════════════════════════════════ */
-function EndpointCard({ endpoint, canEdit, onEdit, onDelete }) {
+/* ══════════════════════════════════════
+   코드 생성 모달
+   명세 하나를 Axios / React Query / TS 타입 / curl 로 변환해 보여준다.
+══════════════════════════════════════ */
+const CODE_TABS = [
+  { key: "axios",  label: "Axios",        lang: "javascript" },
+  { key: "query",  label: "React Query",  lang: "javascript" },
+  { key: "types",  label: "TS 타입",       lang: "typescript" },
+  { key: "curl",   label: "curl",         lang: "bash" },
+];
+
+function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
+  const [tab, setTab] = useState("axios");
+  const [copied, setCopied] = useState(false);
+
+  const code = useMemo(() => {
+    if (!endpoint) return "";
+    switch (tab) {
+      case "axios": return generateAxiosCode(endpoint);
+      case "query": return generateReactQueryCode(endpoint);
+      case "types": return generateTypeScriptTypes(endpoint);
+      case "curl":  return generateCurlCommand(endpoint, mockBaseUrl);
+      default:      return "";
+    }
+  }, [endpoint, tab, mockBaseUrl]);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert("클립보드 복사에 실패했습니다");
+    }
+  }
+
+  if (!endpoint) return null;
+  const mc = METHOD_COLOR[(endpoint.method || "GET").toUpperCase()] || METHOD_COLOR.GET;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 780, maxHeight: "85vh",
+          display: "flex", flexDirection: "column",
+          background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12,
+          overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        }}
+      >
+        {/* 헤더 */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "14px 18px", borderBottom: `1px solid ${C.border}`, background: C.surface,
+        }}>
+          <span style={{
+            fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 5,
+            background: mc.bg, border: `1px solid ${mc.border}`, color: mc.text,
+          }}>{(endpoint.method || "GET").toUpperCase()}</span>
+          <code style={{
+            fontSize: 13, color: C.text, flex: 1, minWidth: 0,
+            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>{endpoint.path}</code>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`,
+              background: "transparent", color: C.muted, cursor: "pointer", fontSize: 16, lineHeight: 1,
+            }}
+          >×</button>
+        </div>
+
+        {/* 탭 */}
+        <div style={{
+          display: "flex", gap: 4, padding: "10px 18px 0",
+          borderBottom: `1px solid ${C.border}`, background: C.surface,
+        }}>
+          {CODE_TABS.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{
+                padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                border: "none", background: "transparent",
+                color: tab === t.key ? "#60a5fa" : C.muted,
+                borderBottom: `2px solid ${tab === t.key ? "#60a5fa" : "transparent"}`,
+              }}
+            >{t.label}</button>
+          ))}
+        </div>
+
+        {/* 코드 */}
+        <div style={{ flex: 1, overflow: "auto", padding: 18, background: C.code }}>
+          <pre style={{
+            margin: 0, fontSize: 12.5, lineHeight: 1.65, color: C.text,
+            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            whiteSpace: "pre-wrap", wordBreak: "break-word",
+          }}>{code}</pre>
+        </div>
+
+        {/* 푸터 */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 18px", borderTop: `1px solid ${C.border}`, background: C.surface,
+        }}>
+          <span style={{ fontSize: 11, color: C.muted }}>
+            {tab === "curl" && mockBaseUrl
+              ? "Mock 서버로 바로 호출할 수 있는 명령입니다"
+              : "생성된 코드는 프로젝트 규칙에 맞게 다듬어 사용하세요"}
+          </span>
+          <button
+            onClick={handleCopy}
+            style={{
+              padding: "6px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              background: copied ? "rgba(52,211,153,0.12)" : "rgba(96,165,250,0.12)",
+              border: `1px solid ${copied ? "rgba(52,211,153,0.35)" : "rgba(96,165,250,0.35)"}`,
+              color: copied ? "#34d399" : "#60a5fa",
+            }}
+          >{copied ? "✓ 복사됨" : "코드 복사"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode }) {
   const [open, setOpen] = useState(false);
   const mc = METHOD_COLOR[endpoint.method] || METHOD_COLOR.GET;
 
@@ -494,6 +635,25 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete }) {
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </button>
+
+        {/* 코드 생성 — 읽기 전용이어도 사용 가능 */}
+        <div style={{ display: "flex", gap: 4, paddingLeft: 12, flexShrink: 0 }}>
+          <button
+            onClick={() => onShowCode(endpoint.specIdx)}
+            title="클라이언트 코드 생성"
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "5px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)",
+              color: "#60a5fa", cursor: "pointer",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            </svg>
+            코드
+          </button>
+        </div>
 
         {/* 편집/삭제 버튼 */}
         {canEdit && (
@@ -585,7 +745,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete }) {
 /* ══════════════════════════════════════
    태그 그룹
 ══════════════════════════════════════ */
-function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd }) {
+function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd, onShowCode }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <div style={{ marginBottom: 24 }}>
@@ -631,6 +791,7 @@ function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd }) {
               canEdit={canEdit}
               onEdit={onEdit}
               onDelete={onDelete}
+              onShowCode={onShowCode}
             />
           ))}
         </div>
@@ -721,11 +882,17 @@ export function ApiSpecPanel({ project, readOnly = false }) {
   const [editingSpec,  setEditingSpec]  = useState(null); // null | { idx: number|"new", raw: {...}|null }
   const [opSaving,     setOpSaving]     = useState(false);
   const [saved,        setSaved]        = useState(false);
+  const [codeSpec,     setCodeSpec]     = useState(null); // 코드 생성 모달에 띄울 원본 엔드포인트
+  const [mockCopied,   setMockCopied]   = useState(false);
 
-  useEffect(() => { setLocalApiSpec(null); }, [project?.id]);
+  useEffect(() => { setLocalApiSpec(null); setCodeSpec(null); }, [project?.id]);
 
   const rawApiSpec = localApiSpec ?? project?.apiSpec;
   const canEdit    = !readOnly && !!project?.artifactIds?.API_SPEC;
+
+  /* Mock 서버 기본 URL — 백엔드 MockController가 이 경로로 명세 기반 가짜 응답을 준다 */
+  const mockBaseUrl = project?.id ? `${API_BASE_URL}/mock/${project.id}` : "";
+  const hasEndpoints = Array.isArray(rawApiSpec?.endpoints) && rawApiSpec.endpoints.length > 0;
 
   const specTags = useMemo(() => buildTagsFromApiSpec(rawApiSpec) || [], [rawApiSpec]);
   const specTitle = project?.name ? `${project.name} API` : "API 명세서";
@@ -757,6 +924,35 @@ export function ApiSpecPanel({ project, readOnly = false }) {
   /* ── 추가 ── */
   function handleAddEndpoint() {
     setEditingSpec({ idx: "new", raw: null });
+  }
+
+  /* ── 코드 생성 모달 열기 (원본 엔드포인트를 그대로 넘긴다) ── */
+  function handleShowCode(specIdx) {
+    const endpoints = rawApiSpec?.endpoints || [];
+    const raw = endpoints[specIdx];
+    if (raw) setCodeSpec(raw);
+  }
+
+  /* ── Mock 서버 URL 복사 ── */
+  async function handleCopyMockUrl() {
+    try {
+      await navigator.clipboard.writeText(mockBaseUrl);
+      setMockCopied(true);
+      setTimeout(() => setMockCopied(false), 2000);
+    } catch {
+      alert("클립보드 복사에 실패했습니다");
+    }
+  }
+
+  /* ── 내보내기 ── */
+  function handleExport(kind) {
+    try {
+      const name = project?.name ? `${project.name} API` : "API 명세";
+      if (kind === "postman") exportToPostman(rawApiSpec, name, mockBaseUrl);
+      else exportToOpenApi(rawApiSpec, name, mockBaseUrl);
+    } catch (e) {
+      alert("내보내기 실패: " + e.message);
+    }
   }
 
   /* ── 편집 열기 ── */
@@ -834,6 +1030,15 @@ export function ApiSpecPanel({ project, readOnly = false }) {
         />
       )}
 
+      {/* 코드 생성 모달 */}
+      {codeSpec && (
+        <CodeGenModal
+          endpoint={codeSpec}
+          mockBaseUrl={mockBaseUrl}
+          onClose={() => setCodeSpec(null)}
+        />
+      )}
+
       {/* ── 왼쪽: 명세 뷰어 ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* 헤더 */}
@@ -874,6 +1079,52 @@ export function ApiSpecPanel({ project, readOnly = false }) {
                 color: "#34d399", fontWeight: 600,
               }}>✓ 저장됨</span>
             )}
+
+            {/* Mock 서버 URL — 프론트가 백엔드 구현 전에 호출할 수 있는 주소 */}
+            {hasEndpoints && mockBaseUrl && (
+              <button
+                onClick={handleCopyMockUrl}
+                title={`Mock 서버 주소 복사\n${mockBaseUrl}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  background: mockCopied ? "rgba(52,211,153,0.12)" : "rgba(167,139,250,0.12)",
+                  border: `1px solid ${mockCopied ? "rgba(52,211,153,0.35)" : "rgba(167,139,250,0.35)"}`,
+                  color: mockCopied ? "#34d399" : "#a78bfa", cursor: "pointer",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
+                  <line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+                </svg>
+                {mockCopied ? "복사됨" : "Mock 서버"}
+              </button>
+            )}
+
+            {/* 내보내기 */}
+            {hasEndpoints && (
+              <>
+                <button
+                  onClick={() => handleExport("postman")}
+                  title="Postman Collection v2.1로 내보내기"
+                  style={{
+                    padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                    background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.3)",
+                    color: "#fb923c", cursor: "pointer",
+                  }}
+                >Postman</button>
+                <button
+                  onClick={() => handleExport("openapi")}
+                  title="OpenAPI 3.0 문서로 내보내기"
+                  style={{
+                    padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                    background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
+                    color: "#34d399", cursor: "pointer",
+                  }}
+                >OpenAPI</button>
+              </>
+            )}
+
             {canEdit && (
               <button
                 onClick={handleAddEndpoint}
@@ -970,6 +1221,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
                 onEdit={handleEditEndpoint}
                 onDelete={handleDeleteEndpoint}
                 onAdd={handleAddEndpoint}
+                onShowCode={handleShowCode}
               />
             ))
           )}
