@@ -580,7 +580,297 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
   );
 }
 
-function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode }) {
+function sampleValue(schema, fallbackName = "value", depth = 0) {
+  if (depth > 5) return null;
+  if (schema === null || schema === undefined) return "";
+  if (typeof schema !== "object") {
+    if (schema === "string") return fallbackName;
+    if (schema === "integer" || schema === "number") return 1;
+    if (schema === "boolean") return true;
+    return schema;
+  }
+  if (schema.example !== undefined) return schema.example;
+  if (schema.default !== undefined) return schema.default;
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) return schema.enum[0];
+  if (Array.isArray(schema)) {
+    return schema.length > 0 ? schema.map((item, index) => sampleValue(item, `${fallbackName}${index + 1}`, depth + 1)) : [];
+  }
+  if (schema.type === "array") return [sampleValue(schema.items, fallbackName, depth + 1)];
+  if (schema.type === "integer" || schema.type === "number") return 1;
+  if (schema.type === "boolean") return true;
+  if (schema.type === "string") return schema.format === "date" ? "2026-01-01" : fallbackName;
+
+  const source = schema.properties && typeof schema.properties === "object" ? schema.properties : schema;
+  return Object.fromEntries(
+    Object.entries(source)
+      .filter(([key]) => !["type", "description", "required", "format", "contentType"].includes(key))
+      .map(([key, value]) => [key, sampleValue(value, key, depth + 1)])
+  );
+}
+
+function parameterExample(param) {
+  if (param?.example !== undefined && param.example !== null) return String(param.example);
+  if (param?.default !== undefined && param.default !== null) return String(param.default);
+  const type = String(param?.type || "string").toLowerCase();
+  if (type.includes("int") || type.includes("number") || /id$/i.test(param?.name || "")) return "1";
+  if (type.includes("bool")) return "true";
+  return param?.required ? "value" : "";
+}
+
+function ApiTestModal({ endpoint, mockBaseUrl, onClose }) {
+  const parameters = endpoint?.parameters || [];
+  const [baseUrl, setBaseUrl] = useState(mockBaseUrl || "");
+  const [parameterValues, setParameterValues] = useState(() => Object.fromEntries(
+    parameters.map(param => [`${param.in}:${param.name}`, parameterExample(param)])
+  ));
+  const [headerValues, setHeaderValues] = useState(() => {
+    const values = Object.fromEntries(
+      parameters.filter(param => param.in === "header").map(param => [param.name, parameterExample(param)])
+    );
+    if (endpoint?.auth && !Object.keys(values).some(name => name.toLowerCase() === "authorization")) {
+      values.Authorization = "";
+    }
+    return values;
+  });
+  const [bodyText, setBodyText] = useState(() => {
+    const schema = endpoint?.requestBody?.schema ?? endpoint?.requestBody;
+    return schema ? JSON.stringify(sampleValue(schema, "value"), null, 2) : "";
+  });
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  if (!endpoint) return null;
+
+  const method = (endpoint.method || "GET").toUpperCase();
+  const methodColor = METHOD_COLOR[method] || METHOD_COLOR.GET;
+  const pathParameters = parameters.filter(param => param.in === "path");
+  const queryParameters = parameters.filter(param => param.in === "query");
+  const hasBody = !["GET", "HEAD"].includes(method) && Boolean(endpoint.requestBody);
+
+  function setParameter(param, value) {
+    setParameterValues(current => ({ ...current, [`${param.in}:${param.name}`]: value }));
+    setError("");
+  }
+
+  function buildRequestUrl() {
+    if (!baseUrl.trim()) throw new Error("요청 서버 주소를 입력해 주세요.");
+    let resolvedPath = endpoint.path || "/";
+    pathParameters.forEach(param => {
+      const value = parameterValues[`path:${param.name}`]?.trim();
+      if (param.required && !value) throw new Error(`${param.name} 경로 파라미터를 입력해 주세요.`);
+      resolvedPath = resolvedPath.replaceAll(`{${param.name}}`, encodeURIComponent(value || ""));
+    });
+
+    const query = new URLSearchParams();
+    queryParameters.forEach(param => {
+      const value = parameterValues[`query:${param.name}`]?.trim();
+      if (param.required && !value) throw new Error(`${param.name} 쿼리 파라미터를 입력해 주세요.`);
+      if (value) query.set(param.name, value);
+    });
+
+    const normalizedBase = baseUrl.trim().replace(/\/$/, "");
+    const normalizedPath = resolvedPath.startsWith("/") ? resolvedPath : `/${resolvedPath}`;
+    const queryString = query.toString();
+    return `${normalizedBase}${normalizedPath}${queryString ? `?${queryString}` : ""}`;
+  }
+
+  async function handleRun() {
+    setError("");
+    setResult(null);
+    setCopied(false);
+
+    let requestUrl;
+    let requestBody;
+    try {
+      requestUrl = buildRequestUrl();
+      if (hasBody && bodyText.trim()) requestBody = JSON.stringify(JSON.parse(bodyText));
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    }
+
+    const headers = {};
+    Object.entries(headerValues).forEach(([name, value]) => {
+      if (value.trim()) headers[name] = value.trim();
+    });
+    if (requestBody && !Object.keys(headers).some(name => name.toLowerCase() === "content-type")) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    setRunning(true);
+    const startedAt = performance.now();
+    try {
+      const response = await fetch(requestUrl, {
+        method,
+        headers,
+        body: requestBody,
+        credentials: "include",
+      });
+      const duration = Math.round(performance.now() - startedAt);
+      const responseText = await response.text();
+      let formattedBody = responseText;
+      try { formattedBody = JSON.stringify(JSON.parse(responseText), null, 2); }
+      catch { formattedBody = responseText || "응답 본문이 없습니다."; }
+
+      setResult({
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        duration,
+        url: requestUrl,
+        headers: Array.from(response.headers.entries()),
+        body: formattedBody,
+      });
+    } catch (requestError) {
+      setError(requestError.name === "TypeError"
+        ? "요청을 전송하지 못했습니다. 서버 실행 상태와 CORS 설정을 확인해 주세요."
+        : requestError.message);
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function handleCopyResponse() {
+    if (!result?.body) return;
+    try {
+      await navigator.clipboard.writeText(result.body);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("응답 내용을 복사하지 못했습니다.");
+    }
+  }
+
+  const inputStyle = {
+    width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 7,
+    border: `1px solid ${C.border}`, background: "var(--bg)", color: C.text,
+    fontSize: 12, outline: "none", fontFamily: "'JetBrains Mono','Fira Code',monospace",
+  };
+
+  function renderParameterInputs(title, items) {
+    if (items.length === 0) return null;
+    return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 7 }}>{title}</div>
+      <div style={{ display: "grid", gap: 7 }}>
+        {items.map(param => (
+          <label key={`${param.in}:${param.name}`} style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: C.muted }}>
+              <code style={{ color: C.text }}>{param.name}</code>{param.required && <span style={{ color: "#ef4444" }}> *</span>}
+            </span>
+            <input
+              value={parameterValues[`${param.in}:${param.name}`] || ""}
+              onChange={event => setParameter(param, event.target.value)}
+              placeholder={param.description || `${param.name} 입력`}
+              style={inputStyle}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+    );
+  }
+
+  return (
+    <div onClick={() => { if (!running) onClose(); }} style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(0,0,0,0.48)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div onClick={event => event.stopPropagation()} style={{ width: "100%", maxWidth: 1080, height: "min(820px, 88vh)", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: "0 24px 70px rgba(0,0,0,0.32)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+          <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 5, background: methodColor.bg, border: `1px solid ${methodColor.border}`, color: methodColor.text }}>{method}</span>
+          <code style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: C.text, fontSize: 13 }}>{endpoint.path}</code>
+          <span style={{ fontSize: 12, color: C.muted }}>API 테스트</span>
+          <button onClick={onClose} disabled={running} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, cursor: running ? "not-allowed" : "pointer", fontSize: 16 }}>×</button>
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
+          <div style={{ overflowY: "auto", padding: 18, borderRight: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 8 }}>요청 서버</div>
+            <input value={baseUrl} onChange={event => { setBaseUrl(event.target.value); setError(""); }} placeholder="http://localhost:8080/mock/1" style={inputStyle} />
+
+            {renderParameterInputs("Path Parameters", pathParameters)}
+            {renderParameterInputs("Query Parameters", queryParameters)}
+
+            {Object.keys(headerValues).length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 7 }}>Headers</div>
+                <div style={{ display: "grid", gap: 7 }}>
+                  {Object.entries(headerValues).map(([name, value]) => (
+                    <label key={name} style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+                      <code style={{ fontSize: 11, color: C.text }}>{name}</code>
+                      <input value={value} onChange={event => { setHeaderValues(current => ({ ...current, [name]: event.target.value })); setError(""); }} placeholder={name === "Authorization" ? "Bearer token" : `${name} 입력`} style={inputStyle} />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hasBody && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 7 }}>Request Body</div>
+                <textarea value={bodyText} onChange={event => { setBodyText(event.target.value); setError(""); }} rows={12} spellCheck={false} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+              </div>
+            )}
+
+            {parameters.some(param => param.in === "cookie") && (
+              <div style={{ marginTop: 12, padding: "9px 10px", borderRadius: 7, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#a16207", fontSize: 11 }}>
+                쿠키 파라미터는 현재 브라우저에 저장된 쿠키를 자동으로 사용합니다.
+              </div>
+            )}
+
+            {error && <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 8, background: "rgba(248,113,113,0.09)", border: "1px solid rgba(248,113,113,0.25)", color: "#dc2626", fontSize: 12, lineHeight: 1.5 }}>{error}</div>}
+          </div>
+
+          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 50, padding: "10px 16px", borderBottom: `1px solid ${C.border}` }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>응답</span>
+              {result && <>
+                <StatusBadge status={result.status} />
+                <span style={{ fontSize: 11, color: result.ok ? "#16a34a" : "#dc2626" }}>{result.statusText || (result.ok ? "성공" : "실패")}</span>
+                <span style={{ fontSize: 11, color: C.sub }}>{result.duration}ms</span>
+              </>}
+              <div style={{ flex: 1 }} />
+              {result && <button onClick={handleCopyResponse} style={{ padding: "5px 9px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, fontSize: 11, cursor: "pointer" }}>{copied ? "복사됨" : "응답 복사"}</button>}
+            </div>
+
+            {result ? (
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.sub, marginBottom: 6 }}>REQUEST URL</div>
+                <code style={{ display: "block", padding: "8px 10px", borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, lineHeight: 1.5, overflowWrap: "anywhere" }}>{result.url}</code>
+
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.sub, margin: "16px 0 6px" }}>RESPONSE HEADERS</div>
+                <div style={{ padding: "8px 10px", borderRadius: 7, background: C.surface, border: `1px solid ${C.border}` }}>
+                  {result.headers.length > 0 ? result.headers.map(([name, value]) => (
+                    <div key={name} style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", gap: 8, fontSize: 11, lineHeight: 1.7 }}>
+                      <code style={{ color: C.muted }}>{name}</code><span style={{ color: C.text, overflowWrap: "anywhere" }}>{value}</span>
+                    </div>
+                  )) : <span style={{ fontSize: 11, color: C.sub }}>응답 헤더가 없습니다.</span>}
+                </div>
+
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.sub, margin: "16px 0 6px" }}>RESPONSE BODY</div>
+                <pre style={{ margin: 0, padding: 12, minHeight: 180, borderRadius: 7, background: "#16181c", color: "#d1d5db", fontSize: 12, lineHeight: 1.65, whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "'JetBrains Mono','Fira Code',monospace" }}>{result.body}</pre>
+              </div>
+            ) : (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.sub, fontSize: 12, textAlign: "center", lineHeight: 1.7, padding: 24 }}>
+                요청값을 확인한 후 실행하면<br />응답 결과가 여기에 표시됩니다.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: `1px solid ${C.border}`, background: C.surface }}>
+          <span style={{ fontSize: 11, color: C.muted }}>세션 쿠키를 포함해 프로젝트 Mock 서버로 요청합니다.</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onClose} disabled={running} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, fontSize: 12, cursor: running ? "not-allowed" : "pointer" }}>닫기</button>
+            <button onClick={handleRun} disabled={running || !baseUrl.trim()} style={{ padding: "7px 18px", borderRadius: 7, border: "1px solid rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.14)", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: running || !baseUrl.trim() ? "not-allowed" : "pointer", opacity: running || !baseUrl.trim() ? 0.6 : 1 }}>{running ? "요청 중..." : "실행"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest }) {
   const [open, setOpen] = useState(false);
   const mc = METHOD_COLOR[endpoint.method] || METHOD_COLOR.GET;
 
@@ -636,8 +926,23 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode }) {
           </svg>
         </button>
 
-        {/* 코드 생성 — 읽기 전용이어도 사용 가능 */}
+        {/* 테스트 및 코드 생성 — 읽기 전용이어도 사용 가능 */}
         <div style={{ display: "flex", gap: 4, paddingLeft: 12, flexShrink: 0 }}>
+          <button
+            onClick={() => onTest(endpoint)}
+            title="API 요청 테스트"
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "5px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.22)",
+              color: "#16a34a", cursor: "pointer",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 3l14 9-14 9V3z"/>
+            </svg>
+            테스트
+          </button>
           <button
             onClick={() => onShowCode(endpoint.specIdx)}
             title="클라이언트 코드 생성"
@@ -745,7 +1050,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode }) {
 /* ══════════════════════════════════════
    태그 그룹
 ══════════════════════════════════════ */
-function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd, onShowCode }) {
+function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd, onShowCode, onTest }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <div style={{ marginBottom: 24 }}>
@@ -792,6 +1097,7 @@ function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd, onShowCode }) {
               onEdit={onEdit}
               onDelete={onDelete}
               onShowCode={onShowCode}
+              onTest={onTest}
             />
           ))}
         </div>
@@ -876,22 +1182,28 @@ function buildTagsFromApiSpec(apiSpec) {
 /* ══════════════════════════════════════
    API SPEC PANEL
 ══════════════════════════════════════ */
-export function ApiSpecPanel({ project, readOnly = false }) {
+export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
   const [search,       setSearch]       = useState("");
   const [localApiSpec, setLocalApiSpec] = useState(null);
   const [editingSpec,  setEditingSpec]  = useState(null); // null | { idx: number|"new", raw: {...}|null }
   const [opSaving,     setOpSaving]     = useState(false);
   const [saved,        setSaved]        = useState(false);
   const [codeSpec,     setCodeSpec]     = useState(null); // 코드 생성 모달에 띄울 원본 엔드포인트
+  const [testSpec,     setTestSpec]     = useState(null); // API 테스트 모달에 띄울 정규화 엔드포인트
   const [mockCopied,   setMockCopied]   = useState(false);
 
-  useEffect(() => { setLocalApiSpec(null); setCodeSpec(null); }, [project?.id]);
+  useEffect(() => {
+    setLocalApiSpec(null);
+    setCodeSpec(null);
+    setTestSpec(null);
+    setMockCopied(false);
+  }, [project?.id]);
 
   const rawApiSpec = localApiSpec ?? project?.apiSpec;
   const canEdit    = !readOnly && !!project?.artifactIds?.API_SPEC;
 
   /* Mock 서버 기본 URL — 백엔드 MockController가 이 경로로 명세 기반 가짜 응답을 준다 */
-  const mockBaseUrl = project?.id ? `${API_BASE_URL}/mock/${project.id}` : "";
+  const mockBaseUrl = project?.id && API_BASE_URL ? `${API_BASE_URL}/mock/${project.id}` : "";
   const hasEndpoints = Array.isArray(rawApiSpec?.endpoints) && rawApiSpec.endpoints.length > 0;
 
   const specTags = useMemo(() => buildTagsFromApiSpec(rawApiSpec) || [], [rawApiSpec]);
@@ -903,6 +1215,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
     if (!artifactId) return;
     await updateArtifact(artifactId, JSON.stringify(newSpec));
     setLocalApiSpec(newSpec);
+    onDocumentSaved?.({ sourceType: "API_SPEC", document: newSpec });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
@@ -923,6 +1236,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
 
   /* ── 추가 ── */
   function handleAddEndpoint() {
+    onDocumentEditingChange?.("API_SPEC", true);
     setEditingSpec({ idx: "new", raw: null });
   }
 
@@ -958,6 +1272,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
   /* ── 편집 열기 ── */
   function handleEditEndpoint(specIdx) {
     const endpoints = rawApiSpec?.endpoints || [];
+    onDocumentEditingChange?.("API_SPEC", true);
     setEditingSpec({ idx: specIdx, raw: endpoints[specIdx] || null });
   }
 
@@ -991,6 +1306,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
     setOpSaving(true);
     try {
       await persistSpec(newSpec);
+      onDocumentEditingChange?.("API_SPEC", false);
       setEditingSpec(null);
     } catch (e) {
       alert("저장 실패: " + e.message);
@@ -1025,7 +1341,10 @@ export function ApiSpecPanel({ project, readOnly = false }) {
           initial={editingSpec.raw}
           isNew={editingSpec.idx === "new"}
           onSave={handleDrawerSave}
-          onCancel={() => setEditingSpec(null)}
+          onCancel={() => {
+            setEditingSpec(null);
+            onDocumentEditingChange?.("API_SPEC", false);
+          }}
           saving={opSaving}
         />
       )}
@@ -1036,6 +1355,15 @@ export function ApiSpecPanel({ project, readOnly = false }) {
           endpoint={codeSpec}
           mockBaseUrl={mockBaseUrl}
           onClose={() => setCodeSpec(null)}
+        />
+      )}
+
+      {testSpec && (
+        <ApiTestModal
+          key={`${project?.id || "project"}:${testSpec.id}`}
+          endpoint={testSpec}
+          mockBaseUrl={mockBaseUrl}
+          onClose={() => setTestSpec(null)}
         />
       )}
 
@@ -1222,6 +1550,7 @@ export function ApiSpecPanel({ project, readOnly = false }) {
                 onDelete={handleDeleteEndpoint}
                 onAdd={handleAddEndpoint}
                 onShowCode={handleShowCode}
+                onTest={setTestSpec}
               />
             ))
           )}
