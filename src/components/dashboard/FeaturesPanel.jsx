@@ -966,7 +966,7 @@ function featuresToText(coreFeatures, simpleList) {
 /* ══════════════════════════════════════
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
-export function FeaturesPanel({ project, readOnly = false }) {
+export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
   const { user } = useAuth();
   const [search,          setSearch]          = useState("");
   const [saving,          setSaving]          = useState(false);
@@ -1001,6 +1001,11 @@ export function FeaturesPanel({ project, readOnly = false }) {
     setEditedFeatures(nextFeatures);
     savedFeaturesRef.current = cloneFeatures(nextFeatures);
   }, [project?.id, coreFeatures]);
+
+  useEffect(() => {
+    const isEditing = JSON.stringify(editedFeatures) !== JSON.stringify(savedFeaturesRef.current);
+    onDocumentEditingChange?.("FEATURE_LIST", isEditing);
+  }, [editedFeatures, onDocumentEditingChange]);
 
   const loadPlanningContext = useCallback(async () => {
     if (!project?.id) return;
@@ -1200,6 +1205,8 @@ export function FeaturesPanel({ project, readOnly = false }) {
         ]);
       }
       savedFeaturesRef.current = cloneFeatures(editedFeatures);
+      onDocumentEditingChange?.("FEATURE_LIST", false);
+      onDocumentSaved?.({ sourceType: "FEATURE_LIST", document: editedFeatures });
       markSaved();
     } catch (e) {
       alert("저장 실패: " + e.message);
@@ -1226,7 +1233,10 @@ export function FeaturesPanel({ project, readOnly = false }) {
     }
 
     await updateArtifact(payload.artifactId, payload.content);
+    savedFeaturesRef.current = cloneFeatures(next);
     setEditedFeatures(next.map(normalizeFeature));
+    onDocumentEditingChange?.("FEATURE_LIST", false);
+    onDocumentSaved?.({ sourceType: "FEATURE_LIST", document: next });
     markSaved();
   }
 
