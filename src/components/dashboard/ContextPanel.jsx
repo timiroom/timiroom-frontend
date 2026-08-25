@@ -53,6 +53,7 @@ const PROJECT_DOCS = [
   { id: "features",  label: "기능 명세서", icon: "⚡" },
   { id: "api",       label: "API 명세서",  icon: "🔗" },
   { id: "erd",       label: "ERD 명세서",  icon: "🗄️" },
+  { id: "graph",     label: "지식 그래프",  icon: "🕸" },
   { id: "github",    label: "GitHub 작업",  icon: "⌘"  },
   { id: "issues",    label: "Issues 전체",  icon: "⚠️" },
   { id: "pulls",     label: "PRs 전체",     icon: "⇄"  },
