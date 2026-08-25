@@ -1,0 +1,36 @@
+name: CI
+
+# 배포(deploy.yml)와 일부러 파일을 나눈다.
+# 그쪽에 pull_request 트리거를 얹으면 PR을 올릴 때마다 배포가 돌아버린다.
+# 여기서는 빌드가 되는지만 확인하고, 어디에도 밀어 넣지 않는다.
+on:
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # 운영 이미지가 node:20-alpine이다. 다른 버전으로 검증하면
+          # 여기서 통과한 것이 배포에서 깨질 수 있다.
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # NEXT_PUBLIC_* 는 넣지 않는다. 빌드 시점에 값이 박히는 변수라
+        # 여기에 운영 주소를 적어 두면 실제 배포 인자와 어긋났을 때
+        # CI는 통과하는데 배포만 깨지는 상황이 생긴다.
+        # 이 워크플로가 답할 질문은 "코드가 빌드되는가" 하나다.
+        run: npm run build
