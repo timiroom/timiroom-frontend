@@ -1289,7 +1289,7 @@ function SqlModal({ sql, onClose }) {
 /* ══════════════════════════════════════
    ERD PANEL
 ══════════════════════════════════════ */
-export function ErdPanel({ project, readOnly = false }) {
+export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
   const [search,        setSearch]        = useState("");
   const [expandAll,     setExpandAll]     = useState(null);
   const [showSql,       setShowSql]       = useState(false);
@@ -1317,6 +1317,7 @@ export function ErdPanel({ project, readOnly = false }) {
     if (!artifactId) return;
     await updateArtifact(artifactId, JSON.stringify(newSchema));
     setLocalSchema(newSchema);
+    onDocumentSaved?.({ sourceType: "DB_SCHEMA", document: newSchema });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
@@ -1336,11 +1337,13 @@ export function ErdPanel({ project, readOnly = false }) {
 
   /* ── 테이블 추가 ── */
   function handleAddTable() {
+    onDocumentEditingChange?.("DB_SCHEMA", true);
     setEditingTable({ table: null, isNew: true });
   }
 
   /* ── 테이블 편집 열기 ── */
   function handleEditTable(table) {
+    onDocumentEditingChange?.("DB_SCHEMA", true);
     setEditingTable({ table, isNew: false });
   }
 
@@ -1401,6 +1404,7 @@ export function ErdPanel({ project, readOnly = false }) {
     setOpSaving(true);
     try {
       await persistSchema({ ...currentSchema, tables, relationships });
+      onDocumentEditingChange?.("DB_SCHEMA", false);
       setEditingTable(null);
     } catch (e) {
       alert("저장 실패: " + e.message);
@@ -1411,9 +1415,11 @@ export function ErdPanel({ project, readOnly = false }) {
 
   /* ── 관계 드로어 열기 ── */
   function handleOpenAddRelationship() {
+    onDocumentEditingChange?.("DB_SCHEMA", true);
     setEditingRelationship({ idx: "new", raw: null });
   }
   function handleOpenEditRelationship(idx) {
+    onDocumentEditingChange?.("DB_SCHEMA", true);
     setEditingRelationship({ idx, raw: (schema?.relationships || [])[idx] ?? null });
   }
 
@@ -1429,6 +1435,7 @@ export function ErdPanel({ project, readOnly = false }) {
     setOpSaving(true);
     try {
       await persistSchema({ ...currentSchema, relationships: rels });
+      onDocumentEditingChange?.("DB_SCHEMA", false);
       setEditingRelationship(null);
     } catch (e) { alert("저장 실패: " + e.message); }
     finally { setOpSaving(false); }
@@ -1470,7 +1477,10 @@ export function ErdPanel({ project, readOnly = false }) {
           initial={editingTable.table}
           isNew={editingTable.isNew}
           onSave={handleSaveTable}
-          onCancel={() => setEditingTable(null)}
+          onCancel={() => {
+            setEditingTable(null);
+            onDocumentEditingChange?.("DB_SCHEMA", false);
+          }}
           saving={opSaving}
         />
       )}
@@ -1482,7 +1492,10 @@ export function ErdPanel({ project, readOnly = false }) {
           isNew={editingRelationship.idx === "new"}
           tableNames={tableNames}
           onSave={handleSaveRelationship}
-          onCancel={() => setEditingRelationship(null)}
+          onCancel={() => {
+            setEditingRelationship(null);
+            onDocumentEditingChange?.("DB_SCHEMA", false);
+          }}
           saving={opSaving}
         />
       )}

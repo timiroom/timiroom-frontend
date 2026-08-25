@@ -33,6 +33,8 @@ import {
   fetchProjectMembers,
   fetchProjectsByTeam,
 } from "@/lib/projectApi";
+import { updateArtifact } from "@/lib/pipelineApi";
+import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
 
 const ROLE_DOCUMENT_PERMISSIONS = {
   PM:       ["PRD", "DB_SCHEMA", "API_SPEC", "FEATURE_LIST", "MARKET_RESEARCH", "QA_REPORT"],
@@ -215,6 +217,72 @@ function DashboardToast({ notice }) {
   );
 }
 
+const DOCUMENT_FIELDS = {
+  PRD: "prdDocument",
+  FEATURE_LIST: "featureList",
+  API_SPEC: "apiSpec",
+  DB_SCHEMA: "dbSchema",
+};
+
+function projectDocuments(project) {
+  return Object.fromEntries(
+    Object.entries(DOCUMENT_FIELDS)
+      .filter(([type, field]) => project?.artifactIds?.[type] && project?.[field] != null)
+      .map(([type, field]) => [type, project[field]])
+  );
+}
+
+function replaceProjectDocument(project, type, document) {
+  const field = DOCUMENT_FIELDS[type];
+  return field && project ? { ...project, [field]: document } : project;
+}
+
+function DocumentSyncStatus({ sync }) {
+  if (!sync) return null;
+  const isRunning = sync.phase === "analyzing" || sync.phase === "applying";
+  const isError = sync.phase === "error";
+  const accent = isError ? "#dc2626" : sync.phase === "complete" ? "#059669" : "#2563eb";
+
+  return (
+    <div style={{
+      position: "fixed", right: 18, bottom: 18, zIndex: 270, width: 340,
+      padding: "14px 15px", borderRadius: 14, background: "var(--surface)",
+      border: `1px solid ${isError ? "rgba(239,68,68,0.22)" : "rgba(37,99,235,0.16)"}`,
+      boxShadow: "0 18px 48px rgba(0,0,0,0.18)", fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <span style={{
+          width: 18, height: 18, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: `${accent}14`, color: accent, fontSize: 11, fontWeight: 900,
+          animation: isRunning ? "document-sync-spin 0.9s linear infinite" : "none",
+        }}>{isRunning ? "↻" : isError ? "!" : "✓"}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{sync.title}</div>
+          <div style={{ marginTop: 2, fontSize: 11, color: "var(--text-3)", lineHeight: 1.45 }}>{sync.message}</div>
+        </div>
+      </div>
+
+      {sync.targets?.length > 0 && (
+        <div style={{ display: "grid", gap: 6, marginTop: 11 }}>
+          {sync.targets.map(target => {
+            const color = target.status === "failed" ? "#dc2626" : target.status === "completed" ? "#059669" : "#2563eb";
+            const statusLabel = target.status === "failed" ? "실패" : target.status === "completed" ? "반영 완료" : "수정 중";
+            return (
+              <div key={target.type} style={{ padding: "8px 9px", borderRadius: 8, background: "var(--bg)", border: "1px solid rgba(0,0,0,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)" }}>{documentLabel(target.type)}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color }}>{statusLabel}</span>
+                </div>
+                {target.reason && <div style={{ marginTop: 3, fontSize: 10, color: "var(--text-3)", lineHeight: 1.4 }}>{target.reason}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -241,9 +309,13 @@ export default function DashboardPage() {
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [joiningWorkspace, setJoiningWorkspace] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [documentSync, setDocumentSync] = useState(null);
+  const [editingDocumentType, setEditingDocumentType] = useState(null);
   const [myProjectRole, setMyProjectRole] = useState(null);
   const selectedProjectIdRef = useRef(null);
   const runningPipelineRef = useRef(null);
+  const documentSyncRequestRef = useRef(0);
+  const documentSyncAbortRef = useRef(null);
 
   const activeWorkspace = useMemo(
     () => workspaces.find((workspace) => getWorkspaceId(workspace) === activeWorkspaceId) ?? null,
@@ -264,6 +336,19 @@ export default function DashboardPage() {
   }, [selectedProject?.id]);
 
   useEffect(() => {
+    documentSyncAbortRef.current?.abort();
+    documentSyncAbortRef.current = null;
+    setDocumentSync(null);
+    setEditingDocumentType(null);
+  }, [selectedProject?.id]);
+
+  useEffect(() => {
+    setEditingDocumentType(null);
+  }, [selectedView]);
+
+  useEffect(() => () => documentSyncAbortRef.current?.abort(), []);
+
+  useEffect(() => {
     if (!selectedProject?.id || !user?.id) { setMyProjectRole(null); return; }
     fetchProjectMembers(selectedProject.id)
       .then(members => {
@@ -282,6 +367,12 @@ export default function DashboardPage() {
     const timeoutId = window.setTimeout(() => setNotice(null), 2400);
     return () => window.clearTimeout(timeoutId);
   }, [notice]);
+
+  useEffect(() => {
+    if (!documentSync || !["complete", "error"].includes(documentSync.phase)) return undefined;
+    const timeoutId = window.setTimeout(() => setDocumentSync(null), 7000);
+    return () => window.clearTimeout(timeoutId);
+  }, [documentSync]);
 
   function showNotice(type, message) {
     setNotice({ type, message });
@@ -538,6 +629,130 @@ export default function DashboardPage() {
     ));
   }
 
+  function handleDocumentEditingChange(type, isEditing) {
+    setEditingDocumentType(current => isEditing ? type : current === type ? null : current);
+  }
+
+  async function handleDocumentSaved({ sourceType, document }) {
+    const projectSnapshot = selectedProject;
+    const sourceField = DOCUMENT_FIELDS[sourceType];
+    if (!projectSnapshot?.id || !sourceField || document == null) return;
+    setEditingDocumentType(current => current === sourceType ? null : current);
+
+    const before = projectSnapshot[sourceField] ?? null;
+    const projectWithSource = replaceProjectDocument(projectSnapshot, sourceType, document);
+    setSelectedProject(current =>
+      current?.id === projectSnapshot.id ? replaceProjectDocument(current, sourceType, document) : current
+    );
+    setProjects(current => current.map(project =>
+      project.id === projectSnapshot.id ? replaceProjectDocument(project, sourceType, document) : project
+    ));
+
+    if (JSON.stringify(before) === JSON.stringify(document)) return;
+
+    const requestId = documentSyncRequestRef.current + 1;
+    documentSyncRequestRef.current = requestId;
+    documentSyncAbortRef.current?.abort();
+    const controller = new AbortController();
+    documentSyncAbortRef.current = controller;
+
+    setDocumentSync({
+      phase: "analyzing",
+      sourceType,
+      title: `${documentLabel(sourceType)} 변경 영향 분석`,
+      message: "AI가 연결된 문서에서 함께 바뀌어야 할 항목을 확인하고 있습니다.",
+      targets: [],
+    });
+
+    try {
+      const analysis = await analyzeDocumentImpact({
+        sourceType,
+        before,
+        after: document,
+        documents: projectDocuments(projectWithSource),
+        signal: controller.signal,
+      });
+      if (documentSyncRequestRef.current !== requestId) return;
+
+      const updates = Array.from(new Map(
+        analysis.updates
+          .filter(update => projectSnapshot.artifactIds?.[update.type])
+          .map(update => [update.type, update])
+      ).values());
+      if (updates.length === 0) {
+        setDocumentSync({
+          phase: "complete",
+          sourceType,
+          title: "영향도 분석 완료",
+          message: analysis.summary || "추가로 수정할 연결 문서가 없습니다.",
+          targets: [],
+        });
+        return;
+      }
+
+      setDocumentSync({
+        phase: "applying",
+        sourceType,
+        title: `${documentLabel(sourceType)} 변경사항 반영`,
+        message: analysis.summary || "AI가 선택한 연결 문서에 변경사항을 반영하고 있습니다.",
+        targets: updates.map(update => ({ type: update.type, reason: update.reason, status: "pending" })),
+      });
+
+      let failedCount = 0;
+      for (const update of updates) {
+        if (documentSyncRequestRef.current !== requestId) return;
+        setDocumentSync(current => current ? {
+          ...current,
+          targets: current.targets.map(target =>
+            target.type === update.type ? { ...target, status: "applying" } : target
+          ),
+        } : current);
+
+        try {
+          await updateArtifact(projectSnapshot.artifactIds[update.type], JSON.stringify(update.document));
+          setSelectedProject(current =>
+            current?.id === projectSnapshot.id ? replaceProjectDocument(current, update.type, update.document) : current
+          );
+          setProjects(current => current.map(project =>
+            project.id === projectSnapshot.id ? replaceProjectDocument(project, update.type, update.document) : project
+          ));
+          setDocumentSync(current => current ? {
+            ...current,
+            targets: current.targets.map(target =>
+              target.type === update.type ? { ...target, status: "completed" } : target
+            ),
+          } : current);
+        } catch (error) {
+          failedCount += 1;
+          setDocumentSync(current => current ? {
+            ...current,
+            targets: current.targets.map(target =>
+              target.type === update.type ? { ...target, status: "failed", reason: error.message || "문서 저장에 실패했습니다." } : target
+            ),
+          } : current);
+        }
+      }
+
+      setDocumentSync(current => current ? {
+        ...current,
+        phase: failedCount > 0 ? "error" : "complete",
+        title: failedCount > 0 ? "일부 문서 반영 실패" : "연결 문서 반영 완료",
+        message: failedCount > 0
+          ? `${updates.length - failedCount}개 문서는 반영됐고 ${failedCount}개 문서는 저장하지 못했습니다.`
+          : `${updates.length}개 연결 문서가 최신 변경사항에 맞게 수정됐습니다.`,
+      } : current);
+    } catch (error) {
+      if (error.name === "AbortError" || documentSyncRequestRef.current !== requestId) return;
+      setDocumentSync({
+        phase: "error",
+        sourceType,
+        title: "연결 문서 분석 실패",
+        message: error.message || "AI 영향도 분석을 완료하지 못했습니다.",
+        targets: [],
+      });
+    }
+  }
+
   function handleOpenCreateProject() {
     if (!activeWorkspaceId) {
       setComposerError("");
@@ -696,7 +911,10 @@ export default function DashboardPage() {
 
   return (
     <>
-      <style>{`@keyframes dash-panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }`}</style>
+      <style>{`
+        @keyframes dash-panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+        @keyframes document-sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
       <div style={{
         display: "flex",
         height: "100vh",
@@ -735,6 +953,8 @@ export default function DashboardPage() {
           workspaceMembers={workspaceDetail?.members ?? []}
           workspaceLoading={isLoadingWorkspaceDetail}
           onOpenWorkspaceInvite={() => openWorkspaceManager("invite")}
+          documentSync={documentSync}
+          editingDocumentType={editingDocumentType}
         />
 
         {activeMode === "workspace" ? (
@@ -796,13 +1016,15 @@ export default function DashboardPage() {
                 project={selectedProject}
                 readOnly={!canEditDocType(myProjectRole, "PRD")}
                 onDocumentChange={handlePrdDocumentChange}
+                onDocumentSaved={handleDocumentSaved}
+                onDocumentEditingChange={handleDocumentEditingChange}
               />
             ) : selectedView === "features" ? (
-              <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} />
+              <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
             ) : selectedView === "api" ? (
-              <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} />
+              <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
             ) : selectedView === "erd" ? (
-              <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} />
+              <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
             ) : selectedView === "graph" ? (
               <KnowledgeGraph project={selectedProject} />
             ) : selectedView === "github" ? (
@@ -859,6 +1081,7 @@ export default function DashboardPage() {
       />
 
       <DashboardToast notice={notice} />
+      <DocumentSyncStatus sync={documentSync} />
     </>
   );
 }

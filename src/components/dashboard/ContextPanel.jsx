@@ -60,6 +60,34 @@ const PROJECT_DOCS = [
   { id: "qa",        label: "QA",          icon: "✓"  },
 ];
 
+const SYNC_DOCUMENT_TYPES = {
+  prd: "PRD",
+  features: "FEATURE_LIST",
+  api: "API_SPEC",
+  erd: "DB_SCHEMA",
+};
+
+function documentSyncStatus(sync, docId, editingDocumentType) {
+  const type = SYNC_DOCUMENT_TYPES[docId];
+  if (!type) return null;
+  if (editingDocumentType === type) {
+    return { label: "수정 중", color: "#2563eb", background: "rgba(37,99,235,0.09)", spinning: true };
+  }
+  if (!sync) return null;
+
+  const target = sync.targets?.find(item => item.type === type);
+  if (target) {
+    if (target.status === "completed") return { label: "반영 완료", color: "#059669", background: "rgba(16,185,129,0.09)" };
+    if (target.status === "failed") return { label: "반영 실패", color: "#dc2626", background: "rgba(239,68,68,0.09)" };
+    return { label: "수정 중", color: "#2563eb", background: "rgba(37,99,235,0.09)", spinning: true };
+  }
+
+  if (sync.sourceType !== type) return null;
+  if (sync.phase === "analyzing") return { label: "분석 중", color: "#7c3aed", background: "rgba(124,58,237,0.09)", spinning: true };
+  if (sync.phase === "error") return { label: "확인 실패", color: "#dc2626", background: "rgba(239,68,68,0.09)" };
+  return { label: "저장 완료", color: "#059669", background: "rgba(16,185,129,0.09)" };
+}
+
 
 /* ══════════════════════════════════════
    PROJECTS PANEL
@@ -77,6 +105,8 @@ function ProjectsPanel({
   workspace,
   workspaceLoading,
   onOpenWorkspaceInvite,
+  documentSync,
+  editingDocumentType,
 }) {
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState({}); // { [projectId]: boolean }
@@ -312,6 +342,7 @@ function ProjectsPanel({
                           doc={doc}
                           projectName={project.name}
                           isActive={isDocActive}
+                          syncStatus={isSelected ? documentSyncStatus(documentSync, doc.id, editingDocumentType) : null}
                           onClick={e => handleDocClick(project, doc.id, e)}
                         />
                       );
@@ -656,7 +687,7 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
 }
 
 /* ── 서브 문서 아이템 ── */
-function DocItem({ doc, projectName, isActive, onClick }) {
+function DocItem({ doc, projectName, isActive, syncStatus, onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -702,6 +733,21 @@ function DocItem({ doc, projectName, isActive, onClick }) {
       }}>
         {projectName}_{doc.label}
       </span>
+      {syncStatus && (
+        <span style={{
+          marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "2px 6px", borderRadius: 999, background: syncStatus.background,
+          color: syncStatus.color, fontSize: 9, fontWeight: 800,
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${syncStatus.color}`,
+            borderTopColor: syncStatus.spinning ? "transparent" : syncStatus.color,
+            background: syncStatus.spinning ? "transparent" : syncStatus.color,
+            animation: syncStatus.spinning ? "ctx-spin 0.8s linear infinite" : "none",
+          }} />
+          {syncStatus.label}
+        </span>
+      )}
     </button>
   );
 }
@@ -1082,6 +1128,8 @@ export function ContextPanel({
   workspaceMembers = [],
   workspaceLoading = false,
   onOpenWorkspaceInvite,
+  documentSync,
+  editingDocumentType,
 }) {
   return (
     <div style={{
@@ -1104,6 +1152,8 @@ export function ContextPanel({
           workspace={workspace}
           workspaceLoading={workspaceLoading}
           onOpenWorkspaceInvite={onOpenWorkspaceInvite}
+          documentSync={documentSync}
+          editingDocumentType={editingDocumentType}
         />
       ) : mode === "workspace" ? (
         <WorkspacePanel

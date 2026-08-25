@@ -526,11 +526,11 @@ function NotionEditor({ editorRef, onTextChange }) {
   const [isItalic,  setIsItalic]  = useState(false);
   const [colorMenu, setColorMenu] = useState(null);
 
-  function exec(cmd, val = null) { editorRef.current?.focus(); document.execCommand(cmd, false, val); syncState(); }
-  function syncState() {
+  function exec(cmd, val = null) { editorRef.current?.focus(); document.execCommand(cmd, false, val); syncState(true); }
+  function syncState(contentChanged = false) {
     if (!editorRef.current) return;
     try { setIsBold(document.queryCommandState("bold")); setIsItalic(document.queryCommandState("italic")); } catch {}
-    if (onTextChange) onTextChange(editorRef.current.innerText || "");
+    if (contentChanged && onTextChange) onTextChange(editorRef.current.innerText || "");
     const sel = window.getSelection();
     if (sel?.rangeCount) {
       let el = sel.getRangeAt(0).startContainer;
@@ -542,7 +542,7 @@ function NotionEditor({ editorRef, onTextChange }) {
       }
     }
   }
-  function setBlock(tag) { editorRef.current?.focus(); document.execCommand("formatBlock", false, tag); setBlockType(tag); syncState(); }
+  function setBlock(tag) { editorRef.current?.focus(); document.execCommand("formatBlock", false, tag); setBlockType(tag); syncState(true); }
   function applyFontSize(size) {
     setFontSize(size);
     const sel = window.getSelection();
@@ -551,14 +551,14 @@ function NotionEditor({ editorRef, onTextChange }) {
     const span = document.createElement("span");
     span.style.fontSize = size + "px";
     try { range.surroundContents(span); } catch { const f = range.extractContents(); span.appendChild(f); range.insertNode(span); }
-    syncState();
+    syncState(true);
   }
   function applyTextColor(color) { setTextColor(color); exec("foreColor", color); setColorMenu(null); }
   function applyHL(color) {
     setHlColor(color); editorRef.current?.focus();
     document.execCommand("styleWithCSS", false, true);
     document.execCommand(color === "transparent" ? "removeFormat" : "hiliteColor", false, color === "transparent" ? null : color);
-    setColorMenu(null); syncState();
+    setColorMenu(null); syncState(true);
   }
   function handleKeyDown(e) {
     if (e.metaKey || e.ctrlKey) {
@@ -658,7 +658,7 @@ function NotionEditor({ editorRef, onTextChange }) {
         <div
           ref={editorRef}
           contentEditable suppressContentEditableWarning
-          onInput={syncState} onKeyDown={handleKeyDown} onMouseUp={syncState} onKeyUp={syncState}
+          onInput={() => syncState(true)} onKeyDown={handleKeyDown} onMouseUp={() => syncState(false)} onKeyUp={() => syncState(false)}
           data-placeholder="PRD를 작성하세요..."
           className="prd-notion-editor"
           style={{ minHeight: "100%", maxWidth: 720, margin: "0 auto", padding: "48px 56px 120px", outline: "none", fontSize: 14, lineHeight: 1.85, color: C.text, fontFamily: "'Pretendard','Noto Sans KR',sans-serif" }}
@@ -688,7 +688,7 @@ function NotionEditor({ editorRef, onTextChange }) {
 /* ══════════════════════════════════════
    PRD PANEL
 ══════════════════════════════════════ */
-export function PrdPanel({ project, readOnly = false, onDocumentChange }) {
+export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocumentSaved, onDocumentEditingChange }) {
   const editorRef      = useRef(null);
   const [text,          setText]         = useState("");
   const [hasDraft,      setHasDraft]     = useState(false);
@@ -741,10 +741,14 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange }) {
     const htmlContent = editorRef.current?.innerHTML;
     if (!htmlContent || htmlContent === "<p><br></p>" || htmlContent === "<p></p>") return;
     // 원본 구조화 필드 전체 보존, htmlContent만 추가/갱신
-    const content = JSON.stringify({ ...(doc || {}), htmlContent });
+    const nextDoc = { ...(doc || {}), htmlContent };
+    const content = JSON.stringify(nextDoc);
     setSaving(true);
     try {
       await updateArtifact(artifactId, content);
+      onDocumentEditingChange?.("PRD", false);
+      onDocumentChange?.(nextDoc);
+      onDocumentSaved?.({ sourceType: "PRD", document: nextDoc });
       setSaved(true); setTimeout(()=>setSaved(false), 3000);
     } catch(e) { alert("저장 실패: "+e.message); }
     finally { setSaving(false); }
@@ -786,6 +790,8 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange }) {
     setTimeout(() => setSaved(false), 3000);
 
     onDocumentChange?.(nextDoc);
+    onDocumentEditingChange?.("PRD", false);
+    onDocumentSaved?.({ sourceType: "PRD", document: nextDoc });
   }
 
   function handleExportPdf() {
@@ -895,7 +901,10 @@ ${content}</body></html>`;
           </button>
           <PdfBtn disabled={!hasDraft} />
         </div>
-        <NotionEditor editorRef={editorRef} onTextChange={setText} />
+        <NotionEditor editorRef={editorRef} onTextChange={nextText => {
+          setText(nextText);
+          onDocumentEditingChange?.("PRD", true);
+        }} />
       </div>
 
       {/* html 타입 문서는 섹션 키가 없어 구조화 편집이 불가능하다 — 상담 모드로만 붙인다 */}
