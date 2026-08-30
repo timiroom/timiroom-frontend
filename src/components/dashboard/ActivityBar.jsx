@@ -403,11 +403,7 @@ export function ActivityBar({
               );
             })
           )}
-        </div>
 
-        <div style={{ width: 34, height: 1, background: C.border }} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
           <ActionBubble
             label="+"
             title="워크스페이스 추가 또는 참여"
