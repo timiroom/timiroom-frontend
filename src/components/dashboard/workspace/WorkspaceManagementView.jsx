@@ -446,7 +446,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>워크스페이스 관리</span>
@@ -533,7 +532,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>워크스페이스 관리</span>
@@ -604,7 +602,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
