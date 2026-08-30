@@ -743,7 +743,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
           )}
 
           <div
-            style={{ display: "flex", alignItems: "flex-end", gap: 8, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 10px 10px 12px", transition: "border-color 0.15s" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--db-border-mid)", borderRadius: 16, padding: "10px 10px 10px 12px", transition: "border-color 0.15s" }}
             onFocusCapture={e => e.currentTarget.style.borderColor = "var(--db-purple-400)"}
             onBlurCapture={e => e.currentTarget.style.borderColor = "var(--db-border-mid)"}
           >
@@ -808,7 +808,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
               }}
               title="전송 (Enter)"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={canSend ? "white" : "var(--text-3)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
