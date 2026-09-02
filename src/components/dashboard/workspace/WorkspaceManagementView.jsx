@@ -124,6 +124,37 @@ function QuickJumpButton({ active, children, onClick }) {
   );
 }
 
+function IconPanelToggle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M9 4v16" />
+      <rect x="3" y="4" width="6" height="16" rx="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SidebarToggleButton({ onToggleSidebar }) {
+  if (!onToggleSidebar) return null;
+  return (
+    <button
+      type="button"
+      onClick={onToggleSidebar}
+      title="사이드바 접기/펼치기"
+      style={{
+        width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+        background: "none", border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: C.muted,
+      }}
+      onMouseEnter={e => e.currentTarget.style.color = C.text}
+      onMouseLeave={e => e.currentTarget.style.color = C.muted}
+    >
+      <IconPanelToggle />
+    </button>
+  );
+}
+
 export function WorkspaceManagementView({
   activeWorkspaceId,
   workspaceDetail,
@@ -134,6 +165,7 @@ export function WorkspaceManagementView({
   onReloadWorkspace,
   onReloadWorkspaces,
   onBack,
+  onToggleSidebar,
 }) {
   const router = useRouter();
   const [workspaceProjects, setWorkspaceProjects] = useState([]);
@@ -429,6 +461,7 @@ export function WorkspaceManagementView({
           padding: "0 28px",
           gap: 10,
         }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"
@@ -515,6 +548,7 @@ export function WorkspaceManagementView({
           padding: "0 28px",
           gap: 10,
         }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"
@@ -585,6 +619,7 @@ export function WorkspaceManagementView({
         padding: "0 28px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"

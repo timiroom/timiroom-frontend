@@ -131,7 +131,7 @@ function FlowNode({ step, status }) {
 /* ═══════════════════════════════════════════
    ProgressScreen
 ════════════════════════════════════════════ */
-export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel }) {
+export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel, onToggleSidebar }) {
   const [pipelineId,  setPipelineId]  = useState(initialPipelineId);
   const [percent,     setPercent]     = useState(5);
   const [phase,       setPhase]       = useState("running");
@@ -230,7 +230,23 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
-      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 16, gap: 16, flexShrink: 0 }}>
+      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 10, gap: 16, flexShrink: 0 }}>
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            title="사이드바 접기/펼치기"
+            style={{
+              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+              background: "none", border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "var(--text-3)",
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--text-1)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
+          >
+            <IconPanelToggle />
+          </button>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: `2px solid ${accentColor}`, background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
           <span style={{ fontSize: 14 }}>✦</span>
           {phase === "done" ? "생성 완료" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
