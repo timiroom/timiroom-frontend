@@ -1153,8 +1153,8 @@ export function ContextPanel({
 }) {
   return (
     <div style={{
-      width: collapsed ? 56 : 320, flexShrink: 0, height: "100vh",
-      background: C.panel, borderRight: `1px solid ${C.border}`,
+      width: collapsed ? 0 : 320, flexShrink: 0, height: "100vh",
+      background: C.panel, borderRight: collapsed ? "none" : `1px solid ${C.border}`,
       display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "inherit",
       transition: "width 0.16s ease",
     }}>
