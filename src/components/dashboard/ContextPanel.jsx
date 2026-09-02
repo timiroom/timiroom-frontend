@@ -1154,9 +1154,9 @@ export function ContextPanel({
   onOpenWorkspaceInvite,
   documentSync,
   editingDocumentType,
+  collapsed = false,
+  onToggleCollapse,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <div style={{
       width: collapsed ? 56 : 320, flexShrink: 0, height: "100vh",
@@ -1173,7 +1173,7 @@ export function ContextPanel({
       }}>
         <button
           type="button"
-          onClick={() => setCollapsed(v => !v)}
+          onClick={onToggleCollapse}
           title={collapsed ? "패널 펼치기" : "패널 접기"}
           style={{
             width: 28, height: 28, borderRadius: 8,

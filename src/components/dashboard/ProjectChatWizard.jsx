@@ -471,10 +471,21 @@ function TypingIndicator() {
   );
 }
 
+/* ── 사이드바 접기/펼치기 토글 아이콘 ── */
+function IconPanelToggle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M9 4v16" />
+      <rect x="3" y="4" width="6" height="16" rx="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /* ═══════════════════════════════════════════
    메인 — ProjectChatWizard
 ════════════════════════════════════════════ */
-export function ProjectChatWizard({ onPipelineStart, onCancel }) {
+export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed, onToggleSidebar }) {
   const [messages,           setMessages]           = useState([]);
   const [currentSuggestions, setCurrentSuggestions] = useState([]);
   const [inputText,          setInputText]          = useState("");
@@ -637,10 +648,28 @@ export function ProjectChatWizard({ onPipelineStart, onCancel }) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
 
       {/* 탭 바 */}
-      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 16, paddingRight: 12, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--db-purple-400)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
-          <span style={{ fontSize: 14 }}>✦</span>
-          새 프로젝트 만들기
+      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 10, paddingRight: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, height: "100%" }}>
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+              style={{
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                background: "none", border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--text-3)",
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = "var(--text-1)"}
+              onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
+            >
+              <IconPanelToggle />
+            </button>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--db-purple-400)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
+            <span style={{ fontSize: 14 }}>✦</span>
+            새 프로젝트 만들기
+          </div>
         </div>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", fontSize: 16, cursor: "pointer", padding: "4px 8px", borderRadius: 4 }} title="닫기">✕</button>
       </div>

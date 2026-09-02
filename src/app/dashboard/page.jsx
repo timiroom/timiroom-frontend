@@ -292,6 +292,7 @@ export default function DashboardPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [runningPipeline, setRunningPipeline] = useState(null); // { pipelineId, projectId, projectName, teamId }
+  const [contextPanelCollapsed, setContextPanelCollapsed] = useState(false);
 
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveTeamId());
@@ -954,6 +955,8 @@ export default function DashboardPage() {
           onOpenWorkspaceInvite={() => openWorkspaceManager("invite")}
           documentSync={documentSync}
           editingDocumentType={editingDocumentType}
+          collapsed={contextPanelCollapsed}
+          onToggleCollapse={() => setContextPanelCollapsed(v => !v)}
         />
 
         {activeMode === "workspace" ? (
@@ -978,6 +981,8 @@ export default function DashboardPage() {
                 key={`wizard-${activeWorkspaceId}`}
                 onPipelineStart={handlePipelineStart}
                 onCancel={() => setShowWizard(false)}
+                sidebarCollapsed={contextPanelCollapsed}
+                onToggleSidebar={() => setContextPanelCollapsed(v => !v)}
               />
             </div>
           ) : (
