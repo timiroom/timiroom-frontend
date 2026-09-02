@@ -24,7 +24,7 @@ const COLS = [
     links: [
       { label: "프로젝트 소개", href: "#" },
       { label: "팀 소개",       href: "#" },
-      { label: "한이음 드림업", href: "https://www.iitp.kr" },
+      { label: "Timiroom",      href: "https://www.iitp.kr" },
       { label: "문의하기",      href: "#" },
     ],
   },
@@ -43,7 +43,7 @@ export function Footer() {
             </div>
             <p>
               LLM 기반 기획·개발 정합성 자동화 플랫폼.<br />
-              2026 한이음 드림업 프로젝트.
+              2026 Timiroom 프로젝트.
             </p>
           </div>
 
@@ -65,7 +65,7 @@ export function Footer() {
         </div>
 
         <div className="al-footer-btm">
-          <div>© 2026 Align-it. 2026 한이음 드림업 프로젝트. All rights reserved.</div>
+          <div>© 2026 Align-it. 2026 Timiroom 프로젝트. All rights reserved.</div>
           <div className="al-footer-btm-r">
             <a href="#">개인정보처리방침</a>
             <a href="#">이용약관</a>

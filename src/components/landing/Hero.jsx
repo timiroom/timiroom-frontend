@@ -127,7 +127,7 @@ export function Hero() {
         {/* 배지 */}
         <div className="al-hero-badge al-anim">
           <div className="al-badge-dot" />
-          2026 한이음 드림업 프로젝트
+          2026 Timiroom 프로젝트
         </div>
 
         {/* 헤드라인 */}
