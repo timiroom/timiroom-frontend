@@ -105,7 +105,7 @@ function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSideba
     <div style={{
       display: "flex", alignItems: "center", height: 36,
       background: "var(--bg)", borderBottom: "1px solid var(--border)",
-      overflowX: "auto", flexShrink: 0,
+      overflowX: "auto", overflowY: "hidden", flexShrink: 0,
     }}>
       <button
         type="button"
@@ -131,8 +131,7 @@ function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSideba
             title={tab.label}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "0 8px 0 14px", height: "100%", flexShrink: 0,
-              borderRight: "1px solid var(--border)",
+              padding: "8px 8px 8px 14px", flexShrink: 0,
               borderBottom: active ? "2px solid var(--db-purple-400)" : "2px solid transparent",
               background: active ? "var(--db-bg-primary)" : "transparent",
               color: active ? "var(--text-1)" : "var(--text-3)",
