@@ -208,7 +208,12 @@ function ProjectsPanel({
                     width: 28, height: 28, borderRadius: 8, overflow: "hidden", flexShrink: 0,
                     border: "1px solid rgba(0,0,0,0.08)",
                   }}>
-                    <img src={workspace.iconUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <img
+                      src={workspace.iconUrl}
+                      alt=""
+                      onError={(e) => { e.currentTarget.parentElement.style.display = "none"; }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
                   </div>
                 )}
                 <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: "-.02em" }}>
@@ -456,7 +461,12 @@ function WorkspacePanel({
                       width: 26, height: 26, borderRadius: 7, overflow: "hidden", flexShrink: 0,
                       border: "1px solid rgba(0,0,0,0.08)",
                     }}>
-                      <img src={workspace.iconUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      <img
+                      src={workspace.iconUrl}
+                      alt=""
+                      onError={(e) => { e.currentTarget.parentElement.style.display = "none"; }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
                     </div>
                   )}
                   <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: "-.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
