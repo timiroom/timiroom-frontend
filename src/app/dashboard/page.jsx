@@ -1180,7 +1180,7 @@ export default function DashboardPage() {
               ) : selectedView === "erd" ? (
                 <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
               ) : selectedView === "github" ? (
-                <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
+                <GithubWorkspacePanel project={selectedProject} onSelectView={(view) => handleOpenDocument(selectedProject, view)} />
               ) : selectedView === "issues" ? (
                 <GithubIssuesPanel project={selectedProject} canManage={myProjectRole === "PM"} />
               ) : selectedView === "pulls" ? (
