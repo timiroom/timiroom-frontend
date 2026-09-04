@@ -18,6 +18,7 @@ import { ApiSpecPanel } from "@/components/dashboard/ApiSpecPanel";
 import { PrdPanel } from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel } from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel } from "@/components/dashboard/ErdPanel";
+import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { WorkspaceManagementView } from "@/components/dashboard/workspace/WorkspaceManagementView";
@@ -1024,6 +1025,8 @@ export default function DashboardPage() {
               <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
             ) : selectedView === "erd" ? (
               <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+            ) : selectedView === "graph" ? (
+              <KnowledgeGraph project={selectedProject} />
             ) : selectedView === "github" ? (
               <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
             ) : selectedView === "issues" ? (
