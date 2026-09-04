@@ -66,7 +66,8 @@ const PROJECT_DOCS = [
   { id: "github",    label: "GitHub 작업",  icon: "⌘"  },
   { id: "issues",    label: "Issues 전체",  icon: "⚠️" },
   { id: "pulls",     label: "PRs 전체",     icon: "⇄"  },
-  { id: "qa",        label: "QA",          icon: "✓"  },
+  { id: "graph",     label: "지식그래프",  icon: "◇"  },
+  { id: "qa",        label: "QA 테스트",   icon: "✓"  },
 ];
 
 const SYNC_DOCUMENT_TYPES = {

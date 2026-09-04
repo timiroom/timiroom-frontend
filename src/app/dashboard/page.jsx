@@ -18,6 +18,8 @@ import { ApiSpecPanel } from "@/components/dashboard/ApiSpecPanel";
 import { PrdPanel } from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel } from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel } from "@/components/dashboard/ErdPanel";
+import { ProjectKnowledgeGraph } from "@/components/dashboard/ProjectKnowledgeGraph";
+import { QaTestPanel } from "@/components/dashboard/QaTestPanel";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { WorkspaceManagementView } from "@/components/dashboard/workspace/WorkspaceManagementView";
@@ -72,7 +74,8 @@ const DOC_LABELS = {
   github: "GitHub 작업",
   issues: "Issues 전체",
   pulls: "PRs 전체",
-  qa: "QA",
+  graph: "지식그래프",
+  qa: "QA 테스트",
 };
 
 function documentTabId(projectId, view) {
@@ -1179,6 +1182,10 @@ export default function DashboardPage() {
                 <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
               ) : selectedView === "erd" ? (
                 <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+              ) : selectedView === "graph" ? (
+                <ProjectKnowledgeGraph project={selectedProject} />
+              ) : selectedView === "qa" ? (
+                <QaTestPanel project={selectedProject} />
               ) : selectedView === "github" ? (
                 <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
               ) : selectedView === "issues" ? (
