@@ -107,7 +107,8 @@ function RailTooltip({ label, rect }) {
 function WorkspaceBubble({ workspace, active, onClick }) {
   const name = workspace?.teamName ?? workspace?.name ?? "워크스페이스";
   const viewerRole = workspace?.viewerRole ?? "MEMBER";
-  const iconUrl = workspace?.iconUrl;
+  const [iconFailed, setIconFailed] = useState(false);
+  const iconUrl = iconFailed ? null : workspace?.iconUrl;
   const [tooltipRect, setTooltipRect] = useState(null);
 
   return (
@@ -140,7 +141,7 @@ function WorkspaceBubble({ workspace, active, onClick }) {
         }}
       >
         {iconUrl ? (
-          <img src={iconUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <img src={iconUrl} alt={name} onError={() => setIconFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
           <span style={{ position: "relative", zIndex: 1 }}>{getWorkspaceInitial(workspace)}</span>
         )}
