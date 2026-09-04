@@ -48,17 +48,6 @@ function IconGear() {
   );
 }
 
-/* ── 패널 접기/펼치기 토글 아이콘 ── */
-function IconPanelToggle() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="16" rx="3" />
-      <path d="M9 4v16" />
-      <rect x="3" y="4" width="6" height="16" rx="2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
   active:    { label: "진행중", color: "#a8a69f" },
@@ -118,6 +107,7 @@ function ProjectsPanel({
   onSelectProject,
   selectedView,
   onSelectView,
+  onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
   onOpenWorkspaceManage,
@@ -147,8 +137,12 @@ function ProjectsPanel({
 
   function handleDocClick(project, docId, e) {
     e.stopPropagation();
-    onSelectProject(project);
-    onSelectView?.(docId);
+    if (onOpenDocument) {
+      onOpenDocument(project, docId);
+    } else {
+      onSelectProject(project);
+      onSelectView?.(docId);
+    }
   }
 
   return (
@@ -1143,6 +1137,7 @@ export function ContextPanel({
   onSelectProject,
   selectedView,
   onSelectView,
+  onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
   onOpenWorkspaceManage,
@@ -1154,39 +1149,16 @@ export function ContextPanel({
   onOpenWorkspaceInvite,
   documentSync,
   editingDocumentType,
+  collapsed = false,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <div style={{
-      width: collapsed ? 56 : 320, flexShrink: 0, height: "100vh",
-      background: C.panel, borderRight: `1px solid ${C.border}`,
+      width: collapsed ? 0 : 320, flexShrink: 0, height: "100vh",
+      background: C.panel, borderRight: collapsed ? "none" : `1px solid ${C.border}`,
       display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "inherit",
       transition: "width 0.16s ease",
     }}>
       <style>{`@keyframes ctx-spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* 접기/펼치기 토글 */}
-      <div style={{
-        display: "flex", justifyContent: collapsed ? "center" : "flex-end",
-        padding: "10px 10px 0", flexShrink: 0,
-      }}>
-        <button
-          type="button"
-          onClick={() => setCollapsed(v => !v)}
-          title={collapsed ? "패널 펼치기" : "패널 접기"}
-          style={{
-            width: 28, height: 28, borderRadius: 8,
-            border: `1px solid ${C.inputBdr}`, background: "var(--surface)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: C.muted, cursor: "pointer", flexShrink: 0,
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = C.text}
-          onMouseLeave={e => e.currentTarget.style.color = C.muted}
-        >
-          <IconPanelToggle />
-        </button>
-      </div>
 
       {collapsed ? null : mode === "projects" ? (
         <ProjectsPanel
@@ -1195,6 +1167,7 @@ export function ContextPanel({
           onSelectProject={onSelectProject}
           selectedView={selectedView}
           onSelectView={onSelectView}
+          onOpenDocument={onOpenDocument}
           onCreateProject={onCreateProject}
           onOpenWorkspaceComposer={onOpenWorkspaceComposer}
           onOpenWorkspaceManage={onOpenWorkspaceManage}

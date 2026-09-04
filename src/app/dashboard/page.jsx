@@ -62,6 +62,106 @@ function getWorkspaceId(workspace) {
   return workspace?.teamId ?? workspace?.id ?? null;
 }
 
+/* ── 문서 탭 ── */
+const DOC_LABELS = {
+  prd: "PRD",
+  features: "기능 명세서",
+  api: "API 명세서",
+  erd: "ERD 명세서",
+  github: "GitHub 작업",
+  issues: "Issues 전체",
+  pulls: "PRs 전체",
+  qa: "QA",
+};
+
+function documentTabId(projectId, view) {
+  return `doc:${projectId}:${view ?? "none"}`;
+}
+
+function buildDocumentTab(project, view) {
+  return {
+    id: documentTabId(project.id, view),
+    projectId: project.id,
+    view,
+    label: view ? `${project.name} · ${DOC_LABELS[view] ?? view}` : project.name,
+  };
+}
+
+function IconPanelToggle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M9 4v16" />
+      <rect x="3" y="4" width="6" height="16" rx="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSidebar }) {
+  if (!tabs.length) return null;
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", height: 36,
+      background: "var(--bg)", borderBottom: "1px solid var(--border)",
+      overflowX: "auto", flexShrink: 0,
+    }}>
+      <button
+        type="button"
+        onClick={onToggleSidebar}
+        title="사이드바 접기/펼치기"
+        style={{
+          width: 26, height: 26, borderRadius: 7, flexShrink: 0, margin: "0 4px 0 8px",
+          background: "none", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--text-3)",
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = "var(--text-1)"}
+        onMouseLeave={e => e.currentTarget.style.color = "var(--text-3)"}
+      >
+        <IconPanelToggle />
+      </button>
+      {tabs.map((tab) => {
+        const active = tab.id === activeTabId;
+        return (
+          <div
+            key={tab.id}
+            onClick={() => onActivate(tab)}
+            title={tab.label}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "0 8px 0 14px", height: "100%", flexShrink: 0,
+              borderRight: "1px solid var(--border)",
+              borderBottom: active ? "2px solid var(--db-purple-400)" : "2px solid transparent",
+              background: active ? "var(--db-bg-primary)" : "transparent",
+              color: active ? "var(--text-1)" : "var(--text-3)",
+              fontSize: 12, fontWeight: active ? 700 : 500,
+              cursor: "pointer", whiteSpace: "nowrap", userSelect: "none",
+            }}
+          >
+            <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}>{tab.label}</span>
+            <button
+              type="button"
+              onClick={(e) => onClose(tab.id, e)}
+              title="탭 닫기"
+              style={{
+                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                border: "none", background: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "inherit", fontSize: 11, opacity: 0.6, fontFamily: "inherit",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.background = "rgba(0,0,0,0.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.background = "none"; }}
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function buildRunningProject(runningPipeline) {
   if (!runningPipeline) return null;
 
@@ -292,6 +392,9 @@ export default function DashboardPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [runningPipeline, setRunningPipeline] = useState(null); // { pipelineId, projectId, projectName, teamId }
+  const [contextPanelCollapsed, setContextPanelCollapsed] = useState(false);
+  const [openTabs, setOpenTabs] = useState([]); // 동시에 열린 문서 탭들 [{ id, projectId, view, label }]
+  const [activeTabId, setActiveTabId] = useState(null);
 
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveTeamId());
@@ -419,6 +522,8 @@ export default function DashboardPage() {
       setSelectedProject(null);
       setSelectedView(null);
       setShowWizard(false);
+      setOpenTabs([]);
+      setActiveTabId(null);
       setIsLoadingProjects(false);
       return;
     }
@@ -449,8 +554,13 @@ export default function DashboardPage() {
       if (!nextSelected) {
         setSelectedView(null);
         setShowWizard(true);
+        setOpenTabs([]);
+        setActiveTabId(null);
       } else {
-        setSelectedView((current) => current ?? (runningProjectId && nextSelected.id === runningProjectId ? null : "prd"));
+        const resolvedView = runningProjectId && nextSelected.id === runningProjectId ? null : "prd";
+        setSelectedView((current) => current ?? resolvedView);
+        setOpenTabs([buildDocumentTab(nextSelected, resolvedView)]);
+        setActiveTabId(documentTabId(nextSelected.id, resolvedView));
       }
 
       if (nextSelected && (!runningProjectId || String(nextSelected.id) !== runningProjectId)) {
@@ -462,6 +572,8 @@ export default function DashboardPage() {
       setSelectedProject(null);
       setSelectedView(null);
       setShowWizard(true);
+      setOpenTabs([]);
+      setActiveTabId(null);
     } finally {
       setIsLoadingProjects(false);
     }
@@ -587,6 +699,7 @@ export default function DashboardPage() {
 
       const remainingProjects = projects.filter((current) => current.id !== project.id);
       setProjects(remainingProjects);
+      setOpenTabs((prev) => prev.filter((t) => t.projectId !== project.id));
 
       if (selectedProject?.id === project.id) {
         const nextSelected = remainingProjects[0] ?? null;
@@ -595,6 +708,9 @@ export default function DashboardPage() {
         setShowWizard(remainingProjects.length === 0);
         if (nextSelected) {
           loadArtifacts(nextSelected);
+          openTab(buildDocumentTab(nextSelected, "prd"));
+        } else {
+          setActiveTabId(null);
         }
       }
 
@@ -605,12 +721,65 @@ export default function DashboardPage() {
     }
   }
 
-  function handleSelectProject(project) {
-    setSelectedProject(project);
-    setSelectedView(isRunningActiveWorkspace && String(project.id) === String(runningPipeline?.projectId) ? null : "prd");
+  /* ── 문서 탭 관리 ── */
+  function openTab(tab) {
+    setOpenTabs((prev) => {
+      const idx = prev.findIndex((t) => t.id === tab.id);
+      if (idx === -1) return [...prev, tab];
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...tab };
+      return next;
+    });
+    setActiveTabId(tab.id);
+  }
+
+  function activateTab(tab) {
+    setActiveTabId(tab.id);
+    setActiveMode("projects");
     setShowWizard(false);
+    const project = projects.find((p) => String(p.id) === String(tab.projectId)) ?? null;
+    setSelectedProject(project);
+    setSelectedView(tab.view ?? null);
+  }
+
+  function closeTab(tabId, event) {
+    event?.stopPropagation();
+    const idx = openTabs.findIndex((t) => t.id === tabId);
+    if (idx === -1) return;
+    const next = openTabs.filter((t) => t.id !== tabId);
+    setOpenTabs(next);
+
+    if (activeTabId !== tabId) return;
+
+    const fallback = next[idx - 1] ?? next[idx] ?? null;
+    if (fallback) {
+      activateTab(fallback);
+    } else {
+      setActiveTabId(null);
+      setShowWizard(false);
+      setSelectedProject(null);
+      setSelectedView(null);
+    }
+  }
+
+  function handleSelectProject(project) {
+    const view = isRunningActiveWorkspace && String(project.id) === String(runningPipeline?.projectId) ? null : "prd";
+    setSelectedProject(project);
+    setSelectedView(view);
+    setShowWizard(false);
+    openTab(buildDocumentTab(project, view));
     const alreadyLoaded = !!project.artifactIds;
     if (!alreadyLoaded && (!isRunningActiveWorkspace || String(project.id) !== String(runningPipeline?.projectId))) {
+      loadArtifacts(project);
+    }
+  }
+
+  function handleOpenDocument(project, view) {
+    setSelectedProject(project);
+    setSelectedView(view);
+    setShowWizard(false);
+    openTab(buildDocumentTab(project, view));
+    if (!project.artifactIds) {
       loadArtifacts(project);
     }
   }
@@ -774,6 +943,8 @@ export default function DashboardPage() {
     setActiveMode("projects");
     setShowWizard(false);
     setSelectedView(null);
+    setOpenTabs([]);
+    setActiveTabId(null);
   }
 
   function handlePipelineStart(pipelineId, projectId, projectName) {
@@ -843,6 +1014,8 @@ export default function DashboardPage() {
     setSelectedProject(completedProject);
     setSelectedView("prd");
     setShowWizard(false);
+    setOpenTabs((prev) => prev.filter((t) => t.projectId !== completedProject.id));
+    openTab(buildDocumentTab(completedProject, "prd"));
     setProjects((currentProjects) => {
       const exists = currentProjects.some((project) => String(project.id) === completedProject.id);
       if (exists) {
@@ -940,6 +1113,7 @@ export default function DashboardPage() {
           onSelectProject={handleSelectProject}
           selectedView={selectedView}
           onSelectView={setSelectedView}
+          onOpenDocument={handleOpenDocument}
           onCreateProject={handleOpenCreateProject}
           onOpenWorkspaceComposer={() => {
             setComposerError("");
@@ -954,6 +1128,7 @@ export default function DashboardPage() {
           onOpenWorkspaceInvite={() => openWorkspaceManager("invite")}
           documentSync={documentSync}
           editingDocumentType={editingDocumentType}
+          collapsed={contextPanelCollapsed}
         />
 
         {activeMode === "workspace" ? (
@@ -970,6 +1145,7 @@ export default function DashboardPage() {
             onReloadWorkspace={loadWorkspaceDetail}
             onReloadWorkspaces={loadWorkspaces}
             onBack={() => setActiveMode("projects")}
+            onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
           />
         ) : showWizard ? (
           activeWorkspaceId ? (
@@ -978,6 +1154,8 @@ export default function DashboardPage() {
                 key={`wizard-${activeWorkspaceId}`}
                 onPipelineStart={handlePipelineStart}
                 onCancel={() => setShowWizard(false)}
+                sidebarCollapsed={contextPanelCollapsed}
+                onToggleSidebar={() => setContextPanelCollapsed(v => !v)}
               />
             </div>
           ) : (
@@ -1006,33 +1184,43 @@ export default function DashboardPage() {
                 setSelectedProject(null);
                 setShowWizard(true);
               }}
+              onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
             />
           </div>
         ) : selectedProject ? (
-          <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", animation: "dash-panel-in 0.18s ease" }}>
-            {selectedView === "prd" ? (
-              <PrdPanel
-                project={selectedProject}
-                readOnly={!canEditDocType(myProjectRole, "PRD")}
-                onDocumentChange={handlePrdDocumentChange}
-                onDocumentSaved={handleDocumentSaved}
-                onDocumentEditingChange={handleDocumentEditingChange}
-              />
-            ) : selectedView === "features" ? (
-              <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
-            ) : selectedView === "api" ? (
-              <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
-            ) : selectedView === "erd" ? (
-              <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
-            ) : selectedView === "github" ? (
-              <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
-            ) : selectedView === "issues" ? (
-              <GithubIssuesPanel project={selectedProject} canManage={myProjectRole === "PM"} />
-            ) : selectedView === "pulls" ? (
-              <GithubPullRequestsPanel project={selectedProject} canManage={myProjectRole === "PM"} />
-            ) : (
-              <AgentPanel project={selectedProject} view={selectedView} />
-            )}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <DocumentTabBar
+              tabs={openTabs}
+              activeTabId={activeTabId}
+              onActivate={activateTab}
+              onClose={closeTab}
+              onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
+            />
+            <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", animation: "dash-panel-in 0.18s ease" }}>
+              {selectedView === "prd" ? (
+                <PrdPanel
+                  project={selectedProject}
+                  readOnly={!canEditDocType(myProjectRole, "PRD")}
+                  onDocumentChange={handlePrdDocumentChange}
+                  onDocumentSaved={handleDocumentSaved}
+                  onDocumentEditingChange={handleDocumentEditingChange}
+                />
+              ) : selectedView === "features" ? (
+                <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+              ) : selectedView === "api" ? (
+                <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+              ) : selectedView === "erd" ? (
+                <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+              ) : selectedView === "github" ? (
+                <GithubWorkspacePanel project={selectedProject} onSelectView={setSelectedView} />
+              ) : selectedView === "issues" ? (
+                <GithubIssuesPanel project={selectedProject} canManage={myProjectRole === "PM"} />
+              ) : selectedView === "pulls" ? (
+                <GithubPullRequestsPanel project={selectedProject} canManage={myProjectRole === "PM"} />
+              ) : (
+                <AgentPanel project={selectedProject} view={selectedView} />
+              )}
+            </div>
           </div>
         ) : isLoadingProjects ? (
           <div style={{
@@ -1044,6 +1232,10 @@ export default function DashboardPage() {
             fontSize: 13,
           }}>
             프로젝트를 불러오는 중...
+          </div>
+        ) : projects.length > 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-3)", fontSize: 13 }}>
+            사이드바에서 프로젝트를 선택해 주세요.
           </div>
         ) : (
           <DashboardEmptyState
