@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import {
   fetchProject,
   fetchProjectArtifacts,
@@ -85,21 +86,6 @@ function Spinner() {
         animation: "spin 0.7s linear infinite",
       }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
-
-function FeedbackBanner({ feedback }) {
-  if (!feedback) return null;
-  const isErr = feedback.type === "error";
-  return (
-    <div style={{
-      marginBottom: 16, padding: "12px 14px", borderRadius: 12,
-      border: `1px solid ${isErr ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.18)"}`,
-      background: C.surface, color: isErr ? "#dc2626" : "#059669",
-      fontSize: 12, fontWeight: 700,
-    }}>
-      {feedback.message}
     </div>
   );
 }
@@ -205,6 +191,7 @@ function Btn({ onClick, disabled, loading, children, danger, secondary }) {
 export function ProjectManagementView({ projectId }) {
   const router = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   /* ── 상태 ── */
   const [project,        setProject]        = useState(null);
@@ -213,7 +200,6 @@ export function ProjectManagementView({ projectId }) {
   const [teamName,       setTeamName]       = useState("");
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
-  const [feedback,       setFeedback]       = useState(null);
 
   const [nameDraft,   setNameDraft]   = useState("");
   const [descDraft,   setDescDraft]   = useState("");
@@ -303,7 +289,6 @@ export function ProjectManagementView({ projectId }) {
   async function handleSave() {
     try {
       setSaving(true);
-      setFeedback(null);
       const updated = await updateProject(projectId, {
         projectName: nameDraft.trim(),
         description: descDraft.trim(),
@@ -318,9 +303,9 @@ export function ProjectManagementView({ projectId }) {
       setNameDraft(updated.name ?? nameDraft);
       setDescDraft(updated.description ?? descDraft);
       setStatusDraft(rawStatus(updated.status));
-      setFeedback({ type: "success", message: "저장했어요." });
+      showToast("success", "저장했어요.");
     } catch {
-      setFeedback({ type: "error", message: "저장에 실패했습니다." });
+      showToast("error", "저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
@@ -334,9 +319,9 @@ export function ProjectManagementView({ projectId }) {
       setProjectMembers(prev =>
         prev.map(m => String(m.memberId) === String(targetMemberId) ? { ...m, projectRole: newRole } : m)
       );
-      setFeedback({ type: "success", message: "역할을 변경했어요." });
+      showToast("success", "역할을 변경했어요.");
     } catch {
-      setFeedback({ type: "error", message: "역할 변경에 실패했습니다." });
+      showToast("error", "역할 변경에 실패했습니다.");
     } finally {
       setChangingRole(null);
     }
@@ -348,9 +333,9 @@ export function ProjectManagementView({ projectId }) {
       setRemovingId(targetMemberId);
       await removeProjectMember(projectId, targetMemberId);
       setProjectMembers(prev => prev.filter(m => String(m.memberId) !== String(targetMemberId)));
-      setFeedback({ type: "success", message: "멤버를 제거했어요." });
+      showToast("success", "멤버를 제거했어요.");
     } catch {
-      setFeedback({ type: "error", message: "멤버 제거에 실패했습니다." });
+      showToast("error", "멤버 제거에 실패했습니다.");
     } finally {
       setRemovingId(null);
     }
@@ -364,9 +349,9 @@ export function ProjectManagementView({ projectId }) {
       await addProjectMember(projectId, Number(addMemberId), addRole);
       await load();
       setAddMemberId("");
-      setFeedback({ type: "success", message: "멤버를 추가했어요." });
+      showToast("success", "멤버를 추가했어요.");
     } catch (e) {
-      setFeedback({ type: "error", message: e.message ?? "멤버 추가에 실패했습니다." });
+      showToast("error", e.message ?? "멤버 추가에 실패했습니다.");
     } finally {
       setAdding(false);
     }
@@ -405,7 +390,7 @@ export function ProjectManagementView({ projectId }) {
       setAvailableRepos([]);
       setSelectedGithubRepoId("");
       setRepoRoleHint("");
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "설치 레포 목록을 불러오지 못했습니다." });
+      showToast("error", error instanceof Error ? error.message : "설치 레포 목록을 불러오지 못했습니다.");
     } finally {
       setAvailableReposLoading(false);
     }
@@ -425,7 +410,7 @@ export function ProjectManagementView({ projectId }) {
       setInstallations([]);
       setAvailableRepos([]);
       setSelectedInstallationId("");
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "GitHub 설치 목록을 불러오지 못했습니다." });
+      showToast("error", error instanceof Error ? error.message : "GitHub 설치 목록을 불러오지 못했습니다.");
     } finally {
       setInstallationsLoading(false);
     }
@@ -454,9 +439,9 @@ export function ProjectManagementView({ projectId }) {
       });
       setLinkedRepos((current) => [...current, linked]);
       setRepoConnectorOpen(false);
-      setFeedback({ type: "success", message: `${linked.fullName} 레포를 연결했어요.` });
+      showToast("success", `${linked.fullName} 레포를 연결했어요.`);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "레포 연결에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "레포 연결에 실패했습니다.");
     } finally {
       setConnectingRepo(false);
     }
@@ -467,9 +452,9 @@ export function ProjectManagementView({ projectId }) {
     try {
       await unlinkProjectRepository(projectId, repo.id);
       setLinkedRepos((current) => current.filter((item) => item.id !== repo.id));
-      setFeedback({ type: "success", message: `${repo.fullName} 레포 연결을 해제했어요.` });
+      showToast("success", `${repo.fullName} 레포 연결을 해제했어요.`);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "레포 연결 해제에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "레포 연결 해제에 실패했습니다.");
     } finally {
       setUnlinkingRepoId(null);
     }
@@ -482,7 +467,7 @@ export function ProjectManagementView({ projectId }) {
       await deleteProject(projectId);
       router.push("/dashboard");
     } catch {
-      setFeedback({ type: "error", message: "삭제에 실패했습니다." });
+      showToast("error", "삭제에 실패했습니다.");
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -600,8 +585,6 @@ export function ProjectManagementView({ projectId }) {
                 </p>
               )}
             </div>
-
-            <FeedbackBanner feedback={feedback} />
 
             {/* 탭 네비게이션 */}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24 }}>

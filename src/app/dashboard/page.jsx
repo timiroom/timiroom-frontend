@@ -25,6 +25,7 @@ import { GithubIssuesPanel } from "@/components/dashboard/GithubIssuesPanel";
 import { GithubPullRequestsPanel } from "@/components/dashboard/GithubPullRequestsPanel";
 import { GithubWorkspacePanel } from "@/components/dashboard/GithubWorkspacePanel";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import {
   deleteProject,
   enrichProjectWithArtifacts,
@@ -292,29 +293,6 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
   );
 }
 
-function DashboardToast({ notice }) {
-  if (!notice) return null;
-
-  return (
-    <div style={{
-      position: "fixed",
-      top: 18,
-      right: 18,
-      zIndex: 260,
-      minWidth: 220,
-      padding: "12px 14px",
-      borderRadius: 14,
-      border: `1px solid ${notice.type === "error" ? "rgba(239,68,68,0.18)" : "rgba(16,185,129,0.18)"}`,
-      background: notice.type === "error" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)",
-      color: notice.type === "error" ? "#dc2626" : "#059669",
-      fontSize: 12,
-      fontWeight: 700,
-      boxShadow: "0 14px 34px rgba(0,0,0,0.14)",
-    }}>
-      {notice.message}
-    </div>
-  );
-}
 
 const DOCUMENT_FIELDS = {
   PRD: "prdDocument",
@@ -385,6 +363,7 @@ function DocumentSyncStatus({ sync }) {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [activeMode, setActiveMode] = useState("projects");
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -410,7 +389,6 @@ export default function DashboardPage() {
   const [composerError, setComposerError] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [joiningWorkspace, setJoiningWorkspace] = useState(false);
-  const [notice, setNotice] = useState(null);
   const [documentSync, setDocumentSync] = useState(null);
   const [editingDocumentType, setEditingDocumentType] = useState(null);
   const [myProjectRole, setMyProjectRole] = useState(null);
@@ -465,20 +443,10 @@ export default function DashboardPage() {
   }, [runningPipeline]);
 
   useEffect(() => {
-    if (!notice) return undefined;
-    const timeoutId = window.setTimeout(() => setNotice(null), 2400);
-    return () => window.clearTimeout(timeoutId);
-  }, [notice]);
-
-  useEffect(() => {
     if (!documentSync || !["complete", "error"].includes(documentSync.phase)) return undefined;
     const timeoutId = window.setTimeout(() => setDocumentSync(null), 7000);
     return () => window.clearTimeout(timeoutId);
   }, [documentSync]);
-
-  function showNotice(type, message) {
-    setNotice({ type, message });
-  }
 
   function handleModeChange(nextMode) {
     setActiveMode(nextMode);
@@ -714,10 +682,10 @@ export default function DashboardPage() {
         }
       }
 
-      showNotice("success", "프로젝트를 삭제했어요.");
+      showToast("success", "프로젝트를 삭제했어요.");
     } catch (error) {
       console.error("프로젝트 삭제 실패:", error);
-      showNotice("error", "프로젝트 삭제에 실패했습니다.");
+      showToast("error", "프로젝트 삭제에 실패했습니다.");
     }
   }
 
@@ -1029,7 +997,7 @@ export default function DashboardPage() {
     });
 
     loadArtifacts(completedProject);
-    showNotice("success", "프로젝트 초안 생성이 완료됐어요.");
+    showToast("success", "프로젝트 초안 생성이 완료됐어요.");
   }
 
   async function handleCreateWorkspace() {
@@ -1049,7 +1017,7 @@ export default function DashboardPage() {
       setComposerOpen(false);
       setCreateName("");
       setCreateDescription("");
-      showNotice("success", "새 워크스페이스를 만들었어요.");
+      showToast("success", "새 워크스페이스를 만들었어요.");
     } catch (error) {
       setComposerError(error instanceof Error ? error.message : "워크스페이스 생성에 실패했습니다.");
     } finally {
@@ -1073,7 +1041,7 @@ export default function DashboardPage() {
       await loadWorkspaces(nextWorkspaceId);
       setComposerOpen(false);
       setJoinCode("");
-      showNotice("success", "워크스페이스에 참여했어요.");
+      showToast("success", "워크스페이스에 참여했어요.");
     } catch (error) {
       setComposerError(error instanceof Error ? error.message : "워크스페이스 참여에 실패했습니다.");
     } finally {
@@ -1269,7 +1237,6 @@ export default function DashboardPage() {
         onJoin={handleJoinWorkspace}
       />
 
-      <DashboardToast notice={notice} />
       <DocumentSyncStatus sync={documentSync} />
     </>
   );

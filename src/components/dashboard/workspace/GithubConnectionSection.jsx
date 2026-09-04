@@ -8,6 +8,7 @@ import {
   syncTeamGithubInstallations,
   unlinkTeamGithubInstallation,
 } from "@/lib/githubApi";
+import { useToast } from "@/context/ToastContext";
 
 const C = {
   border: "var(--border)",
@@ -117,31 +118,29 @@ export function GithubConnectionSection({
   installationsLoading,
   onInstallationsChange,
 }) {
+  const { showToast } = useToast();
   const [syncing, setSyncing] = useState(false);
   const [unassigned, setUnassigned] = useState([]);
   const [linkingId, setLinkingId] = useState(null);
   const [unlinkingId, setUnlinkingId] = useState(null);
-  const [feedback, setFeedback] = useState(null);
 
   // 워크스페이스 전환은 리마운트 없이 teamId prop만 바뀐다 — 동기화로 얻은 미할당 목록은 이전 워크스페이스 것이므로 비운다.
   useEffect(() => {
     setUnassigned([]);
-    setFeedback(null);
   }, [teamId]);
 
   async function handleSync() {
     if (!teamId) return;
     setSyncing(true);
-    setFeedback(null);
     try {
       const { connected, unassigned: found } = await syncTeamGithubInstallations(teamId);
       onInstallationsChange(connected);
       setUnassigned(found);
       if (found.length === 0) {
-        setFeedback({ type: "success", message: "새로 연결할 GitHub 설치가 없습니다." });
+        showToast("success", "새로 연결할 GitHub 설치가 없습니다.");
       }
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "동기화에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "동기화에 실패했습니다.");
     } finally {
       setSyncing(false);
     }
@@ -149,14 +148,13 @@ export function GithubConnectionSection({
 
   async function handleLink(installationId) {
     setLinkingId(installationId);
-    setFeedback(null);
     try {
       const linked = await linkTeamGithubInstallation(teamId, installationId);
       onInstallationsChange([...installations, linked]);
       setUnassigned((prev) => prev.filter((i) => i.installationId !== installationId));
-      setFeedback({ type: "success", message: "GitHub 설치를 연결했어요." });
+      showToast("success", "GitHub 설치를 연결했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "연결에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "연결에 실패했습니다.");
     } finally {
       setLinkingId(null);
     }
@@ -164,13 +162,12 @@ export function GithubConnectionSection({
 
   async function handleUnlink(installationId) {
     setUnlinkingId(installationId);
-    setFeedback(null);
     try {
       await unlinkTeamGithubInstallation(teamId, installationId);
       onInstallationsChange(installations.filter((i) => i.installationId !== installationId));
-      setFeedback({ type: "success", message: "GitHub 설치 연결을 해제했어요." });
+      showToast("success", "GitHub 설치 연결을 해제했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "연결 해제에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "연결 해제에 실패했습니다.");
     } finally {
       setUnlinkingId(null);
     }
@@ -223,15 +220,6 @@ export function GithubConnectionSection({
           </div>
         )}
       </div>
-
-      {feedback && (
-        <div style={{
-          fontSize: 11, fontWeight: 600, marginBottom: 10,
-          color: feedback.type === "error" ? "#dc2626" : "#059669",
-        }}>
-          {feedback.message}
-        </div>
-      )}
 
       {installationsLoading ? (
         <Spinner />
