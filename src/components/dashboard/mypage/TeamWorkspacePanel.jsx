@@ -21,26 +21,7 @@ import { WorkspaceSnapshotCard } from "@/components/dashboard/mypage/teamWorkspa
 import { TeamListCard } from "@/components/dashboard/mypage/teamWorkspace/TeamListCard";
 import { EmptyState, Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import { getDefaultTransferTarget, getTeamId } from "@/components/dashboard/mypage/teamWorkspace/helpers";
-
-function FeedbackBanner({ feedback }) {
-  if (!feedback) return null;
-
-  return (
-    <Card style={{
-      marginBottom: 16,
-      borderColor: feedback.type === "error" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.18)",
-      background: feedback.type === "error" ? "rgba(239,68,68,0.04)" : "rgba(16,185,129,0.04)",
-    }}>
-      <div style={{
-        fontSize: 13,
-        fontWeight: 600,
-        color: feedback.type === "error" ? "#dc2626" : "#059669",
-      }}>
-        {feedback.message}
-      </div>
-    </Card>
-  );
-}
+import { useToast } from "@/context/ToastContext";
 
 function CreateWorkspaceCard({ createName, createDescription, creating, onCreateNameChange, onCreateDescriptionChange, onSubmit }) {
   return (
@@ -173,6 +154,7 @@ function JoinWorkspaceCard({ joinCode, joining, onJoinCodeChange, onSubmit }) {
 
 export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged }) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -192,7 +174,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   const [teamDescriptionDraft, setTeamDescriptionDraft] = useState("");
   const [transferTargetId, setTransferTargetId] = useState("");
   const [copiedTeamId, setCopiedTeamId] = useState(null);
-  const [feedback, setFeedback] = useState(null);
   const [workspaceError, setWorkspaceError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -307,12 +288,11 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   async function handleCreateTeam() {
     const teamName = createName.trim();
     if (!teamName) {
-      setFeedback({ type: "error", message: "워크스페이스 이름을 입력해 주세요." });
+      showToast("error", "워크스페이스 이름을 입력해 주세요.");
       return;
     }
 
     setCreating(true);
-    setFeedback(null);
     try {
       const created = await createTeam(teamName, createDescription.trim());
       const teamId = created.teamId ?? created.id;
@@ -320,10 +300,10 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
       setSelectedTeamId(teamId);
       setCreateName("");
       setCreateDescription("");
-      setFeedback({ type: "success", message: "새 워크스페이스를 만들었어요." });
+      showToast("success", "새 워크스페이스를 만들었어요.");
       await refreshTeams();
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 생성 실패" });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 생성 실패");
     } finally {
       setCreating(false);
     }
@@ -332,12 +312,11 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   async function handleJoinTeam() {
     const normalized = joinCode.trim().toUpperCase();
     if (!normalized) {
-      setFeedback({ type: "error", message: "초대 코드를 입력해 주세요." });
+      showToast("error", "초대 코드를 입력해 주세요.");
       return;
     }
 
     setJoining(true);
-    setFeedback(null);
     try {
       const joined = await joinTeamByInviteCode(normalized);
       if (joined?.teamId != null) {
@@ -345,10 +324,10 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
         setSelectedTeamId(joined.teamId);
       }
       setJoinCode("");
-      setFeedback({ type: "success", message: "초대 코드로 워크스페이스에 참여했어요." });
+      showToast("success", "초대 코드로 워크스페이스에 참여했어요.");
       await refreshTeams();
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 참여 실패" });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 참여 실패");
     } finally {
       setJoining(false);
     }
@@ -362,7 +341,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
         setCopiedTeamId((current) => (current === teamId ? null : current));
       }, 1200);
     } catch {
-      setFeedback({ type: "error", message: "초대 코드를 복사하지 못했습니다." });
+      showToast("error", "초대 코드를 복사하지 못했습니다.");
     }
   }
 
@@ -370,17 +349,16 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!selectedTeamId || !isOwner) return;
 
     setSavingTeam(true);
-    setFeedback(null);
     try {
       await updateTeam(selectedTeamId, {
         teamName: teamNameDraft,
         description: teamDescriptionDraft,
       });
-      setFeedback({ type: "success", message: "워크스페이스 정보를 저장했어요." });
+      showToast("success", "워크스페이스 정보를 저장했어요.");
       await refreshTeams();
       await reloadWorkspace(selectedTeamId);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 저장 실패" });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 저장 실패");
     } finally {
       setSavingTeam(false);
     }
@@ -390,14 +368,13 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!selectedTeamId || !isOwner) return;
 
     setRegenerating(true);
-    setFeedback(null);
     try {
       await regenerateTeamInviteCode(selectedTeamId);
-      setFeedback({ type: "success", message: "초대 코드를 새로 발급했어요." });
+      showToast("success", "초대 코드를 새로 발급했어요.");
       await refreshTeams();
       await reloadWorkspace(selectedTeamId);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "초대 코드 재발급 실패" });
+      showToast("error", error instanceof Error ? error.message : "초대 코드 재발급 실패");
     } finally {
       setRegenerating(false);
     }
@@ -406,19 +383,18 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   async function handleTransferOwnership() {
     if (!selectedTeamId || !isOwner) return;
     if (!transferTargetId) {
-      setFeedback({ type: "error", message: "권한을 넘길 멤버를 선택해 주세요." });
+      showToast("error", "권한을 넘길 멤버를 선택해 주세요.");
       return;
     }
 
     setTransferring(true);
-    setFeedback(null);
     try {
       await transferTeamOwnership(selectedTeamId, Number(transferTargetId));
-      setFeedback({ type: "success", message: "소유자 권한을 이전했어요." });
+      showToast("success", "소유자 권한을 이전했어요.");
       await refreshTeams();
       await reloadWorkspace(selectedTeamId);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "소유자 권한 이전 실패" });
+      showToast("error", error instanceof Error ? error.message : "소유자 권한 이전 실패");
     } finally {
       setTransferring(false);
     }
@@ -428,14 +404,13 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!selectedTeamId || !isOwner) return;
 
     setRemovingMemberId(memberId);
-    setFeedback(null);
     try {
       await removeTeamMember(selectedTeamId, memberId);
-      setFeedback({ type: "success", message: "멤버를 제거했어요." });
+      showToast("success", "멤버를 제거했어요.");
       await refreshTeams();
       await reloadWorkspace(selectedTeamId);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "멤버 제거 실패" });
+      showToast("error", error instanceof Error ? error.message : "멤버 제거 실패");
     } finally {
       setRemovingMemberId(null);
     }
@@ -445,10 +420,9 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!selectedTeamId) return;
 
     setLeaving(true);
-    setFeedback(null);
     try {
       await leaveTeam(selectedTeamId);
-      setFeedback({ type: "success", message: "워크스페이스에서 나왔어요." });
+      showToast("success", "워크스페이스에서 나왔어요.");
       const nextTeams = (await refreshTeams()) ?? [];
       const nextTeam = getPreferredTeam(nextTeams);
       const nextTeamId = getTeamId(nextTeam);
@@ -456,7 +430,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
       setSelectedTeamId(nextTeamId);
       setWorkspace(null);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 나가기 실패" });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 나가기 실패");
     } finally {
       setLeaving(false);
     }
@@ -466,7 +440,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!selectedTeamId || !isOwner) return;
 
     setDeleting(true);
-    setFeedback(null);
     try {
       await deleteTeam(selectedTeamId);
       const nextTeams = (await refreshTeams()) ?? [];
@@ -476,9 +449,9 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
       setSelectedTeamId(nextTeamId);
       setWorkspace(null);
       setConfirmDelete(false);
-      setFeedback({ type: "success", message: "워크스페이스를 삭제했어요." });
+      showToast("success", "워크스페이스를 삭제했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 삭제 실패" });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 삭제 실패");
     } finally {
       setDeleting(false);
     }
@@ -486,7 +459,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
 
   function handleSetActiveWorkspace(teamId) {
     applyActiveTeamId(teamId);
-    setFeedback({ type: "success", message: "현재 작업공간을 변경했어요." });
+    showToast("success", "현재 작업공간을 변경했어요.");
   }
 
   return (
@@ -506,8 +479,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
         onJoinCodeChange={setJoinCode}
         onSubmit={handleJoinTeam}
       />
-
-      <FeedbackBanner feedback={feedback} />
 
       <Card>
         <SectionTitle subtitle="내가 속한 워크스페이스 목록이에요.">

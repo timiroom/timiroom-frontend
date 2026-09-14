@@ -38,6 +38,16 @@ const C = {
   itemHover:  "var(--surface)",
 };
 
+/* ── 워크스페이스 관리(톱니바퀴) 아이콘 ── */
+function IconGear() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
   active:    { label: "진행중", color: "#a8a69f" },
@@ -98,6 +108,7 @@ function ProjectsPanel({
   onSelectProject,
   selectedView,
   onSelectView,
+  onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
   onOpenWorkspaceManage,
@@ -127,8 +138,12 @@ function ProjectsPanel({
 
   function handleDocClick(project, docId, e) {
     e.stopPropagation();
-    onSelectProject(project);
-    onSelectView?.(docId);
+    if (onOpenDocument) {
+      onOpenDocument(project, docId);
+    } else {
+      onSelectProject(project);
+      onSelectView?.(docId);
+    }
   }
 
   return (
@@ -163,19 +178,23 @@ function ProjectsPanel({
               <button
                 type="button"
                 onClick={onOpenWorkspaceManage}
+                title="워크스페이스 관리"
                 style={{
-                  padding: "6px 10px",
-                  borderRadius: 10,
-                  border: `1px solid ${C.inputBdr}`,
-                  background: "var(--surface)",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  border: "none",
+                  background: "none",
                   color: C.accent,
-                  fontSize: 12,
-                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   fontFamily: "inherit",
+                  flexShrink: 0,
                 }}
               >
-                관리
+                <IconGear />
               </button>
             ) : null}
           </div>
@@ -1119,6 +1138,7 @@ export function ContextPanel({
   onSelectProject,
   selectedView,
   onSelectView,
+  onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
   onOpenWorkspaceManage,
@@ -1130,21 +1150,25 @@ export function ContextPanel({
   onOpenWorkspaceInvite,
   documentSync,
   editingDocumentType,
+  collapsed = false,
 }) {
   return (
     <div style={{
-      width: 320, flexShrink: 0, height: "100vh",
-      background: C.panel, borderRight: `1px solid ${C.border}`,
+      width: collapsed ? 0 : 320, flexShrink: 0, height: "100vh",
+      background: C.panel, borderRight: collapsed ? "none" : `1px solid ${C.border}`,
       display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "inherit",
+      transition: "width 0.16s ease",
     }}>
       <style>{`@keyframes ctx-spin { to { transform: rotate(360deg); } }`}</style>
-      {mode === "projects" ? (
+
+      {collapsed ? null : mode === "projects" ? (
         <ProjectsPanel
           projects={projects}
           selectedProject={selectedProject}
           onSelectProject={onSelectProject}
           selectedView={selectedView}
           onSelectView={onSelectView}
+          onOpenDocument={onOpenDocument}
           onCreateProject={onCreateProject}
           onOpenWorkspaceComposer={onOpenWorkspaceComposer}
           onOpenWorkspaceManage={onOpenWorkspaceManage}

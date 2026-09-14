@@ -121,7 +121,7 @@ function WorkspaceBubble({ workspace, active, onClick }) {
         style={{
           width: 48,
           height: 48,
-          borderRadius: 16,
+          borderRadius: 14,
           border: active ? "1px solid rgba(26,25,22,0.24)" : "1px solid rgba(0,0,0,0.08)",
           background: iconUrl ? "none" : active ? "rgba(26,25,22,0.16)" : "var(--surface)",
           color: "var(--text-1)",
@@ -199,7 +199,7 @@ function ActionBubble({ label, title, onClick, disabled = false }) {
         style={{
           width: 44,
           height: 44,
-          borderRadius: 11,
+          borderRadius: 14,
           border: "1px solid rgba(0,0,0,0.09)",
           background: hovered && !disabled ? "rgba(26,25,22,0.04)" : "var(--surface)",
           color: disabled ? "var(--text-3)" : hovered ? "var(--text-1)" : "var(--text-2)",
@@ -403,11 +403,7 @@ export function ActivityBar({
               );
             })
           )}
-        </div>
 
-        <div style={{ width: 34, height: 1, background: C.border }} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
           <ActionBubble
             label="+"
             title="워크스페이스 추가 또는 참여"

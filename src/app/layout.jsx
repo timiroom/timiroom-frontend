@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/context/ToastContext";
 import { AuthModal }    from "@/components/auth/AuthModal";
 
 export const metadata = {
@@ -13,9 +14,11 @@ export default function RootLayout({ children }) {
     <html lang="ko">
       <body>
         <AuthProvider>
-          {children}
-          {/* 전역 인증 모달 — 어느 페이지에서든 openAuthModal() 호출로 표시 */}
-          <AuthModal />
+          <ToastProvider>
+            {children}
+            {/* 전역 인증 모달 — 어느 페이지에서든 openAuthModal() 호출로 표시 */}
+            <AuthModal />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

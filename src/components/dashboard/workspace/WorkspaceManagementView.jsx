@@ -19,6 +19,7 @@ import {
 } from "@/lib/teamApi";
 import { fetchProjectsByTeam } from "@/lib/projectApi";
 import { fetchTeamGithubInstallations } from "@/lib/githubApi";
+import { useToast } from "@/context/ToastContext";
 
 const C = {
   bg: "var(--bg)",
@@ -82,25 +83,6 @@ function ProjectItem({ project, onClick }) {
   );
 }
 
-function FeedbackBanner({ feedback }) {
-  if (!feedback) return null;
-
-  return (
-    <div style={{
-      marginBottom: 16,
-      padding: "12px 14px",
-      borderRadius: 12,
-      border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.18)"}`,
-      background: "var(--surface)",
-      color: feedback.type === "error" ? "#dc2626" : "#059669",
-      fontSize: 12,
-      fontWeight: 700,
-    }}>
-      {feedback.message}
-    </div>
-  );
-}
-
 function QuickJumpButton({ active, children, onClick }) {
   return (
     <button
@@ -124,6 +106,37 @@ function QuickJumpButton({ active, children, onClick }) {
   );
 }
 
+function IconPanelToggle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M9 4v16" />
+      <rect x="3" y="4" width="6" height="16" rx="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SidebarToggleButton({ onToggleSidebar }) {
+  if (!onToggleSidebar) return null;
+  return (
+    <button
+      type="button"
+      onClick={onToggleSidebar}
+      title="사이드바 접기/펼치기"
+      style={{
+        width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+        background: "none", border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: C.muted,
+      }}
+      onMouseEnter={e => e.currentTarget.style.color = C.text}
+      onMouseLeave={e => e.currentTarget.style.color = C.muted}
+    >
+      <IconPanelToggle />
+    </button>
+  );
+}
+
 export function WorkspaceManagementView({
   activeWorkspaceId,
   workspaceDetail,
@@ -134,8 +147,10 @@ export function WorkspaceManagementView({
   onReloadWorkspace,
   onReloadWorkspaces,
   onBack,
+  onToggleSidebar,
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [workspaceProjects, setWorkspaceProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [githubInstallations, setGithubInstallations] = useState([]);
@@ -144,7 +159,6 @@ export function WorkspaceManagementView({
   const [teamDescriptionDraft, setTeamDescriptionDraft] = useState("");
   const [transferTargetId, setTransferTargetId] = useState("");
   const [copiedTeamId, setCopiedTeamId] = useState(null);
-  const [feedback, setFeedback] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savingTeam, setSavingTeam] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -256,12 +270,12 @@ export function WorkspaceManagementView({
     try {
       await navigator.clipboard.writeText(inviteCode);
       setCopiedTeamId(teamId);
-      setFeedback({ type: "success", message: "초대 코드를 복사했어요." });
+      showToast("success", "초대 코드를 복사했어요.");
       window.setTimeout(() => {
         setCopiedTeamId((current) => (current === teamId ? null : current));
       }, 1200);
     } catch {
-      setFeedback({ type: "error", message: "초대 코드를 복사하지 못했어요." });
+      showToast("error", "초대 코드를 복사하지 못했어요.");
     }
   }
 
@@ -269,7 +283,6 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId || !isOwner) return;
 
     setSavingTeam(true);
-    setFeedback(null);
     try {
       await updateTeam(activeWorkspaceId, {
         teamName: teamNameDraft.trim(),
@@ -277,9 +290,9 @@ export function WorkspaceManagementView({
       });
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "워크스페이스 정보를 저장했어요." });
+      showToast("success", "워크스페이스 정보를 저장했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 저장에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 저장에 실패했습니다.");
     } finally {
       setSavingTeam(false);
     }
@@ -289,15 +302,14 @@ export function WorkspaceManagementView({
     const file = e.target.files?.[0];
     if (!file || !activeWorkspaceId) return;
     setUploadingIcon(true);
-    setFeedback(null);
     try {
       const url = await uploadWorkspaceIcon(file);
       await updateTeamIcon(activeWorkspaceId, url);
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "워크스페이스 아이콘을 저장했어요." });
+      showToast("success", "워크스페이스 아이콘을 저장했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "아이콘 업로드에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "아이콘 업로드에 실패했습니다.");
     } finally {
       setUploadingIcon(false);
       if (iconFileRef.current) iconFileRef.current.value = "";
@@ -308,14 +320,13 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId || !isOwner) return;
 
     setRegenerating(true);
-    setFeedback(null);
     try {
       await regenerateTeamInviteCode(activeWorkspaceId);
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "초대 코드를 새로 발급했어요." });
+      showToast("success", "초대 코드를 새로 발급했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "초대 코드 재발급에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "초대 코드 재발급에 실패했습니다.");
     } finally {
       setRegenerating(false);
     }
@@ -324,19 +335,18 @@ export function WorkspaceManagementView({
   async function handleTransferOwnership() {
     if (!activeWorkspaceId || !isOwner) return;
     if (!transferTargetId) {
-      setFeedback({ type: "error", message: "소유자 권한을 넘길 멤버를 선택해 주세요." });
+      showToast("error", "소유자 권한을 넘길 멤버를 선택해 주세요.");
       return;
     }
 
     setTransferring(true);
-    setFeedback(null);
     try {
       await transferTeamOwnership(activeWorkspaceId, Number(transferTargetId));
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "소유자 권한을 이전했어요." });
+      showToast("success", "소유자 권한을 이전했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "소유자 권한 이전에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "소유자 권한 이전에 실패했습니다.");
     } finally {
       setTransferring(false);
     }
@@ -346,14 +356,13 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId || !isOwner) return;
 
     setRemovingMemberId(memberId);
-    setFeedback(null);
     try {
       await removeTeamMember(activeWorkspaceId, memberId);
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "멤버를 제거했어요." });
+      showToast("success", "멤버를 제거했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "멤버 제거에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "멤버 제거에 실패했습니다.");
     } finally {
       setRemovingMemberId(null);
     }
@@ -363,14 +372,13 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId || !isOwner) return;
 
     setChangingRoleMemberId(memberId);
-    setFeedback(null);
     try {
       await updateTeamMemberRole(activeWorkspaceId, memberId, newRole);
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
-      setFeedback({ type: "success", message: "역할을 변경했어요." });
+      showToast("success", "역할을 변경했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "역할 변경에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "역할 변경에 실패했습니다.");
     } finally {
       setChangingRoleMemberId(null);
     }
@@ -380,13 +388,12 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId) return;
 
     setLeaving(true);
-    setFeedback(null);
     try {
       await leaveTeam(activeWorkspaceId);
       await refreshWorkspaceList(activeWorkspaceId);
-      setFeedback({ type: "success", message: "워크스페이스에서 나왔어요." });
+      showToast("success", "워크스페이스에서 나왔어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 나가기에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 나가기에 실패했습니다.");
     } finally {
       setLeaving(false);
     }
@@ -396,14 +403,13 @@ export function WorkspaceManagementView({
     if (!activeWorkspaceId || !isOwner) return;
 
     setDeleting(true);
-    setFeedback(null);
     try {
       await deleteTeam(activeWorkspaceId);
       await refreshWorkspaceList(activeWorkspaceId);
       setConfirmDelete(false);
-      setFeedback({ type: "success", message: "워크스페이스를 삭제했어요." });
+      showToast("success", "워크스페이스를 삭제했어요.");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "워크스페이스 삭제에 실패했습니다." });
+      showToast("error", error instanceof Error ? error.message : "워크스페이스 삭제에 실패했습니다.");
     } finally {
       setDeleting(false);
     }
@@ -429,6 +435,7 @@ export function WorkspaceManagementView({
           padding: "0 28px",
           gap: 10,
         }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"
@@ -446,7 +453,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>워크스페이스 관리</span>
@@ -516,6 +522,7 @@ export function WorkspaceManagementView({
           padding: "0 28px",
           gap: 10,
         }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"
@@ -533,7 +540,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>워크스페이스 관리</span>
@@ -587,6 +593,7 @@ export function WorkspaceManagementView({
         padding: "0 28px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
           {onBack && (
             <button
               type="button"
@@ -604,7 +611,6 @@ export function WorkspaceManagementView({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
-              뒤로
             </button>
           )}
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
@@ -824,8 +830,6 @@ export function WorkspaceManagementView({
               권한 체계는 소유자 / 멤버 / 게스트 세 단계예요. 소유자만 이름·설명 수정, 초대 코드 재발급, 소유자 이전, 멤버 강퇴, 역할 변경을 할 수 있어요. 게스트는 프로젝트 생성이 제한돼요.
             </div>
           </div>
-
-          <FeedbackBanner feedback={feedback} />
 
           <div style={{
             border: `1px solid ${C.border}`,

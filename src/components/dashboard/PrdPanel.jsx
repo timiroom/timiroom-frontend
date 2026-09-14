@@ -881,7 +881,6 @@ ${content}</body></html>`;
         <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface }}>
           <button onClick={()=>setEditMode(false)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(0,0,0,0.04)", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            {"뒤로"}
           </button>
           {project && <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>}
           <span style={{ fontSize:13, color:C.sub }}>›</span>
