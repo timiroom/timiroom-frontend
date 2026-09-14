@@ -6,22 +6,27 @@
  * 기능 · API · DB 테이블이 어떻게 이어져 있는지 보여주고,
  * 하나를 고르면 그것과 엮인 것만 남겨 변경의 영향 범위를 드러낸다.
  *
+ * 화면 틀은 기획(민정)을 따른다.
+ *   - 배치: 4월 시안(KnowledgeGraph 초안) — 위쪽 필터 칩과 도구 버튼, 격자 바탕 카드,
+ *     오른쪽 패널(노드 상세 · 그래프 현황 · 빠른 작업)
+ *   - 표시 설정: 수행계획서 "예상 결과물" 그림 — 검색, 연결 없는 노드 토글, 표시 조절
+ *   - 영향 범위: 수행계획서 "변경 시 영향 범위를 우선순위를 지정해 단계별로 하이라이트"
+ * 안에 담기는 데이터와 계산은 서버가 명세에서 복원한 관계를 그대로 쓴다.
+ *
  * 힘기반 배치는 노드가 늘면 가운데로 엉겨붙어 선이 서로를 가린다.
  * 그 덩어리를 피하려고 네 가지를 건다.
  *   1. 도메인 묶음  같은 리소스를 다루는 노드를 한 영역에 모으고 묶음끼리 밀어낸다.
  *   2. 크기로 위계  연결이 많은 노드를 크게 그려 중심이 먼저 보이게 한다.
- *   3. 선택 시 집중  고른 노드와 이어진 것만 남기고 나머지는 물러나게 한다.
+ *   3. 선택 시 집중  고른 노드에서 두 걸음 안의 것만 남기고 나머지는 물러나게 한다.
  *   4. 라벨은 원 밖  글자 길이가 원 크기를 끌고 다니지 않게 아래에 둔다.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { fetchProjectGraph, toCytoscapeElements } from "@/lib/graphApi";
 
 /**
  * 바탕 — 랜딩·대시보드와 같은 아이보리.
- *
  * 값은 지어내지 않고 디자인 시스템 토큰(styles/theme.css)을 그대로 옮겼다.
- * 이 화면만 어두우면 대시보드 안에서 혼자 튀어 다른 제품처럼 보인다.
  */
 const C = {
   bg:      "#f7f6f3",   // --bg
@@ -30,16 +35,13 @@ const C = {
   text:    "#1a1916",   // --text-1
   muted:   "#6b6960",   // --text-2
   faint:   "#a8a69f",   // --text-3
+  soft:    "#f2f0ea",
 };
 
 /**
  * 계층별 색.
- *
- * 디자인 시스템의 상태 색(--db-green/blue/pink)을 그대로 쓴다. 밝은 바탕에서는
- * 파스텔이 배경에 녹아 버리므로 채도를 살린 중간 톤이 필요하고, 마침 그 토큰들이
- * 그 자리에 있다. 따뜻한 색(--db-orange)은 화면 통틀어 "변경·영향" 하나에만 준다.
- * 그러면 주황이 뜨는 순간 그게 곧 신호가 된다.
- *
+ * 디자인 시스템의 상태 색(--db-green/blue/pink)을 그대로 쓴다. 따뜻한 색(--db-orange)은
+ * 화면 통틀어 "변경·영향" 하나에만 준다. 그러면 주황이 뜨는 순간 그게 곧 신호가 된다.
  * light는 원 가운데, deep은 테두리 쪽 — 방사형으로 겹쳐 구슬처럼 입체를 준다.
  */
 const TYPE_STYLE = {
@@ -47,30 +49,28 @@ const TYPE_STYLE = {
   api:     { color: "#3b82f6", light: "#93c5fd", deep: "#1d4ed8", label: "API" },
   table:   { color: "#ec4899", light: "#f9a8d4", deep: "#be185d", label: "테이블" },
   // 코드(PR)는 기획 세 계층과 결이 달라 형태로도 구분한다 — 아래에서 사각형으로 그린다.
-  // 색은 브랜드의 따뜻한 무채색이라 어느 계층으로도 오해되지 않는다.
   pr:      { color: "#6b6960", light: "#a8a69f", deep: "#3c3a33", label: "PR" },
 };
+
+/* 시안의 필터 칩 — 이 그래프에 실제로 있는 계층으로 채운다 */
+const FILTERS = [
+  { id: "all",     label: "전체" },
+  { id: "feature", label: "기능" },
+  { id: "api",     label: "API" },
+  { id: "table",   label: "테이블" },
+  { id: "pr",      label: "PR" },
+];
 
 /**
  * 연결 안 됨 — 붉은색으로 경고하지 않는다.
  * 이건 "잘못됐다"가 아니라 "이어질 것이 없다"는 부재다.
- *
- * 부재를 드러내는 방법은 바닥에 따라 뒤집어야 한다.
- * 어두운 바닥에서는 색을 빼면 창백하게 떠오르지만, 밝은 바닥에서 색을 빼면
- * 그냥 사라진다. 설계 구멍을 찾아 주는 게 이 화면의 쓸모인데 정작 그 구멍이
- * 제일 안 보이게 되는 셈이다. 그래서 밝은 바닥에서는 속을 비우고 테두리만 남긴다.
- * 채우면 있는 것, 비우면 없는 것 — 뜻은 같고 표현만 바탕에 맞춘다.
+ * 밝은 바닥에서 색을 빼면 그냥 사라지므로, 속을 비우고 테두리만 남긴다.
  */
 const ORPHAN_STYLE = { color: "#d0cec6", light: "#e4e2db", deep: "#b3b0a5" };
 
 /**
  * 변경 표시 — 전부 같은 호박색 계열이고 진하기로만 갈린다.
- * 추가에 초록, 수정에 노랑, 삭제에 회색을 쓰면 계층 색과 뒤엉켜
- * 화면에 색이 여섯 개가 된다. 한 계열로 묶으면 "따뜻한 테두리 = 손댈 곳"이
- * 한눈에 잡히고, 어느 종류인지는 범례와 상세 패널이 말해 준다.
- *
- * 밝은 바탕에서는 옅을수록 안 보이므로, 어두운 바탕에서 쓰던 순서를 뒤집어
- * 진할수록 무겁게 읽히도록 잡았다.
+ * 계층 색과 뒤엉키지 않게 "따뜻한 테두리 = 손댈 곳" 하나로 묶는다.
  */
 const CHANGE_STYLE = {
   ADDED:    { color: "#f59e0b", label: "추가됨" },   // --db-orange
@@ -82,60 +82,41 @@ const CHANGE_STYLE = {
 const IMPACT_COLOR = "#ea580c";
 
 /**
- * 그래프가 놓이는 바닥.
+ * 영향 단계.
  *
- * 헤더·범례·상세 패널은 언제나 아이보리다. 바뀌는 건 그림이 놓이는 바닥뿐이라,
- * 액자가 캔버스를 감싸는 모양이 된다 — 지도나 사진이 자기 바닥을 갖는 것과 같다.
- *
- * 어두운 바닥은 새로 지어낸 색이 아니라 --db-purple-900(=--accent, CTA에 쓰는 먹색)이다.
- * 그래프는 원래 어두운 바닥에서 잘 읽힌다. 색 있는 노드가 빛나 보이고, 옅은 선이
- * 배경으로 물러나며, 흐리게 한 것이 "사라진" 게 아니라 "뒤로 간" 것으로 읽힌다.
+ * 수행계획서는 영향 범위를 "우선순위를 지정해 단계별로" 보여 달라고 한다.
+ * 바로 맞닿은 1단계는 먼저 볼 것이라 진하게, 한 다리 건넌 2단계는 옅게 둔다.
+ * 두 걸음에서 멈추는 이유 — 계층이 셋이라 어느 계층에서 출발하든 두 걸음이면
+ * 위아래 끝에 닿고, 그 너머는 외래키를 타고 다른 도메인으로 번져 화면 대부분이
+ * 영향 범위로 칠해진다. 전부 표시하면 아무것도 고를 수 없다.
  */
-const CANVAS_THEME = {
-  light: {
-    bg:         "#f7f6f3",
-    glow:       "#fdfdfc",
-    label:      "#6b6960",
-    labelPlate: "#f7f6f3",
-    edge:       "#6b6960",
-    edgeOpacity: 0.42,
-    groupLabel: "#1a1916",
-    groupOpacity: 0.3,
-    focusRing:  "#1a1916",
-    dim:        0.14,
-    // 밝은 바닥 — 속을 비워 부재를 드러낸다
-    orphanFill:      0,
-    orphanRing:      "#8f8c82",
-    orphanRingWidth: 2,
-    orphanRingStyle: "dashed",
-  },
-  dark: {
-    bg:         "#1a1916",   // --db-purple-900 / --accent
-    glow:       "#2b2a25",   // --db-purple-800
-    label:      "#a8a69f",   // --text-3
-    labelPlate: "#1a1916",
-    edge:       "#a8a69f",
-    edgeOpacity: 0.3,
-    groupLabel: "#ffffff",
-    groupOpacity: 0.24,
-    focusRing:  "#f7f6f3",
-    dim:        0.08,
-    // 어두운 바닥 — 색을 뺀 창백함이 그대로 부재로 읽힌다
-    orphanFill:      1,
-    orphanRing:      "rgba(255,255,255,0.30)",
-    orphanRingWidth: 1.5,
-    orphanRingStyle: "dotted",
-  },
+const STEP_STYLE = {
+  1: { color: IMPACT_COLOR, label: "1단계 · 바로 닿음" },
+  2: { color: "#f5b971",    label: "2단계 · 한 다리 건넘" },
 };
+const MAX_STEP = 2;
 
 /**
- * 캔버스 바닥.
- *
- * 사용자에게 보이는 전환 스위치는 두지 않는다 — 테마는 화면 하나가 아니라
- * 앱 전체의 문제고, 이 화면만 스위치를 들고 있으면 나중에 앱 테마가 생겼을 때
- * 둘이 어긋난다. 앱에 테마 체계가 생기면 이 한 줄을 거기에 물리면 된다.
+ * 그래프가 놓이는 바닥.
+ * 시안처럼 밝은 카드 위에 옅은 격자를 깐다. 대시보드의 다른 카드와 같은 결이라
+ * 이 화면만 다른 제품처럼 튀지 않는다.
  */
-const CANVAS = CANVAS_THEME.dark;
+const CANVAS = {
+  label:      "#6b6960",
+  labelPlate: "#f7f6f3",
+  edge:       "#6b6960",
+  edgeOpacity: 0.42,
+  groupLabel: "#1a1916",
+  groupOpacity: 0.3,
+  focusRing:  "#1a1916",
+  dim:        0.14,
+  orphanFill:      0,
+  orphanRing:      "#8f8c82",
+  orphanRingWidth: 2,
+  orphanRingStyle: "dashed",
+};
+
+const DEFAULT_DISPLAY = { arrows: false, labels: true, nodeScale: 1, edgeScale: 1 };
 
 export function KnowledgeGraph({ project }) {
   const containerRef = useRef(null);
@@ -144,9 +125,17 @@ export function KnowledgeGraph({ project }) {
   const [graph, setGraph]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
-  const [selected, setSelected] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [ready, setReady]     = useState(0);          // 그래프가 새로 그려질 때마다 올라간다
+
+  const [selected, setSelected]     = useState(null);
+  const [filter, setFilter]         = useState("all");
+  const [query, setQuery]           = useState("");
   const [showOrphanOnly, setShowOrphanOnly] = useState(false);
   const [showImpactOnly, setShowImpactOnly] = useState(false);
+  const [display, setDisplay]       = useState(DEFAULT_DISPLAY);
+  const [counts, setCounts]         = useState({ nodes: 0, edges: 0 });
+  const [notice, setNotice]         = useState("");
 
   const projectId = project?.id;
 
@@ -163,7 +152,7 @@ export function KnowledgeGraph({ project }) {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [projectId]);
+  }, [projectId, reloadKey]);
 
   /* ── 그래프 렌더 ── */
   useEffect(() => {
@@ -174,8 +163,7 @@ export function KnowledgeGraph({ project }) {
     let disposed = false;
 
     (async () => {
-      // 브라우저에서만 불러온다 — 서버 렌더 단계에는 필요 없다.
-      // 두 패키지 모두 CommonJS로 배포되어 동적 import로는 상호운용이 깨진다.
+      // 브라우저에서만 불러온다 — 두 패키지 모두 CommonJS라 동적 import로는 상호운용이 깨진다.
       const cytoscape = require("cytoscape");
       const fcose = require("cytoscape-fcose");
       if (disposed) return;
@@ -190,219 +178,28 @@ export function KnowledgeGraph({ project }) {
       cy = cytoscape({
         container: containerRef.current,
         elements,
-
-        // 휠 한 칸에 얼마나 확대할지. 기본값이 1인데 0.2로 눌러 놓으니
-        // 몇 번을 굴려도 그림이 거의 그대로라 "반응이 없다"고 느껴진다.
         wheelSensitivity: 1,
         minZoom: 0.15,
         maxZoom: 3,
-
-        // 확대·이동 중에는 화면을 한 장 떠서 그것만 움직인다.
-        // 노드마다 방사형 그라디언트를 칠하고 라벨 뒤에 판까지 깔아 두어
-        // 한 프레임 값이 싸지 않은데, 끌 때마다 전부 다시 그리면 끊긴다.
+        // 확대·이동 중에는 화면을 한 장 떠서 그것만 움직인다 — 끌 때마다 전부 다시 그리면 끊긴다.
         textureOnViewport: true,
         motionBlur: false,
-
-        style: [
-          {
-            selector: "node",
-            style: {
-              label: "data(label)",
-              "font-family": "'Pretendard','Noto Sans KR',sans-serif",
-              "font-size": 10,
-              "font-weight": 500,
-              // 라벨을 원 아래에 둔다 — 원 안에 넣으면 글자 길이에 원 크기가 끌려간다
-              "text-valign": "bottom",
-              "text-halign": "center",
-              "text-margin-y": 7,
-              "text-wrap": "wrap",
-              "text-max-width": 140,
-              // 글자를 가장 진한 색으로 두면 노드보다 라벨이 먼저 눈에 든다.
-              // 주인공은 관계이므로 글자는 한 단계 물러난 색으로 둔다.
-              color: CANVAS.label,
-              // 글자 뒤에 바탕색을 얇게 깔아, 선 위를 지나가도 읽히게 한다.
-              // 예전의 외곽선(text-outline)은 글자마다 후광이 생겨 지저분했다.
-              "text-background-color": CANVAS.labelPlate,
-              "text-background-opacity": 0.78,
-              "text-background-padding": 3,
-              "text-background-shape": "roundrectangle",
-              shape: "ellipse",
-              // 연결이 많을수록 크게 — 무엇이 중심인지 크기로 먼저 읽힌다
-              width: "mapData(degree, 0, 8, 20, 52)",
-              height: "mapData(degree, 0, 8, 20, 52)",
-              "border-width": 0,
-              // 납작한 원판 대신 가운데가 밝은 구슬로 — 평면적인 인상을 없앤다
-              "background-fill": "radial-gradient",
-              "background-gradient-stop-positions": "0% 62% 100%",
-              "transition-property": "opacity, border-width, width, height",
-              "transition-duration": "160ms",
-            },
-          },
-          ...Object.entries(TYPE_STYLE).map(([type, s]) => ({
-            selector: `node[type="${type}"]`,
-            style: {
-              "background-color": s.color,
-              "background-gradient-stop-colors": `${s.light} ${s.color} ${s.deep}`,
-            },
-          })),
-          {
-            // 도메인 묶음 — 상자를 그리지 않는다.
-            // 눈에는 보이지 않지만 배치 계산에는 그대로 작용해,
-            // 같은 도메인 노드끼리 자연스럽게 모이고 도메인끼리는 떨어진다.
-            // 선으로 영역을 가두면 관계보다 칸막이가 먼저 읽힌다.
-            selector: 'node[type="group"]',
-            style: {
-              // 묶음은 그리지 않으므로 노드가 쓰는 방사형 채움을 물려받으면 안 된다.
-              // 색 정지점이 없는 채로 그라디언트를 계산하려다 렌더러가 멈춘다.
-              "background-fill": "solid",
-              "background-opacity": 0,
-              "border-width": 0,
-              shape: "round-rectangle",
-              label: "data(label)",
-              "text-valign": "top",
-              "text-halign": "center",
-              "text-margin-y": 2,
-              "font-size": 9.5,
-              "font-weight": 600,
-              "letter-spacing": 2.5,
-              "text-transform": "uppercase",
-              // 도메인 이름은 배경 안내판이다. 흐리게 두지 않으면
-              // 정작 봐야 할 노드 라벨보다 먼저 눈에 든다.
-              color: CANVAS.groupLabel,
-              "text-opacity": CANVAS.groupOpacity,
-              "text-background-opacity": 0,
-              padding: 14,
-              width: "label",
-              height: "label",
-              events: "no",
-            },
-          },
-          {
-            // 코드(PR) — 기획에서 나온 세 계층과 출신이 다르다.
-            // 색만 달리하면 "네 번째 계층"처럼 읽히므로 형태를 바꿔
-            // 한눈에 "이건 문서가 아니라 코드"임을 알게 한다.
-            selector: 'node[type="pr"]',
-            style: {
-              shape: "round-rectangle",
-              width: "mapData(degree, 0, 8, 26, 58)",
-              height: "mapData(degree, 0, 8, 16, 26)",
-              "font-size": 9.5,
-              "text-max-width": 170,
-            },
-          },
-          {
-            // 어디에도 이어지지 않은 노드 — 설계 구멍.
-            // 색이 빠져 죽은 듯 보이는 것 자체가 신호다.
-            selector: 'node[orphan="yes"]',
-            style: {
-              "background-color": ORPHAN_STYLE.color,
-              "background-gradient-stop-colors":
-                `${ORPHAN_STYLE.light} ${ORPHAN_STYLE.color} ${ORPHAN_STYLE.deep}`,
-              "background-opacity": CANVAS.orphanFill,
-              "border-width": CANVAS.orphanRingWidth,
-              "border-color": CANVAS.orphanRing,
-              "border-opacity": 1,
-              "border-style": CANVAS.orphanRingStyle,
-              color: CANVAS.label,
-            },
-          },
-          /* 변경된 노드 — 테두리 색으로 무엇이 바뀌었는지 알린다.
-             채움색은 종류(기능·API·테이블)를 그대로 두어 두 정보가 겹치지 않게 한다.
-             테두리를 두껍게 잡아 멀리서도 어디가 바뀌었는지 먼저 눈에 들게 한다 */
-          ...Object.entries(CHANGE_STYLE).map(([kind, s]) => ({
-            selector: `node[change="${kind}"]`,
-            style: { "border-width": 3.5, "border-color": s.color, "border-opacity": 1 },
-          })),
-          {
-            // 삭제된 항목은 지금 명세에 없으므로 속을 비워 부재를 드러낸다
-            selector: 'node[change="REMOVED"]',
-            style: { "background-opacity": 0.15, "border-style": "dashed" },
-          },
-          {
-            // 스스로 바뀐 건 아니지만 바뀐 것과 이어져 확인이 필요한 노드
-            selector: 'node[impacted="yes"]',
-            style: {
-              "border-width": 2.5,
-              "border-color": IMPACT_COLOR,
-              "border-opacity": 0.9,
-              "border-style": "dashed",
-            },
-          },
-          {
-            // 이 화면이 보여주려는 건 노드가 아니라 노드 사이의 관계다.
-            // 선이 배경에 묻히면 무엇이 무엇에 걸려 있는지 읽히지 않으므로
-            // 바탕과 확실히 구분될 만큼은 밝게 둔다.
-            // 색은 검정 대신 따뜻한 회색 — 검은 선은 노드보다 진해서
-            // 배경 격자처럼 보여야 할 것이 앞으로 나온다.
-            selector: "edge",
-            style: {
-              width: 1.1,
-              "line-color": CANVAS.edge,
-              "line-opacity": CANVAS.edgeOpacity,
-              // 완만한 곡선 — 세 개 이상이 한 노드에 모일 때 선이 겹쳐 사라지지 않는다
-              "curve-style": "bezier",
-              "control-point-step-size": 30,
-              "target-arrow-shape": "none",
-              "transition-property": "opacity, line-color, line-opacity, width",
-              "transition-duration": "160ms",
-            },
-          },
-          {
-            selector: 'edge[type="REFERENCES"]',
-            style: { "line-style": "dashed" },
-          },
-          {
-            // 코드가 명세에 닿는 선. 문서끼리의 관계(항상 참인 구조)와 달리
-            // 이건 "지금 누군가 건드리는 중"이라는 시간이 있는 사실이므로
-            // 점선으로 임시성을 드러낸다.
-            selector: 'edge[type="CHANGES"]',
-            style: { "line-style": "dotted", "line-opacity": 0.45, width: 1.4 },
-          },
-          {
-            // 변경이 타고 번져 나간 경로.
-            // 노드에 표시만 남기면 "왜 이게 영향을 받았는지"가 안 보인다.
-            // 번짐이 지나간 선을 굵고 밝게 살려 두면 경로가 한눈에 이어진다.
-            //
-            // 화살표는 달지 않는다. 영향은 양방향으로 퍼진다 —
-            // 테이블이 바뀌면 그 테이블을 쓰는 API 쪽으로, 즉 선이 그려진
-            // 방향과 반대로도 번진다. 화살촉을 붙이면 없는 방향을 주장하게 된다.
-            selector: 'edge[onImpactPath="yes"]',
-            style: {
-              width: 2.4,
-              "line-color": IMPACT_COLOR,
-              "line-opacity": 0.85,
-            },
-          },
-          /* 선택 시 — 관련 없는 것은 물러나고 영향 경로만 남는다.
-             밝은 바탕에서는 너무 낮추면 아예 사라져 맥락을 잃는다 */
-          { selector: ".dim", style: { opacity: CANVAS.dim } },
-          {
-            selector: "node.focus",
-            style: { "border-width": 3, "border-color": CANVAS.focusRing, "border-opacity": 0.9 },
-          },
-          {
-            selector: "edge.focus",
-            style: { width: 2, "line-color": CANVAS.focusRing, "line-opacity": 0.8, "target-arrow-shape": "none" },
-          },
-        ],
+        style: baseStyle(DEFAULT_DISPLAY),
         layout: fcoseLayout(elements.length),
       });
 
       cy.on("tap", "node", (evt) => {
         const node = evt.target;
-        if (node.data("type") === "group") return;   // 상자는 선택 대상이 아니다
-        applyFocus(cy, node);
-        setSelected(buildSelection(node));
+        if (node.data("type") === "group") return;   // 묶음은 선택 대상이 아니다
+        setSelected(buildSelection(cy, node));
       });
 
       cy.on("tap", (evt) => {
-        if (evt.target === cy) {
-          clearFocus(cy);
-          setSelected(null);
-        }
+        if (evt.target === cy) setSelected(null);
       });
 
       cyRef.current = cy;
+      setReady((v) => v + 1);
     })();
 
     return () => {
@@ -412,43 +209,103 @@ export function KnowledgeGraph({ project }) {
     };
   }, [graph]);
 
-  /* ── 걸러 보기 (연결 안 됨 / 변경 영향) ── */
+  /* ── 표시 설정 (화살표 · 라벨 · 크기 · 두께) ── */
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
+    cy.style(baseStyle(display)).update();
+  }, [display, ready]);
 
-    if (showOrphanOnly) {
-      cy.nodes('[type != "group"]').forEach((n) => {
-        n.toggleClass("dim", n.data("orphan") !== "yes");
-      });
-      cy.edges().addClass("dim");
-    } else if (showImpactOnly) {
-      // 바뀐 것과 그 때문에 확인이 필요한 것만 남긴다
-      const involved = cy.nodes('[change != "none"], [impacted="yes"]');
-      cy.elements().addClass("dim");
-      involved.removeClass("dim");
-      // 그 사이를 잇는 선도 함께 살려야 어디로 번졌는지 보인다
-      involved.edgesWith(involved).removeClass("dim");
-      cy.nodes('[type="group"]').removeClass("dim");
-    } else if (!selected) {
-      clearFocus(cy);
-    }
-  }, [showOrphanOnly, showImpactOnly, selected]);
+  /* ── 보기 상태를 한 번에 반영 ──
+     필터 · 검색 · 걸러 보기 · 선택이 서로 끼어들므로, 매번 처음부터 다시 칠한다.
+     조각조각 클래스를 붙였다 떼면 어느 조합에서 흐림이 남는지 추적할 수 없다. */
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    setCounts(applyView(cy, { filter, query, showOrphanOnly, showImpactOnly, selectedId: selected?.id }));
+  }, [filter, query, showOrphanOnly, showImpactOnly, selected, ready]);
+
+  /* ── 영향 경로 흐름 — 시안의 "선을 따라 흐르는 점선" ──
+     선택했을 때만 돌린다. 평소에도 돌리면 정적인 구조가 계속 움직여 산만하다. */
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !selected) return;
+    let tick = 0;
+    const id = setInterval(() => {
+      tick += 1;
+      cy.edges(".flow").style("line-dash-offset", -tick * 1.5);
+    }, 50);
+    return () => {
+      clearInterval(id);
+      cy.edges().removeStyle("line-dash-offset");
+    };
+  }, [selected, ready]);
 
   const summary = graph?.summary;
   const orphanTotal = summary
     ? summary.orphanFeatures + summary.orphanApis + summary.orphanTables
     : 0;
+  const totals = useMemo(() => {
+    const nodes = (graph?.nodes || []).filter((n) => n.type !== "group").length;
+    return { nodes, edges: (graph?.edges || []).length };
+  }, [graph]);
+
+  const flash = useCallback((message) => {
+    setNotice(message);
+    setTimeout(() => setNotice(""), 2200);
+  }, []);
 
   const reset = useCallback(() => {
     const cy = cyRef.current;
-    if (!cy) return;
-    clearFocus(cy);
-    cy.fit(undefined, 30);
     setSelected(null);
+    setFilter("all");
+    setQuery("");
     setShowOrphanOnly(false);
     setShowImpactOnly(false);
+    if (cy) cy.fit(undefined, 30);
   }, []);
+
+  const rerunLayout = useCallback(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.layout(fcoseLayout(cy.elements().length)).run();
+  }, []);
+
+  const exportPng = useCallback(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const uri = cy.png({ full: true, scale: 2, bg: C.bg });
+    const a = document.createElement("a");
+    a.href = uri;
+    a.download = `${project?.name || "knowledge-graph"}-지식그래프.png`;
+    a.click();
+  }, [project?.name]);
+
+  // 시안의 "영향도 시뮬레이션": 고른 노드에서 번짐을 1단계 → 2단계 순서로 다시 보여준다
+  const simulateImpact = useCallback(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    if (!selected) {
+      flash("노드를 먼저 선택하세요");
+      return;
+    }
+    const node = cy.getElementById(selected.id);
+    const steps = stepsFrom(cy, node);
+    cy.elements().addClass("dim");
+    cy.nodes('[type="group"]').removeClass("dim");
+    node.removeClass("dim");
+    [1, 2].forEach((step, i) => {
+      setTimeout(() => {
+        if (cyRef.current !== cy) return;
+        const reached = steps[step] || cy.collection();
+        reached.removeClass("dim");
+        reached.edgesWith(node.union(steps[step - 1] || cy.collection())).removeClass("dim");
+      }, 350 * (i + 1));
+    });
+    setTimeout(() => {
+      if (cyRef.current === cy) setCounts(applyView(cy, { filter, query, showOrphanOnly, showImpactOnly, selectedId: selected.id }));
+    }, 350 * 3 + 200);
+  }, [selected, filter, query, showOrphanOnly, showImpactOnly, flash]);
 
   /* ── 화면 ── */
   if (!projectId) {
@@ -456,75 +313,35 @@ export function KnowledgeGraph({ project }) {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", background: C.bg }}>
-      {/* 상단 요약 */}
-      <div style={{
-        flexShrink: 0, padding: "15px 26px", borderBottom: `1px solid ${C.border}`,
-        background: C.panel, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap",
-      }}>
-        <span style={{
-          fontSize: 11, fontWeight: 600, color: C.muted,
-          letterSpacing: "0.16em", textTransform: "uppercase",
-        }}>지식 그래프</span>
+    <div style={{ flex: 1, display: "flex", gap: 20, height: "100vh", minHeight: 520, padding: 20, background: C.bg, boxSizing: "border-box" }}>
+      {/* ── 왼쪽: 도구줄 + 그래프 ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {FILTERS
+            .filter((f) => f.id !== "pr" || summary?.prCount > 0)
+            .map((f) => (
+              <Chip key={f.id} active={filter === f.id} onClick={() => setFilter(f.id)}>
+                {f.id !== "all" && <Dot type={f.id} />}
+                {f.label}
+                {f.id !== "all" && summary && (
+                  <span style={{ color: C.faint, fontWeight: 500 }}>{countOf(summary, f.id)}</span>
+                )}
+              </Chip>
+            ))}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <ToolButton onClick={rerunLayout} title="배치를 다시 계산합니다">레이아웃 ⟳</ToolButton>
+            <ToolButton onClick={exportPng} title="그래프 전체를 PNG로 저장합니다">내보내기 ↗</ToolButton>
+            <ToolButton onClick={reset}>초기화</ToolButton>
+          </div>
+        </div>
 
-        {summary && (
-          <>
-            <Stat label="기능" value={summary.featureCount} type="feature" />
-            <Stat label="API" value={summary.apiCount} type="api" />
-            <Stat label="테이블" value={summary.tableCount} type="table" />
-            {summary.prCount > 0 && <Stat label="PR" value={summary.prCount} type="pr" />}
-
-            {/* 변경 영향 — 직전 문서 대비 무엇이 바뀌었고 어디까지 번졌는지 */}
-            {summary.changedCount > 0 && (
-              <button
-                onClick={() => { setShowImpactOnly((v) => !v); setShowOrphanOnly(false); }}
-                title="바뀐 항목과 그 때문에 확인이 필요한 항목만 보기"
-                style={{
-                  marginLeft: 4, padding: "5px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
-                  cursor: "pointer", letterSpacing: "0.01em",
-                  background: showImpactOnly ? `${IMPACT_COLOR}18` : "transparent",
-                  border: `1px solid ${IMPACT_COLOR}${showImpactOnly ? "99" : "55"}`,
-                  color: IMPACT_COLOR,
-                }}
-              >
-                변경 {summary.changedCount} · 영향 {summary.impactedCount}
-              </button>
-            )}
-
-            {orphanTotal > 0 && (
-              <button
-                onClick={() => { setShowOrphanOnly((v) => !v); setShowImpactOnly(false); }}
-                title="다른 계층과 이어지지 않은 항목만 보기"
-                style={{
-                  marginLeft: 4, padding: "5px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
-                  cursor: "pointer", letterSpacing: "0.01em",
-                  background: showOrphanOnly ? "#f2f0ea" : "transparent",
-                  border: `1px solid ${showOrphanOnly ? C.faint : C.border}`,
-                  color: showOrphanOnly ? C.text : C.muted,
-                }}
-              >
-                연결 안 됨 {orphanTotal}
-              </button>
-            )}
-
-            <button
-              onClick={reset}
-              style={{
-                marginLeft: "auto", padding: "5px 12px", borderRadius: 999, fontSize: 11.5,
-                background: "transparent", border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer",
-              }}
-            >초기화</button>
-          </>
-        )}
-      </div>
-
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        {/* 그래프 */}
-        {/* 단색 바탕은 평평해서 그래프가 종이에 찍힌 것처럼 죽는다.
-            가운데를 미세하게 밝혀 두면 노드가 그 빛 속에 놓인 것처럼 보인다. */}
-        <div style={{
-          flex: 1, position: "relative", minWidth: 0,
-          background: `radial-gradient(ellipse 90% 70% at 50% 42%, ${CANVAS.glow} 0%, ${CANVAS.bg} 72%)`,
+        <div className="db-card" data-testid="kg-canvas" style={{
+          flex: 1, position: "relative", overflow: "hidden", padding: 0, minHeight: 0,
+          // 시안의 옅은 격자 — 빈 바탕이 평평한 종이처럼 죽지 않게 한다
+          backgroundColor: C.panel,
+          backgroundImage:
+            "linear-gradient(rgba(26,25,22,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(26,25,22,.05) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
         }}>
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
 
@@ -538,74 +355,252 @@ export function KnowledgeGraph({ project }) {
               </span>
             </Overlay>
           )}
-
-          {/* 범례 */}
-          {graph?.nodes?.length > 0 && (
+          {notice && (
             <div style={{
-              position: "absolute", left: 18, bottom: 18, display: "flex", gap: 14,
-              padding: "9px 14px", borderRadius: 10, fontSize: 10.5,
-              // 판을 얹지 않고 바탕에 스며들게 — 상자를 덜어낸 화면과 결을 맞춘다
-              background: "rgba(247,246,243,0.86)", backdropFilter: "blur(8px)",
-              border: `1px solid ${C.border}`, color: C.muted,
-            }}>
-              {/* 범례 표식은 화면의 노드와 같은 형태여야 바로 이어 읽힌다.
-                  PR은 캔버스에서 사각형이므로 범례에서도 사각형으로 둔다. */}
-              {Object.entries(TYPE_STYLE)
-                .filter(([type]) => type !== "pr" || summary?.prCount > 0)
-                .map(([type, s]) => (
-                  <LegendItem key={type} label={s.label}>
-                    <i style={{
-                      width: type === "pr" ? 13 : 9, height: 9,
-                      borderRadius: type === "pr" ? 3 : "50%",
-                      background: `radial-gradient(circle at 35% 30%, ${s.light}, ${s.deep})`,
-                      display: "inline-block",
-                    }} />
-                  </LegendItem>
-                ))}
-              <LegendItem label="연결 안 됨">
-                <i style={{
-                  width: 9, height: 9, borderRadius: "50%",
-                  // 범례는 언제나 아이보리 판 위에 있으므로 캔버스 모드를 따르지 않는다
-                  background: ORPHAN_STYLE.color, border: `1px dotted ${C.faint}`,
-                  display: "inline-block", boxSizing: "border-box",
-                }} />
-              </LegendItem>
-
-              {/* 변경이 있을 때만 노출 — 평소엔 범례를 짧게 유지한다 */}
-              {summary?.changedCount > 0 && (
-                <>
-                  <span style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
-                  {Object.entries(CHANGE_STYLE).map(([kind, s]) => (
-                    <LegendItem key={kind} label={s.label} color={s.color}>
-                      <i style={{
-                        width: 9, height: 9, borderRadius: "50%",
-                        border: `2px solid ${s.color}`, display: "inline-block", boxSizing: "border-box",
-                      }} />
-                    </LegendItem>
-                  ))}
-                  <LegendItem label="확인 필요" color={IMPACT_COLOR}>
-                    <i style={{
-                      width: 9, height: 9, borderRadius: "50%",
-                      border: `2px dashed ${IMPACT_COLOR}`, display: "inline-block", boxSizing: "border-box",
-                    }} />
-                  </LegendItem>
-                  <LegendItem label="영향 경로" color={IMPACT_COLOR}>
-                    <i style={{
-                      width: 14, height: 0, display: "inline-block",
-                      borderTop: `2px solid ${IMPACT_COLOR}`,
-                    }} />
-                  </LegendItem>
-                </>
-              )}
-            </div>
+              position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
+              padding: "7px 14px", borderRadius: 999, fontSize: 12, background: C.text, color: "#fff",
+            }}>{notice}</div>
           )}
-        </div>
 
-        {/* 상세 */}
-        {selected && <DetailPanel selection={selected} />}
+          {graph?.nodes?.length > 0 && <Legend summary={summary} stepsShown={!!selected} />}
+        </div>
+      </div>
+
+      {/* ── 오른쪽 패널: 시안 순서 그대로 (상세 → 현황 → 빠른 작업), 표시 설정을 덧붙인다 ── */}
+      <div data-testid="kg-side" style={{ width: 272, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
+        {selected ? (
+          <DetailPanel selection={selected} onClose={() => setSelected(null)} />
+        ) : (
+          <div className="db-card" style={{ padding: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🕸️</div>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: C.text }}>노드를 선택하세요</div>
+            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
+              그래프에서 노드를 클릭하면 연결 관계와 영향 단계를 확인할 수 있습니다.
+            </div>
+          </div>
+        )}
+
+        <Card title="그래프 현황">
+          <StatRow label="노드" value={counts.nodes} total={totals.nodes} />
+          <StatRow label="엣지" value={counts.edges} total={totals.edges} />
+          {summary && (
+            <>
+              <StatRow label="도메인" value={(graph?.nodes || []).filter((n) => n.type === "group").length} />
+              <StatToggle
+                label="연결 안 됨" value={orphanTotal} active={showOrphanOnly} disabled={orphanTotal === 0}
+                onClick={() => { setShowOrphanOnly((v) => !v); setShowImpactOnly(false); }}
+                hint="다른 계층과 이어지지 않은 항목만 보기"
+              />
+              <StatToggle
+                label="변경 · 영향" value={`${summary.changedCount} · ${summary.impactedCount}`}
+                active={showImpactOnly} disabled={summary.changedCount === 0} color={IMPACT_COLOR}
+                onClick={() => { setShowImpactOnly((v) => !v); setShowOrphanOnly(false); }}
+                hint="직전 버전 대비 바뀐 항목과 확인이 필요한 항목만 보기"
+              />
+            </>
+          )}
+        </Card>
+
+        <Card title="빠른 작업">
+          <ActionButton icon="🔄" label="그래프 재분석" onClick={() => setReloadKey((k) => k + 1)} />
+          <ActionButton icon="📤" label="PNG 내보내기" onClick={exportPng} />
+          <ActionButton icon="🔍" label="영향도 시뮬레이션" onClick={simulateImpact} />
+        </Card>
+
+        <Card title="표시">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="노드 검색…"
+            aria-label="노드 검색"
+            style={{
+              width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 8, fontSize: 12,
+              border: `1px solid ${C.border}`, background: C.bg, color: C.text, marginBottom: 10,
+            }}
+          />
+          <Switch label="연결 안 됨만" checked={showOrphanOnly}
+                  onChange={(v) => { setShowOrphanOnly(v); if (v) setShowImpactOnly(false); }} />
+          <Switch label="화살표" checked={display.arrows} onChange={(v) => setDisplay((d) => ({ ...d, arrows: v }))} />
+          <Switch label="라벨" checked={display.labels} onChange={(v) => setDisplay((d) => ({ ...d, labels: v }))} />
+          <Slider label="노드 크기" value={display.nodeScale} min={0.6} max={1.6} step={0.1}
+                  onChange={(v) => setDisplay((d) => ({ ...d, nodeScale: v }))} />
+          <Slider label="선 두께" value={display.edgeScale} min={0.5} max={3} step={0.25}
+                  onChange={(v) => setDisplay((d) => ({ ...d, edgeScale: v }))} />
+        </Card>
       </div>
     </div>
   );
+}
+
+/* ══════════════════════════════════════
+   스타일
+══════════════════════════════════════ */
+
+function baseStyle({ arrows, labels, nodeScale, edgeScale }) {
+  const n = (v) => v * nodeScale;
+  const w = (v) => v * edgeScale;
+  return [
+    {
+      selector: "node",
+      style: {
+        label: "data(label)",
+        "text-opacity": labels ? 1 : 0,
+        "font-family": "'Pretendard','Noto Sans KR',sans-serif",
+        "font-size": 10,
+        "font-weight": 500,
+        // 라벨을 원 아래에 둔다 — 원 안에 넣으면 글자 길이에 원 크기가 끌려간다
+        "text-valign": "bottom",
+        "text-halign": "center",
+        "text-margin-y": 7,
+        "text-wrap": "wrap",
+        "text-max-width": 140,
+        color: CANVAS.label,
+        "text-background-color": CANVAS.labelPlate,
+        "text-background-opacity": labels ? 0.78 : 0,
+        "text-background-padding": 3,
+        "text-background-shape": "roundrectangle",
+        shape: "ellipse",
+        // 연결이 많을수록 크게 — 무엇이 중심인지 크기로 먼저 읽힌다
+        width: `mapData(degree, 0, 8, ${n(20)}, ${n(52)})`,
+        height: `mapData(degree, 0, 8, ${n(20)}, ${n(52)})`,
+        "border-width": 0,
+        "background-fill": "radial-gradient",
+        "background-gradient-stop-positions": "0% 62% 100%",
+        "transition-property": "opacity, border-width",
+        "transition-duration": "160ms",
+      },
+    },
+    ...Object.entries(TYPE_STYLE).map(([type, s]) => ({
+      selector: `node[type="${type}"]`,
+      style: {
+        "background-color": s.color,
+        "background-gradient-stop-colors": `${s.light} ${s.color} ${s.deep}`,
+      },
+    })),
+    {
+      // 도메인 묶음 — 상자를 그리지 않는다. 배치 계산에만 작용해 같은 도메인끼리 모인다.
+      selector: 'node[type="group"]',
+      style: {
+        // 노드가 쓰는 방사형 채움을 물려받으면 색 정지점 없이 그라디언트를 계산하다 렌더러가 멈춘다
+        "background-fill": "solid",
+        "background-opacity": 0,
+        "border-width": 0,
+        shape: "round-rectangle",
+        label: "data(label)",
+        "text-valign": "top",
+        "text-halign": "center",
+        "text-margin-y": 2,
+        "font-size": 9.5,
+        "font-weight": 600,
+        "letter-spacing": 2.5,
+        "text-transform": "uppercase",
+        color: CANVAS.groupLabel,
+        "text-opacity": labels ? CANVAS.groupOpacity : 0,
+        "text-background-opacity": 0,
+        padding: 14,
+        width: "label",
+        height: "label",
+        events: "no",
+      },
+    },
+    {
+      // 코드(PR) — 색만 달리하면 "네 번째 계층"처럼 읽히므로 형태를 바꾼다
+      selector: 'node[type="pr"]',
+      style: {
+        shape: "round-rectangle",
+        width: `mapData(degree, 0, 8, ${n(26)}, ${n(58)})`,
+        height: `mapData(degree, 0, 8, ${n(16)}, ${n(26)})`,
+        "font-size": 9.5,
+        "text-max-width": 170,
+      },
+    },
+    {
+      // 어디에도 이어지지 않은 노드 — 설계 구멍
+      selector: 'node[orphan="yes"]',
+      style: {
+        "background-color": ORPHAN_STYLE.color,
+        "background-gradient-stop-colors": `${ORPHAN_STYLE.light} ${ORPHAN_STYLE.color} ${ORPHAN_STYLE.deep}`,
+        "background-opacity": CANVAS.orphanFill,
+        "border-width": CANVAS.orphanRingWidth,
+        "border-color": CANVAS.orphanRing,
+        "border-opacity": 1,
+        "border-style": CANVAS.orphanRingStyle,
+      },
+    },
+    ...Object.entries(CHANGE_STYLE).map(([kind, s]) => ({
+      selector: `node[change="${kind}"]`,
+      style: { "border-width": 3.5, "border-color": s.color, "border-opacity": 1 },
+    })),
+    {
+      selector: 'node[change="REMOVED"]',
+      style: { "background-opacity": 0.15, "border-style": "dashed" },
+    },
+    {
+      // 스스로 바뀐 건 아니지만 바뀐 것과 이어져 확인이 필요한 노드
+      selector: 'node[impacted="yes"]',
+      style: { "border-width": 2.5, "border-color": IMPACT_COLOR, "border-opacity": 0.9, "border-style": "dashed" },
+    },
+    {
+      selector: "edge",
+      style: {
+        width: w(1.1),
+        "line-color": CANVAS.edge,
+        "line-opacity": CANVAS.edgeOpacity,
+        "curve-style": "bezier",
+        "control-point-step-size": 30,
+        "target-arrow-shape": arrows ? "triangle" : "none",
+        "target-arrow-color": CANVAS.edge,
+        "arrow-scale": 0.8,
+        "transition-property": "opacity, line-color, line-opacity, width",
+        "transition-duration": "160ms",
+      },
+    },
+    { selector: 'edge[type="REFERENCES"]', style: { "line-style": "dashed" } },
+    {
+      // 코드가 명세에 닿는 선 — "지금 누군가 건드리는 중"이라는 임시성을 점선으로
+      selector: 'edge[type="CHANGES"]',
+      style: { "line-style": "dotted", "line-opacity": 0.45, width: w(1.4) },
+    },
+    {
+      // 변경이 타고 번져 나간 경로
+      selector: 'edge[onImpactPath="yes"]',
+      style: { width: w(2.4), "line-color": IMPACT_COLOR, "line-opacity": 0.85, "target-arrow-color": IMPACT_COLOR },
+    },
+    /* ── 보기 상태 ── 뒤에 둘수록 우선한다 */
+    { selector: ".dim", style: { opacity: CANVAS.dim } },
+    {
+      // 검색에 걸린 노드 — 계층 색은 그대로 두고 먹색 고리만 두른다
+      selector: "node.match",
+      style: { "border-width": 3, "border-color": CANVAS.focusRing, "border-opacity": 1, "border-style": "solid" },
+    },
+    {
+      selector: "node.step1",
+      style: { "border-width": 3.5, "border-color": STEP_STYLE[1].color, "border-opacity": 1, "border-style": "solid" },
+    },
+    {
+      selector: "node.step2",
+      style: { "border-width": 2.5, "border-color": STEP_STYLE[2].color, "border-opacity": 1, "border-style": "dashed" },
+    },
+    {
+      selector: "node.focus",
+      style: { "border-width": 4, "border-color": CANVAS.focusRing, "border-opacity": 1, "border-style": "solid" },
+    },
+    {
+      // 번짐이 지나간 선 — 점선을 흘려 방향 없이 "여기로 번졌다"를 보여준다
+      selector: "edge.flow",
+      style: {
+        width: w(2.2), "line-color": IMPACT_COLOR, "line-opacity": 0.9,
+        "line-style": "dashed", "line-dash-pattern": [8, 12],
+      },
+    },
+    {
+      selector: "edge.flow2",
+      style: {
+        width: w(1.6), "line-color": STEP_STYLE[2].color, "line-opacity": 0.9,
+        "line-style": "dashed", "line-dash-pattern": [6, 10],
+      },
+    },
+  ];
 }
 
 /* ══════════════════════════════════════
@@ -614,103 +609,116 @@ export function KnowledgeGraph({ project }) {
 
 /**
  * 유기적으로 퍼지되 뭉치지 않게 하는 설정.
- *
- * 힘기반 배치는 그대로 두면 노드가 늘어날수록 가운데로 엉겨붙어
- * 선이 서로를 가리는 덩어리가 된다. 그래서 두 가지를 건다.
- *   - 밀어내는 힘을 노드 수에 따라 키운다
- *   - 도메인 묶음끼리도 서로 밀어내게 해 영역이 겹치지 않게 한다
- *
- * 묶음을 선으로 그리지 않으므로, 어디까지가 한 도메인인지는 오직
- * 이 배치가 만들어내는 거리감으로만 전달된다. 묶음 안은 더 당기고
- * 묶음끼리는 더 밀어내야 상자 없이도 경계가 읽힌다.
+ * 묶음을 선으로 그리지 않으므로, 어디까지가 한 도메인인지는 오직 이 배치가 만드는
+ * 거리감으로만 전달된다. 묶음 안은 더 당기고 묶음끼리는 더 밀어내야 경계가 읽힌다.
  */
 function fcoseLayout(elementCount) {
   const crowded = elementCount > 40;
-
   return {
     name: "fcose",
     quality: "proof",
-    // 무작위 시작점을 쓰지 않는다. 같은 명세면 언제 열어도 같은 그림이어야
-    // "저번에 봤던 그 노드"를 눈으로 찾을 수 있다. 열 때마다 배치가 흔들리면
-    // 매번 처음부터 읽어야 한다.
+    // 같은 명세면 언제 열어도 같은 그림이어야 "저번에 봤던 그 노드"를 눈으로 찾는다
     randomize: false,
     animate: true,
     animationDuration: 700,
     fit: true,
     padding: 60,
-
-    // 라벨을 원 밖에 두므로 배치 계산에도 라벨 크기를 포함시켜야 한다.
-    // 이게 없으면 원끼리는 안 겹쳐도 글자끼리 겹쳐 읽을 수 없게 된다.
     nodeDimensionsIncludeLabels: true,
-
-    // 연결이 많은 노드는 조금 더 밀어낸다. users처럼 대여섯이 매달린 노드는
-    // 이웃이 퍼져야 선이 갈라져 보인다. 다만 세게 주면 허브가 서로를 화면 끝까지
-    // 밀어내 가운데가 비고 가장자리만 붐빈다.
     nodeRepulsion: (node) => {
       const base = crowded ? 4200 : 2600;
       return base * (1 + Math.min(node.data("degree") || 0, 8) * 0.12);
     },
-
-    // 이어진 것은 가까이 둔다.
-    //
-    // 도메인을 가로지르는 외래키와 바깥에서 들어오는 PR을 멀찍이 떼어놓으려고
-    // 이상거리를 늘려 봤는데 반대로 갔다. 힘기반 배치에서 이상거리를 늘리면
-    // 정돈되는 게 아니라 그냥 선이 길어져서, 화면을 가로지르며 남의 선을 더 많이 지난다.
-    // 떼어놓는 일은 밀어내는 힘이 하고, 선은 짧을수록 읽힌다.
+    // 이어진 것은 가까이 둔다. 떼어놓는 일은 밀어내는 힘이 하고, 선은 짧을수록 읽힌다.
     idealEdgeLength: (edge) => {
       const near = crowded ? 80 : 56;
-      // PR은 자기가 건드린 것에 붙어 있어야 "이 코드가 여기를 만진다"가 한눈에 보인다
       return edge.data("type") === "CHANGES" ? near * 0.8 : near;
     },
     edgeElasticity: 0.55,
-    nestingFactor: 0.08,       // 묶음 안쪽은 더 가깝게 — 덩어리로 보이게
-    // 중력이 약하면 노드가 화면 끝까지 흩어져, 정작 봐야 할 관계는
-    // 작아지고 빈 바탕만 넓어진다. 당기는 힘을 세게 잡아 화면을 채운다.
+    nestingFactor: 0.08,
     gravity: 1.4,
     gravityRange: 5.0,
-    gravityCompound: 1.6,      // 묶음이 저마다 뭉치되 서로 밀어내진 않게
+    gravityCompound: 1.6,
     numIter: 3500,
-    // 이어지지 않은 덩어리를 따로 흩뿌리지 않고 빈 곳에 끼워 넣는다
     packComponents: true,
-    tile: true,                // 연결 없는 노드는 따로 정렬해 둔다
+    tile: true,
     tilingPaddingVertical: 14,
     tilingPaddingHorizontal: 14,
   };
 }
 
 /* ══════════════════════════════════════
-   영향 범위 계산
+   보기 계산
 ══════════════════════════════════════ */
 
 /**
- * 고른 노드와 이어진 것만 남긴다.
- * 하류(이것이 영향을 주는 쪽)와 상류(이것에 영향을 주는 쪽)를 모두 살린다 —
- * 테이블을 골랐을 때 "이걸 쓰는 API"는 상류에 있기 때문이다.
+ * 고른 노드에서 몇 걸음에 닿는지 센다 (방향 없이, 최대 두 걸음).
+ *
+ * 선에 방향이 있어도 영향은 방향을 가리지 않는다 — 테이블이 바뀌면 그 테이블을 쓰는
+ * API 쪽으로, 즉 선이 그려진 반대 방향으로도 번진다. 서버의 영향 전파와 같은 규칙이다.
+ * 도메인 묶음은 부모-자식 관계일 뿐 선이 아니므로 걸음에 치지 않는다.
  */
-function applyFocus(cy, node) {
-  const related = node.successors().union(node.predecessors()).union(node);
-  cy.elements().addClass("dim");
-  related.removeClass("dim").addClass("focus");
-  node.removeClass("dim");
-  // 상자는 배경이므로 흐림에서 제외한다
-  cy.nodes('[type="group"]').removeClass("dim");
+function stepsFrom(cy, node) {
+  const steps = { 0: node };
+  let visited = node;
+  let frontier = node;
+  for (let step = 1; step <= MAX_STEP; step++) {
+    const next = frontier.neighborhood().nodes('[type != "group"]').difference(visited);
+    if (next.empty()) break;
+    steps[step] = next;
+    visited = visited.union(next);
+    frontier = next;
+  }
+  return steps;
 }
 
-function clearFocus(cy) {
-  cy.elements().removeClass("dim focus");
+/** 필터 · 검색 · 걸러 보기 · 선택을 한 번에 칠하고, 보이는 노드·선 수를 돌려준다 */
+function applyView(cy, { filter, query, showOrphanOnly, showImpactOnly, selectedId }) {
+  cy.elements().removeClass("dim focus step1 step2 match flow flow2");
+  const groups = cy.nodes('[type="group"]');
+  let visible = cy.nodes('[type != "group"]');
+
+  if (filter !== "all") visible = visible.filter((n) => n.data("type") === filter);
+  if (showOrphanOnly) visible = visible.filter((n) => n.data("orphan") === "yes");
+  if (showImpactOnly) visible = visible.filter((n) => n.data("change") !== "none" || n.data("impacted") === "yes");
+
+  const q = (query || "").trim().toLowerCase();
+  if (q) {
+    const hits = visible.filter((n) => (n.data("fullLabel") || n.data("label") || "").toLowerCase().includes(q));
+    hits.addClass("match");
+    visible = hits;
+  }
+
+  // 선택은 명시적인 의도라 필터보다 앞선다 — 고른 노드의 두 걸음 안을 전부 보여준다
+  const node = selectedId ? cy.getElementById(selectedId) : null;
+  if (node && node.nonempty()) {
+    const steps = stepsFrom(cy, node);
+    const s1 = steps[1] || cy.collection();
+    const s2 = steps[2] || cy.collection();
+    visible = node.union(s1).union(s2);
+    node.addClass("focus");
+    s1.addClass("step1");
+    s2.addClass("step2");
+    node.edgesWith(s1).addClass("flow");
+    s1.edgesWith(s2).addClass("flow2");
+  }
+
+  const visibleEdges = visible.edgesWith(visible);
+  cy.elements().not(visible).not(visibleEdges).not(groups).addClass("dim");
+  // 필터로 걸러 볼 때 선은 양 끝이 모두 보일 때만 남긴다
+  return { nodes: visible.length, edges: visibleEdges.length };
 }
 
 /**
- * 그림에는 이어진 사슬 전체를 남기지만, 목록에는 바로 맞닿은 것만 싣는다.
- * 사슬을 그대로 나열하면 "reviews를 사용하는 쪽"에 두세 다리 건넌 항목까지 섞여
- * 정작 손봐야 할 대상이 묻힌다.
+ * 목록에는 방향(사용하는 쪽 / 영향을 주는 쪽)과 단계를 함께 싣는다.
+ * 방향은 "누구를 고쳐야 하나", 단계는 "무엇부터 보나"에 답한다.
  */
-function buildSelection(node) {
-  // PR은 상류에 섞어 두면 "이 API를 사용하는 쪽"에 코드가 끼어들어 뜻이 흐려진다.
-  // 문서끼리의 관계와 "지금 이걸 건드리는 코드"는 성격이 다르므로 따로 센다.
-  const downstream = node.outgoers().nodes('[type != "group"]');
+function buildSelection(cy, node) {
   const upstream   = node.incomers().nodes('[type != "group"][type != "pr"]');
+  // 외래키는 양쪽으로 그어지는 경우가 있어(users ↔ orders) 같은 테이블이 두 목록에 겹친다.
+  // 한 번만 보이게 "사용하는 쪽"에 두고 여기서는 뺀다 — 겹치면 확인할 개수가 부풀어 보인다.
+  const downstream = node.outgoers().nodes('[type != "group"]').difference(upstream);
   const touchedBy  = node.incomers().nodes('[type="pr"]');
+  const steps = stepsFrom(cy, node);
 
   const toItem = (n) => ({
     id: n.id(),
@@ -720,7 +728,7 @@ function buildSelection(node) {
   });
 
   return {
-    // 패널에서는 줄이지 않은 원래 이름을 보여준다
+    id: node.id(),
     label: node.data("fullLabel") || node.data("label"),
     type: node.data("type"),
     orphan: node.data("orphan") === "yes",
@@ -730,31 +738,179 @@ function buildSelection(node) {
     downstream: downstream.map(toItem),
     upstream: upstream.map(toItem),
     touchedBy: touchedBy.map(toItem),
+    step1: (steps[1] || cy.collection()).map(toItem),
+    step2: (steps[2] || cy.collection()).map(toItem),
   };
+}
+
+function countOf(summary, type) {
+  return { feature: summary.featureCount, api: summary.apiCount, table: summary.tableCount, pr: summary.prCount }[type] ?? "";
 }
 
 /* ══════════════════════════════════════
    보조 컴포넌트
 ══════════════════════════════════════ */
 
+function Chip({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer",
+      border: `1px solid ${active ? "var(--db-purple-400)" : "var(--border)"}`,
+      background: active ? "rgba(26,25,22,.08)" : "var(--surface)",
+      color: active ? "var(--text-1)" : "var(--text-3)",
+      transition: "var(--db-transition)",
+    }}>{children}</button>
+  );
+}
+
+function ToolButton({ onClick, title, children }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)",
+      background: "var(--surface)", color: "var(--text-3)", fontSize: 12, cursor: "pointer",
+    }}>{children}</button>
+  );
+}
+
+function Dot({ type }) {
+  const s = TYPE_STYLE[type];
+  if (!s) return null;
+  return (
+    <i style={{
+      width: type === "pr" ? 11 : 8, height: 8, borderRadius: type === "pr" ? 2 : "50%",
+      background: `radial-gradient(circle at 35% 30%, ${s.light}, ${s.deep})`, display: "inline-block",
+    }} />
+  );
+}
+
+function Card({ title, children }) {
+  return (
+    <div className="db-card" style={{ padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: C.text }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function StatRow({ label, value, total }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
+      <span style={{ fontSize: 12, color: C.muted }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+        {value}{total != null && <span style={{ fontSize: 11, color: C.faint }}>/{total}</span>}
+      </span>
+    </div>
+  );
+}
+
+function StatToggle({ label, value, active, disabled, onClick, hint, color }) {
+  return (
+    <button onClick={onClick} disabled={disabled} title={hint} style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%",
+      padding: "7px 8px", margin: "4px 0 0", borderRadius: 8, cursor: disabled ? "default" : "pointer",
+      border: `1px solid ${active ? (color || C.faint) : "transparent"}`,
+      background: active ? (color ? `${color}14` : C.soft) : "transparent",
+      opacity: disabled ? 0.55 : 1,
+    }}>
+      <span style={{ fontSize: 12, color: color || C.muted }}>{label} {active ? "· 보는 중" : ""}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: color || C.text, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+    </button>
+  );
+}
+
+function ActionButton({ icon, label, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 8, width: "100%",
+      padding: "8px 10px", borderRadius: "var(--db-radius-sm)",
+      border: "1px solid var(--border)", background: "var(--border)",
+      color: "var(--text-2)", fontSize: 12, cursor: "pointer", marginBottom: 6,
+      transition: "var(--db-transition)",
+    }}
+    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--text-1)"; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-2)"; }}
+    ><span>{icon}</span>{label}</button>
+  );
+}
+
+function Switch({ label, checked, onChange }) {
+  return (
+    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 12, color: C.muted, cursor: "pointer" }}>
+      {label}
+      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ accentColor: C.text }} />
+    </label>
+  );
+}
+
+function Slider({ label, value, min, max, step, onChange }) {
+  return (
+    <label style={{ display: "block", padding: "6px 0", fontSize: 12, color: C.muted }}>
+      <span style={{ display: "flex", justifyContent: "space-between" }}>
+        {label}<span style={{ color: C.faint, fontVariantNumeric: "tabular-nums" }}>×{value.toFixed(2)}</span>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value}
+             onChange={(e) => onChange(Number(e.target.value))}
+             style={{ width: "100%", accentColor: C.text }} />
+    </label>
+  );
+}
+
+function Legend({ summary, stepsShown }) {
+  return (
+    <div style={{
+      position: "absolute", left: 16, bottom: 16, display: "flex", gap: 12, flexWrap: "wrap", maxWidth: "calc(100% - 32px)",
+      padding: "8px 12px", borderRadius: 10, fontSize: 10.5,
+      background: "rgba(247,246,243,0.9)", backdropFilter: "blur(8px)",
+      border: `1px solid ${C.border}`, color: C.muted,
+    }}>
+      {Object.entries(TYPE_STYLE)
+        .filter(([type]) => type !== "pr" || summary?.prCount > 0)
+        .map(([type, s]) => (
+          <LegendItem key={type} label={s.label}><Dot type={type} /></LegendItem>
+        ))}
+      <LegendItem label="연결 안 됨">
+        <i style={{
+          width: 9, height: 9, borderRadius: "50%", background: "transparent",
+          border: `1.5px dashed #8f8c82`, display: "inline-block", boxSizing: "border-box",
+        }} />
+      </LegendItem>
+
+      {stepsShown && (
+        <>
+          <span style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
+          {[1, 2].map((k) => (
+            <LegendItem key={k} label={STEP_STYLE[k].label} color={STEP_STYLE[k].color}>
+              <i style={{
+                width: 9, height: 9, borderRadius: "50%", display: "inline-block", boxSizing: "border-box",
+                border: `2px ${k === 1 ? "solid" : "dashed"} ${STEP_STYLE[k].color}`,
+              }} />
+            </LegendItem>
+          ))}
+        </>
+      )}
+
+      {summary?.changedCount > 0 && (
+        <>
+          <span style={{ width: 1, background: C.border, alignSelf: "stretch" }} />
+          {Object.entries(CHANGE_STYLE).map(([kind, s]) => (
+            <LegendItem key={kind} label={s.label} color={s.color}>
+              <i style={{ width: 9, height: 9, borderRadius: "50%", border: `2px solid ${s.color}`, display: "inline-block", boxSizing: "border-box" }} />
+            </LegendItem>
+          ))}
+          <LegendItem label="확인 필요" color={IMPACT_COLOR}>
+            <i style={{ width: 9, height: 9, borderRadius: "50%", border: `2px dashed ${IMPACT_COLOR}`, display: "inline-block", boxSizing: "border-box" }} />
+          </LegendItem>
+        </>
+      )}
+    </div>
+  );
+}
+
 function LegendItem({ label, color, children }) {
   return (
     <span style={{ display: "flex", alignItems: "center", gap: 6, color: color || C.muted }}>
       {children}{label}
-    </span>
-  );
-}
-
-function Stat({ label, value, type }) {
-  const s = TYPE_STYLE[type];
-  return (
-    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: C.muted }}>
-      <i style={{
-        width: 8, height: 8, borderRadius: "50%",
-        background: `radial-gradient(circle at 35% 30%, ${s.light}, ${s.deep})`,
-        display: "inline-block",
-      }} />
-      {label} <b style={{ color: C.text, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{value}</b>
     </span>
   );
 }
@@ -782,100 +938,89 @@ function Empty({ message }) {
   );
 }
 
-function DetailPanel({ selection }) {
+function DetailPanel({ selection, onClose }) {
   const s = TYPE_STYLE[selection.type] || TYPE_STYLE.feature;
 
   return (
-    <aside style={{
-      width: 300, flexShrink: 0, borderLeft: `1px solid ${C.border}`,
-      background: C.panel, overflowY: "auto", padding: "18px 20px",
-    }}>
-      <div style={{
-        display: "inline-block", padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700,
-        background: `${s.color}22`, border: `1px solid ${s.color}66`, color: s.color, marginBottom: 10,
-      }}>{s.label}</div>
+    <div className="db-card" data-testid="kg-detail" style={{ padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{
+          padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700,
+          background: `${s.color}22`, border: `1px solid ${s.color}66`, color: s.color,
+        }}>{s.label}</div>
+        <button onClick={onClose} aria-label="선택 해제" style={{
+          marginLeft: "auto", border: "none", background: "transparent", color: C.faint, cursor: "pointer", fontSize: 14,
+        }}>✕</button>
+      </div>
 
-      <h3 style={{
-        margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: C.text,
-        wordBreak: "break-all", lineHeight: 1.45,
-      }}>{selection.label}</h3>
+      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: C.text, wordBreak: "break-all", lineHeight: 1.45 }}>
+        {selection.label}
+      </h3>
 
       {selection.meta?.description && (
-        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
-          {selection.meta.description}
-        </p>
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>{selection.meta.description}</p>
       )}
 
       {selection.type === "pr" && <PullRequestDetail meta={selection.meta} />}
 
       {selection.change && (
-        <div style={{
-          padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 10,
-          background: `${CHANGE_STYLE[selection.change].color}1a`,
-          border: `1px solid ${CHANGE_STYLE[selection.change].color}66`,
-          color: CHANGE_STYLE[selection.change].color, fontWeight: 600,
-        }}>
+        <Note color={CHANGE_STYLE[selection.change].color} strong>
           직전 버전 대비 <b>{CHANGE_STYLE[selection.change].label}</b>
-          {selection.downstream.length + selection.upstream.length > 0 && (
+          {selection.step1.length + selection.step2.length > 0 && (
             <span style={{ display: "block", marginTop: 4, fontWeight: 400, color: C.muted }}>
-              아래 목록의 항목들을 함께 확인하세요
+              아래 영향 단계의 항목들을 함께 확인하세요
             </span>
           )}
-        </div>
+        </Note>
       )}
 
       {selection.impacted && !selection.change && (
-        <div style={{
-          padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 10,
-          background: `${IMPACT_COLOR}1a`, border: `1px solid ${IMPACT_COLOR}66`,
-          color: IMPACT_COLOR, fontWeight: 600,
-        }}>
-          이 항목은 직접 바뀌지 않았지만, 바뀐 항목과 이어져 있어 확인이 필요합니다
-        </div>
+        <Note color={IMPACT_COLOR} strong>이 항목은 직접 바뀌지 않았지만, 바뀐 항목과 이어져 있어 확인이 필요합니다</Note>
       )}
 
-      {/* 명세 자체의 흠 — 연결은 멀쩡해도 문서를 손봐야 하는 것들 */}
-      {selection.meta?.notice && (
-        <div style={{
-          padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 10,
-          background: `${CHANGE_STYLE.ADDED.color}12`,
-          border: `1px solid ${CHANGE_STYLE.ADDED.color}44`,
-          color: CHANGE_STYLE.ADDED.color,
-        }}>
-          {selection.meta.notice}
-        </div>
-      )}
+      {selection.meta?.notice && <Note color={CHANGE_STYLE.ADDED.color}>{selection.meta.notice}</Note>}
 
       {selection.orphan && (
         <div style={{
-          padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 14,
-          background: "#f2f0ea", border: `1px dashed ${C.faint}`, color: C.muted,
+          padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 12,
+          background: C.soft, border: `1px dashed ${C.faint}`, color: C.muted,
         }}>
           {selection.meta?.hint || "다른 계층과 이어지지 않았습니다"}
         </div>
       )}
 
-      {selection.touchedBy.length > 0 && (
-        <Related title="지금 이걸 건드리는 PR" items={selection.touchedBy} empty="" />
-      )}
+      {/* 기획서의 "우선순위를 지정해 단계별로" — 무엇부터 볼지 */}
+      <div style={{ marginTop: 6, fontSize: 12, color: C.muted }}>
+        영향 단계 <b style={{ color: STEP_STYLE[1].color }}>1단계 {selection.step1.length}</b>
+        {" · "}
+        <b style={{ color: "#c77b17" }}>2단계 {selection.step2.length}</b>
+      </div>
 
-      {/* PR은 언제나 출발점이라 상류가 없다 — 빈 칸을 띄워 봐야 자리만 차지한다 */}
+      {selection.touchedBy.length > 0 && <Related title="지금 이걸 건드리는 PR" items={selection.touchedBy} empty="" />}
       {selection.type !== "pr" && (
-        <Related title="이 항목을 사용하는 쪽" items={selection.upstream}
-                 empty="이 항목을 참조하는 대상이 없습니다" />
+        <Related title="1단계 · 이 항목을 사용하는 쪽" items={selection.upstream} empty="이 항목을 참조하는 대상이 없습니다" />
       )}
-      <Related title={selection.type === "pr" ? "이 PR이 닿는 명세" : "이 항목이 영향을 주는 쪽"}
-               items={selection.downstream}
-               empty="영향을 주는 대상이 없습니다" />
-    </aside>
+      <Related
+        title={selection.type === "pr" ? "1단계 · 이 PR이 닿는 명세" : "1단계 · 이 항목이 영향을 주는 쪽"}
+        items={selection.downstream}
+        empty="위 목록 외에 영향을 주는 대상이 없습니다"
+      />
+      <Related title="2단계 · 한 다리 건너 확인할 것" items={selection.step2} empty="두 걸음 안에 더 닿는 항목이 없습니다" dashed />
+    </div>
+  );
+}
+
+function Note({ color, strong, children }) {
+  return (
+    <div style={{
+      padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 10,
+      background: `${color}14`, border: `1px solid ${color}55`, color, fontWeight: strong ? 600 : 400,
+    }}>{children}</div>
   );
 }
 
 /**
- * PR 노드를 골랐을 때의 코드 쪽 정보.
- *
- * 아래의 "영향을 주는 쪽" 목록이 이 PR이 닿는 API·테이블을 이미 보여주므로,
- * 여기서는 그 목록만으로는 알 수 없는 것 — 정합성 점수, 바꾼 파일, 원문 링크 — 만 싣는다.
+ * PR 노드를 골랐을 때의 코드 쪽 정보 — 목록만으로는 알 수 없는 정합성 점수, 바꾼 파일, 원문 링크.
  */
 function PullRequestDetail({ meta }) {
   const warnings = meta.warnings || 0;
@@ -886,7 +1031,7 @@ function PullRequestDetail({ meta }) {
       <div style={{
         display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
         padding: "9px 11px", borderRadius: 7, fontSize: 12,
-        background: warnings > 0 ? `${IMPACT_COLOR}14` : "#f2f0ea",
+        background: warnings > 0 ? `${IMPACT_COLOR}14` : C.soft,
         border: `1px solid ${warnings > 0 ? `${IMPACT_COLOR}55` : C.border}`,
         color: warnings > 0 ? IMPACT_COLOR : C.muted,
       }}>
@@ -899,13 +1044,9 @@ function PullRequestDetail({ meta }) {
           <SectionTitle>바꾼 파일 ({files.length})</SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {files.slice(0, 8).map((file) => (
-              <code key={file} style={{
-                fontSize: 11, color: C.muted, wordBreak: "break-all", lineHeight: 1.5,
-              }}>{file}</code>
+              <code key={file} style={{ fontSize: 11, color: C.muted, wordBreak: "break-all", lineHeight: 1.5 }}>{file}</code>
             ))}
-            {files.length > 8 && (
-              <span style={{ fontSize: 11, color: C.muted }}>… 외 {files.length - 8}개</span>
-            )}
+            {files.length > 8 && <span style={{ fontSize: 11, color: C.muted }}>… 외 {files.length - 8}개</span>}
           </div>
         </div>
       )}
@@ -929,18 +1070,14 @@ function ExternalLink({ href, children }) {
 
 function SectionTitle({ children }) {
   return (
-    <div style={{
-      fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-      color: C.muted, marginBottom: 7,
-    }}>{children}</div>
+    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em", color: C.muted, marginBottom: 7 }}>{children}</div>
   );
 }
 
-function Related({ title, items, empty }) {
+function Related({ title, items, empty, dashed }) {
   return (
-    <div style={{ marginTop: 16 }}>
+    <div style={{ marginTop: 14 }}>
       <SectionTitle>{title} {items.length > 0 && `(${items.length})`}</SectionTitle>
-
       {items.length === 0 ? (
         <div style={{ fontSize: 12, color: C.muted }}>{empty}</div>
       ) : (
@@ -951,13 +1088,10 @@ function Related({ title, items, empty }) {
               <div key={item.id} style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "6px 9px", borderRadius: 6, fontSize: 12,
-                background: "#f2f0ea", border: `1px solid ${C.border}`,
+                background: C.soft, border: `1px ${dashed ? "dashed" : "solid"} ${C.border}`,
                 color: C.text, wordBreak: "break-all",
               }}>
-                <i style={{
-                  width: 8, height: 8, borderRadius: 2, flexShrink: 0,
-                  background: st.color, display: "inline-block",
-                }} />
+                <i style={{ width: 8, height: 8, borderRadius: 2, flexShrink: 0, background: st.color, display: "inline-block" }} />
                 {item.label}
               </div>
             );
