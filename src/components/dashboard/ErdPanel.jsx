@@ -1506,7 +1506,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
         {/* 헤더 */}
         <div style={{
           height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", padding: "0 20px", gap: 10,
+          display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
           background: C.surface,
         }}>
           {project && (

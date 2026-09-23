@@ -1444,7 +1444,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
         {/* 헤더 */}
         <div className="features-panel-header" style={{
           height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", padding: "0 28px",
+          display: "flex", alignItems: "center", padding: "0 24px",
           justifyContent: "space-between", background: C.surface,
         }}>
           <div className="features-panel-title" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>

@@ -193,12 +193,40 @@ export function GithubPullRequestsPanel({ project, canManage }) {
   }
 
   return (
-    <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.02em" }}>Pull requests</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 6 }}>연결된 레포의 열린 PR과 명세 정합성 자동 리뷰 상태입니다.</div>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* 헤더 */}
+      <div style={{
+        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", padding: "0 24px",
+        justifyContent: "space-between", background: "var(--surface)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {project && (
+            <>
+              <div style={{
+                width: 22, height: 22, borderRadius: 6,
+                background: `${project.color || "var(--text-1)"}22`,
+                border: `1px solid ${project.color || "var(--text-1)"}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
+              }}>
+                {(project.name || "P").charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
+              <span style={{ fontSize: 13, color: C.muted }}>›</span>
+            </>
+          )}
+          <span style={{
+            fontSize: 13, fontWeight: 500, color: "#22d3ee",
+            padding: "2px 8px", borderRadius: 6,
+            background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.25)",
+          }}>PRs 전체</span>
         </div>
+      </div>
+
+      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        <div style={{ marginBottom: 22, color: C.muted, fontSize: 13 }}>연결된 레포의 열린 PR과 명세 정합성 자동 리뷰 상태입니다.</div>
         {!canManage && <div style={{ marginBottom: 16, color: C.muted, fontSize: 12 }}>웹훅은 PR 열기·동기화 시 자동 리뷰를 남깁니다. 수동 검사는 프로젝트 PM만 실행할 수 있어요.</div>}
         {error && <div style={{ marginBottom: 16, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
         {loading ? (
@@ -211,6 +239,7 @@ export function GithubPullRequestsPanel({ project, canManage }) {
           </div>
         )}
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

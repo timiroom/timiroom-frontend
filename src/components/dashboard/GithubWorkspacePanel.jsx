@@ -189,12 +189,41 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
   const recentCommitCount = Object.values(histories).reduce((sum, history) => sum + (history.commits?.length || 0), 0);
 
   return (
-    <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
-      <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 20 }}>
-          <div><div style={{ color: C.text, fontSize: 22, fontWeight: 850, letterSpacing: "-.02em" }}>GitHub 작업</div><div style={{ marginTop: 6, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div></div>
-          <button type="button" onClick={load} disabled={loading} style={{ padding: "8px 11px", border: `1px solid ${C.border}`, borderRadius: 9, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* 헤더 */}
+      <div style={{
+        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", padding: "0 24px",
+        justifyContent: "space-between", background: C.surface,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {project && (
+            <>
+              <div style={{
+                width: 22, height: 22, borderRadius: 6,
+                background: `${project.color || "var(--text-1)"}22`,
+                border: `1px solid ${project.color || "var(--text-1)"}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
+              }}>
+                {(project.name || "P").charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
+              <span style={{ fontSize: 13, color: C.muted }}>›</span>
+            </>
+          )}
+          <span style={{
+            fontSize: 13, fontWeight: 500, color: "#818cf8",
+            padding: "2px 8px", borderRadius: 6,
+            background: "rgba(129,140,248,0.1)", border: "1px solid rgba(129,140,248,0.25)",
+          }}>GitHub 작업</span>
         </div>
+        <button type="button" onClick={load} disabled={loading} style={{ padding: "6px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
+      </div>
+
+      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
+      <div style={{ maxWidth: 1160, margin: "0 auto" }}>
+        <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 9, marginBottom: 16 }}>
           {[{ label: "연결 레포", value: repos.length, tone: "purple" }, { label: "최근 커밋", value: recentCommitCount, tone: "neutral" }, { label: "열린 Issue", value: openIssueCount, tone: "blue" }, { label: "열린 PR", value: pulls.length, tone: "green" }].map((stat) => <div key={stat.label} style={{ padding: "13px 14px", border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface }}><div style={{ color: C.muted, fontSize: 10.5 }}>{stat.label}</div><div style={{ marginTop: 5, color: C.text, fontSize: 20, fontWeight: 850 }}>{stat.value}</div></div>)}
@@ -205,6 +234,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
         {error && <div style={{ marginBottom: 15, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
         {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <div style={{ padding: 54, border: `1px dashed ${C.border}`, borderRadius: 15, textAlign: "center", color: C.muted, fontSize: 13 }}>프로젝트 설정에서 GitHub 레포를 먼저 연결해 주세요.</div> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
