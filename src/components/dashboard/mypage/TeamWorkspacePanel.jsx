@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  createTeam,
   deleteTeam,
   getActiveTeamId,
   getPreferredTeam,
   getTeamWorkspace,
-  joinTeamByInviteCode,
   leaveTeam,
   regenerateTeamInviteCode,
   removeTeamMember,
@@ -23,143 +21,10 @@ import { EmptyState, Spinner } from "@/components/dashboard/mypage/teamWorkspace
 import { getDefaultTransferTarget, getTeamId } from "@/components/dashboard/mypage/teamWorkspace/helpers";
 import { useToast } from "@/context/ToastContext";
 
-function CreateWorkspaceCard({ createName, createDescription, creating, onCreateNameChange, onCreateDescriptionChange, onSubmit }) {
-  return (
-    <Card style={{ marginBottom: 16 }}>
-      <SectionTitle subtitle="소유자가 직접 이름과 설명을 입력해서 새 협업 공간을 만들 수 있어요.">
-        새 워크스페이스 만들기
-      </SectionTitle>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmit();
-        }}
-        style={{ display: "flex", flexDirection: "column", gap: 10 }}
-      >
-        <input
-          value={createName}
-          onChange={(event) => onCreateNameChange(event.target.value)}
-          placeholder="워크스페이스 이름"
-          style={{
-            width: "100%",
-            padding: "10px 13px",
-            borderRadius: "var(--db-radius-sm)",
-            border: "1px solid var(--border-2)",
-            background: "var(--bg)",
-            color: "var(--text-1)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-          }}
-        />
-        <textarea
-          value={createDescription}
-          onChange={(event) => onCreateDescriptionChange(event.target.value)}
-          placeholder="워크스페이스 설명"
-          rows={2}
-          style={{
-            width: "100%",
-            padding: "10px 13px",
-            borderRadius: "var(--db-radius-sm)",
-            border: "1px solid var(--border-2)",
-            background: "var(--bg)",
-            color: "var(--text-1)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-            resize: "vertical",
-            minHeight: 74,
-          }}
-        />
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button
-            type="submit"
-            disabled={creating}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "var(--db-radius-sm)",
-              border: "none",
-              background: "var(--text-1)",
-              color: "var(--bg)",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: creating ? "progress" : "pointer",
-              fontFamily: "inherit",
-              opacity: creating ? 0.75 : 1,
-            }}
-          >
-            {creating ? "생성 중" : "워크스페이스 생성"}
-          </button>
-        </div>
-      </form>
-    </Card>
-  );
-}
-
-function JoinWorkspaceCard({ joinCode, joining, onJoinCodeChange, onSubmit }) {
-  return (
-    <Card style={{ marginBottom: 16 }}>
-      <SectionTitle subtitle="관리자에게 받은 초대 코드를 입력하면 바로 협업 공간에 들어갈 수 있어요.">
-        초대 코드로 참여
-      </SectionTitle>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmit();
-        }}
-        style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
-      >
-        <input
-          value={joinCode}
-          onChange={(event) => onJoinCodeChange(event.target.value)}
-          placeholder="초대 코드 입력"
-          autoComplete="off"
-          spellCheck={false}
-          style={{
-            flex: "1 1 220px",
-            padding: "10px 13px",
-            borderRadius: "var(--db-radius-sm)",
-            border: "1px solid var(--border-2)",
-            background: "var(--bg)",
-            color: "var(--text-1)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={joining}
-          style={{
-            padding: "10px 16px",
-            borderRadius: "var(--db-radius-sm)",
-            border: "none",
-            background: "var(--text-1)",
-            color: "var(--bg)",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: joining ? "progress" : "pointer",
-            fontFamily: "inherit",
-            opacity: joining ? 0.75 : 1,
-          }}
-        >
-          {joining ? "참여 중" : "워크스페이스 참여"}
-        </button>
-      </form>
-    </Card>
-  );
-}
 
 export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged }) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [createName, setCreateName] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
-  const [joinCode, setJoinCode] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [joining, setJoining] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState(() => getActiveTeamId());
   const [activeTeamId, setActiveTeamIdState] = useState(() => getActiveTeamId());
   const [workspace, setWorkspace] = useState(null);
@@ -188,7 +53,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   }
 
   useEffect(() => {
-    if (creating || joining || leaving || deleting) {
+    if (leaving || deleting) {
       return;
     }
 
@@ -213,7 +78,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!currentExists && preferredId != null && preferredId !== selectedTeamId) {
       setSelectedTeamId(preferredId);
     }
-  }, [teams, selectedTeamId, activeTeamId, creating, joining, leaving, deleting]);
+  }, [teams, selectedTeamId, activeTeamId, leaving, deleting]);
 
   useEffect(() => {
     if (selectedTeamId == null) {
@@ -282,54 +147,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
       setWorkspaceError(error instanceof Error ? error.message : "워크스페이스 정보를 불러오지 못했습니다.");
     } finally {
       setWorkspaceLoading(false);
-    }
-  }
-
-  async function handleCreateTeam() {
-    const teamName = createName.trim();
-    if (!teamName) {
-      showToast("error", "워크스페이스 이름을 입력해 주세요.");
-      return;
-    }
-
-    setCreating(true);
-    try {
-      const created = await createTeam(teamName, createDescription.trim());
-      const teamId = created.teamId ?? created.id;
-      applyActiveTeamId(teamId);
-      setSelectedTeamId(teamId);
-      setCreateName("");
-      setCreateDescription("");
-      showToast("success", "새 워크스페이스를 만들었어요.");
-      await refreshTeams();
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "워크스페이스 생성 실패");
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function handleJoinTeam() {
-    const normalized = joinCode.trim().toUpperCase();
-    if (!normalized) {
-      showToast("error", "초대 코드를 입력해 주세요.");
-      return;
-    }
-
-    setJoining(true);
-    try {
-      const joined = await joinTeamByInviteCode(normalized);
-      if (joined?.teamId != null) {
-        applyActiveTeamId(joined.teamId);
-        setSelectedTeamId(joined.teamId);
-      }
-      setJoinCode("");
-      showToast("success", "초대 코드로 워크스페이스에 참여했어요.");
-      await refreshTeams();
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "워크스페이스 참여 실패");
-    } finally {
-      setJoining(false);
     }
   }
 
@@ -464,22 +281,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
 
   return (
     <>
-      <CreateWorkspaceCard
-        createName={createName}
-        createDescription={createDescription}
-        creating={creating}
-        onCreateNameChange={setCreateName}
-        onCreateDescriptionChange={setCreateDescription}
-        onSubmit={handleCreateTeam}
-      />
-
-      <JoinWorkspaceCard
-        joinCode={joinCode}
-        joining={joining}
-        onJoinCodeChange={setJoinCode}
-        onSubmit={handleJoinTeam}
-      />
-
       <Card>
         <SectionTitle subtitle="내가 속한 워크스페이스 목록이에요.">
           내 워크스페이스
