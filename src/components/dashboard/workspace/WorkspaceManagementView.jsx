@@ -171,6 +171,7 @@ export function WorkspaceManagementView({
   const [highlightedSection, setHighlightedSection] = useState(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [iconHovered, setIconHovered] = useState(false);
+  const [iconLoadFailed, setIconLoadFailed] = useState(false);
   const overviewRef = useRef(null);
   const projectsRef = useRef(null);
   const githubRef = useRef(null);
@@ -307,6 +308,7 @@ export function WorkspaceManagementView({
       await updateTeamIcon(activeWorkspaceId, url);
       await refreshWorkspaceList(activeWorkspaceId);
       await reloadCurrentWorkspace(activeWorkspaceId);
+      setIconLoadFailed(false);
       showToast("success", "워크스페이스 아이콘을 저장했어요.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "아이콘 업로드에 실패했습니다.");
@@ -682,8 +684,13 @@ export function WorkspaceManagementView({
                     <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
                     <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
                   </svg>
-                ) : workspaceSummary?.iconUrl ? (
-                  <img src={workspaceSummary.iconUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                ) : workspaceSummary?.iconUrl && !iconLoadFailed ? (
+                  <img
+                    src={workspaceSummary.iconUrl}
+                    alt=""
+                    onError={() => setIconLoadFailed(true)}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
                 ) : (
                   <span style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: "-.03em" }}>
                     {(workspaceSummary?.teamName ?? workspaceSummary?.name ?? "W").charAt(0).toUpperCase()}
