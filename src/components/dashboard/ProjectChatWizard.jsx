@@ -18,27 +18,31 @@ import { createProject } from "@/lib/projectApi";
 const PIPELINE_STEPS = [
   { key: "PHASE1",  label: "RAG 준비",    icon: "📚", agents: null },
   { key: "SEARCH",  label: "시장 조사",    icon: "🔍", agents: null },
-  { key: "DRAFT",   label: "Round 1",      icon: "⚡", agents: "PM · PRD · DBA · API" },
-  { key: "COLLAB",  label: "Round 2",      icon: "🔄", agents: "피드백 교환 후 수정" },
+  { key: "PM",      label: "기능 분석",    icon: "📋", agents: null },
+  { key: "PRD",     label: "PRD 작성",    icon: "📝", agents: null },
+  { key: "FEATURE_SPEC", label: "기능명세", icon: "🧩", agents: null },
+  { key: "DBA_API", label: "DB · API 설계", icon: "🔌", agents: "DBA · API 병렬" },
   { key: "QA",      label: "QA 검수",      icon: "🧪", agents: null },
   { key: "PHASE3",  label: "최종 검증",    icon: "✅", agents: null },
   { key: "PHASE4",  label: "결과 저장",    icon: "💾", agents: null },
 ];
 
 const SSE_TO_STEP = {
-  PHASE1_START: "PHASE1", PHASE1_DONE: "PHASE1",
+  PHASE1_START: "PHASE1", PHASE1_DONE: "PHASE1", PHASE1_SKIP: "PHASE1",
   SEARCH: "SEARCH",
-  DRAFT: "DRAFT",
-  COLLAB: "COLLAB",
-  QA: "QA", QA_RETRY: "QA",
+  PM: "PM", PM_REPAIR: "PM",
+  PRD: "PRD", PRD_REPAIR: "PRD", PRD_ROLLBACK: "PRD",
+  FEATURE_SPEC: "FEATURE_SPEC", FEATURE_SPEC_RESYNC: "FEATURE_SPEC",
+  DBA_API: "DBA_API", PHASE2_REPAIR: "DBA_API", PHASE2_TARGETED_RESYNC: "DBA_API",
+  QA: "QA", QA_RETRY: "QA", QA_REPAIR: "QA",
   PHASE3: "PHASE3",
   PHASE4: "PHASE4",
 };
 
-const ROW1    = PIPELINE_STEPS.slice(0, 4);
-const ROW2    = PIPELINE_STEPS.slice(4);
-const NODE_W  = 110;
-const ARROW_W = 36;
+const ROW1    = PIPELINE_STEPS.slice(0, 5);
+const ROW2    = PIPELINE_STEPS.slice(5);
+const NODE_W  = 118;
+const ARROW_W = 30;
 const ROW_W   = ROW1.length * NODE_W + (ROW1.length - 1) * ARROW_W;
 
 function FlowArrow({ active, flip }) {
@@ -71,13 +75,14 @@ function FlowDown({ active }) {
 function FlowNode({ step, status }) {
   const isDone      = status === "done";
   const isRunning   = status === "running";
+  const isError     = status === "error";
   const isParallel  = !!step.agents;
   return (
     <div style={{ width: NODE_W, flexShrink: 0 }}>
       <div style={{
-        width: "100%", padding: "12px 6px 10px",
-        background: isDone ? "rgba(52,211,153,0.07)" : isRunning ? "rgba(107,85,220,0.12)" : "var(--surface)",
-        border: `2px solid ${isDone ? "rgba(52,211,153,0.5)" : isRunning ? "var(--db-purple-400)" : "var(--border)"}`,
+        width: "100%", boxSizing: "border-box", padding: "12px 6px 10px",
+        background: isError ? "rgba(248,113,113,0.08)" : isDone ? "rgba(52,211,153,0.07)" : isRunning ? "rgba(107,85,220,0.12)" : "var(--surface)",
+        border: `2px solid ${isError ? "rgba(248,113,113,0.7)" : isDone ? "rgba(52,211,153,0.5)" : isRunning ? "var(--db-purple-400)" : "var(--border)"}`,
         borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
         transition: "all 0.4s",
         boxShadow: isRunning ? (isParallel ? "0 0 28px rgba(107,85,220,0.45)" : "0 0 20px rgba(107,85,220,0.28)") : "none",
@@ -121,7 +126,7 @@ function FlowNode({ step, status }) {
           </span>
         )}
         <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
-          {isDone ? "완료" : isRunning ? "실행 중" : "대기"}
+          {isError ? "실패" : isDone ? "완료" : isRunning ? "실행 중" : "대기"}
         </span>
       </div>
     </div>
@@ -136,11 +141,13 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const [percent,     setPercent]     = useState(5);
   const [phase,       setPhase]       = useState("running");
   const [errMsg,      setErrMsg]      = useState(null);
+  const [errorDetails, setErrorDetails] = useState([]);
   const [statuses,    setStatuses]    = useState(() =>
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
-  const [currentMsg,  setCurrentMsg]  = useState("파이프라인 준비 중...");
   const [restarting,  setRestarting]  = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [eventLog, setEventLog] = useState([]);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
@@ -152,10 +159,16 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
     setPercent(5);
     setPhase("running");
     setErrMsg(null);
-    setCurrentMsg("파이프라인 준비 중...");
+    setErrorDetails([]);
     setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
+    setElapsedSeconds(0);
+    setEventLog([]);
     currentKeyRef.current = null;
     doneRef.current = false;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
 
     const es = new EventSource(
       `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
@@ -165,7 +178,10 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       const d      = JSON.parse(e.data);
       const newKey = SSE_TO_STEP[d.step];
       setPercent(d.percent || 0);
-      setCurrentMsg(d.message || "");
+      setEventLog(prev => [
+        ...prev,
+        { step: d.step, message: d.message || "", percent: d.percent || 0 },
+      ].slice(-8));
       if (newKey && newKey !== currentKeyRef.current) {
         const prevKey = currentKeyRef.current;
         currentKeyRef.current = newKey;
@@ -182,7 +198,6 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       const d = JSON.parse(e.data);
       setPercent(100);
       setPhase("done");
-      setCurrentMsg("모든 단계 완료!");
       setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
       es.close();
       setTimeout(() => onComplete(d.result), 1500);
@@ -192,8 +207,21 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
       if (doneRef.current || !e.data) return;
       doneRef.current = true;
-      try { setErrMsg(JSON.parse(e.data).message); }
-      catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
+      setStatuses(prev => {
+        const next = { ...prev };
+        if (currentKeyRef.current) next[currentKeyRef.current] = "error";
+        return next;
+      });
+      try {
+        const error = JSON.parse(e.data);
+        const details = [
+          ...(error.validationBlockers || []),
+          ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
+          ...Object.values(error.qa?.blockingIssues || {}).flat(),
+        ].filter(Boolean).map(String);
+        setErrMsg(error.message || "파이프라인 오류가 발생했습니다");
+        setErrorDetails([...new Set(details)].slice(0, 12));
+      } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
       setPhase("error");
       es.close();
     });
@@ -203,7 +231,10 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       setPhase("error");
       es.close();
     };
-    return () => es.close();
+    return () => {
+      window.clearInterval(timer);
+      es.close();
+    };
   }, [pipelineId, onComplete]);
 
   async function handleRestart() {
@@ -226,6 +257,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   }
 
   const isAct       = (key) => statuses[key] === "done";
+  const activeStep = PIPELINE_STEPS.find(step => statuses[step.key] === "running");
+  const elapsedLabel = `${String(Math.floor(elapsedSeconds / 60)).padStart(2, "0")}:${String(elapsedSeconds % 60).padStart(2, "0")}`;
   const accentColor = phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "var(--db-purple-400)";
 
   return (
@@ -253,24 +286,34 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--db-purple-300)", fontWeight: 700 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: phase === "running" ? "var(--db-purple-400)" : phase === "done" ? "#34d399" : "#f87171", display: "inline-block", animation: phase === "running" ? "prog-pulse 1.5s infinite" : "none" }}/>
-          Collaborative · 4 에이전트 병렬
+          PM · PRD · Feature Spec · DBA/API · QA
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "32px 40px" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+         <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
                 {phase === "done" ? "✅ 생성 완료! 잠시 후 이동합니다..." : phase === "error" ? "❌ 생성 실패" : "파이프라인 실행 중..."}
               </span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: accentColor, fontVariantNumeric: "tabular-nums", transition: "color 0.3s" }}>{percent}%</span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{elapsedLabel}</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: accentColor, fontVariantNumeric: "tabular-nums", transition: "color 0.3s" }}>{percent}%</span>
+              </div>
             </div>
             <div style={{ height: 6, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${percent}%`, background: phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "linear-gradient(90deg, var(--db-purple-600), var(--db-purple-400))", borderRadius: 100, transition: "width 0.6s ease, background 0.3s", boxShadow: phase === "running" ? "0 0 8px var(--db-purple-400)" : "none" }}/>
             </div>
             {phase === "error" && errMsg && <div style={{ marginTop: 8, fontSize: 12, color: "#f87171" }}>{errMsg}</div>}
+            {phase === "running" && activeStep && (
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-2)" }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", boxShadow: "0 0 0 4px rgba(124,92,235,0.12)" }} />
+                <span>현재 단계</span>
+                <strong style={{ color: "var(--db-purple-300)" }}>{activeStep.label}</strong>
+              </div>
+            )}
           </div>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "28px 24px 32px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "28px 24px 32px", display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", width: ROW_W }}>
               {ROW1.flatMap((step, idx) => {
                 const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
@@ -278,7 +321,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                 return nodes;
               })}
             </div>
-            <FlowDown active={isAct("COLLAB")} />
+            <FlowDown active={isAct("FEATURE_SPEC")} />
             <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", width: ROW_W }}>
               {ROW2.flatMap((step, idx) => {
                 const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
@@ -287,13 +330,29 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
               })}
             </div>
           </div>
-          {phase === "running" && currentMsg && (
-            <div style={{ padding: "10px 16px", background: "rgba(107,85,220,0.08)", border: "1px solid rgba(107,85,220,0.18)", borderRadius: 8, fontSize: 12, color: "var(--db-purple-300)", fontFamily: "'JetBrains Mono', monospace" }}>
-              ▸ {currentMsg}
+          {eventLog.length > 0 && (
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-3)", marginBottom: 8, letterSpacing: ".04em" }}>최근 실행 이벤트</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {eventLog.slice().reverse().map((item, index) => (
+                  <div key={`${item.step}-${index}`} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 11 }}>
+                    <span style={{ minWidth: 92, color: "var(--db-purple-300)", fontFamily: "monospace", fontSize: 10 }}>{item.step}</span>
+                    <span style={{ color: index === 0 ? "var(--text-1)" : "var(--text-3)" }}>{item.message}</span>
+                    <span style={{ marginLeft: "auto", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{item.percent}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          {phase === "error" && (
-            <div style={{ textAlign: "center", display: "flex", gap: 10, justifyContent: "center" }}>
+           {phase === "error" && (
+             <div style={{ textAlign: "center" }}>
+               {errorDetails.length > 0 && (
+                 <div style={{ textAlign: "left", marginBottom: 16, padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(248,113,113,.25)", background: "rgba(248,113,113,.06)" }}>
+                   <div style={{ fontSize: 11, fontWeight: 800, color: "#f87171", marginBottom: 8 }}>검증 blocker</div>
+                   {errorDetails.map((detail, index) => <div key={`${detail}-${index}`} style={{ fontSize: 11, lineHeight: 1.5, color: "var(--text-2)", marginTop: index ? 5 : 0 }}>• {detail}</div>)}
+                 </div>
+               )}
+               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button
                 onClick={onCancel}
                 style={{ padding: "10px 24px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}
@@ -332,7 +391,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                     다시 시작
                   </>
                 )}
-              </button>
+               </button>
+               </div>
             </div>
           )}
         </div>
@@ -638,7 +698,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
       console.error("메시지 전송 실패:", err);
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "일시적인 오류가 발생했습니다. 다시 시도해 주세요.",
+        content: err?.message || "일시적인 오류가 발생했습니다. 다시 시도해 주세요.",
       }]);
       setCurrentSuggestions([]);
     } finally {

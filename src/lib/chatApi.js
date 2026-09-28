@@ -50,6 +50,17 @@ export async function sendChatMessage(sessionId, content, files = []) {
       body: JSON.stringify({ content: fullContent }),
     }
   );
-  if (!res || !res.ok) throw new Error("메시지 전송 실패");
+  if (!res) throw new Error("로그인이 만료되었습니다. 다시 로그인해 주세요.");
+  if (!res.ok) {
+    let detail = "메시지 전송 실패";
+    try {
+      const body = await res.json();
+      detail = body?.message || body?.error || body?.detail || detail;
+    } catch {
+      // 응답 본문이 JSON이 아닌 경우 상태 코드만 사용한다.
+      detail = `${detail} (HTTP ${res.status})`;
+    }
+    throw new Error(detail);
+  }
   return res.json();
 }
