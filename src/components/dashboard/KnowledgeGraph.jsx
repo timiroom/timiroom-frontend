@@ -313,7 +313,33 @@ export function KnowledgeGraph({ project }) {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", gap: 20, height: "100vh", minHeight: 520, padding: 20, background: C.bg, boxSizing: "border-box" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+      <div style={{
+        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
+        background: C.panel,
+      }}>
+        {project && (
+          <>
+            <div style={{
+              width: 22, height: 22, borderRadius: 6,
+              background: `${project.color || C.text}22`,
+              border: `1px solid ${project.color || C.text}44`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 900, color: project.color || C.muted,
+            }}>{(project.name || "P").charAt(0).toUpperCase()}</div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
+            <span style={{ fontSize: 13, color: C.faint }}>›</span>
+          </>
+        )}
+        <span style={{
+          fontSize: 13, fontWeight: 500, color: "#2dd4bf",
+          padding: "2px 8px", borderRadius: 6,
+          background: "rgba(45,212,191,0.1)", border: "1px solid rgba(45,212,191,0.25)",
+        }}>지식그래프</span>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: C.bg, boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── 왼쪽: 도구줄 + 그래프 ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -427,6 +453,7 @@ export function KnowledgeGraph({ project }) {
           <Slider label="선 두께" value={display.edgeScale} min={0.5} max={3} step={0.25}
                   onChange={(v) => setDisplay((d) => ({ ...d, edgeScale: v }))} />
         </Card>
+      </div>
       </div>
     </div>
   );
