@@ -12,6 +12,7 @@ import {
   generateCurlCommand,
 } from "@/lib/codeGenerator";
 import { exportToPostman, exportToOpenApi } from "@/lib/apiSpecExport";
+import { parseSpecBodyInput, mergeEditedEndpoint } from "@/lib/apiSpecFields";
 
 const C = {
   bg:       "var(--surface)",
@@ -75,15 +76,10 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
   function handleSubmit() {
     const errs = {};
     if (!path.trim()) errs.path = "경로를 입력하세요";
-    let parsedBody = null, parsedSuccess = null;
-    if (bodyText.trim()) {
-      try { parsedBody = JSON.parse(bodyText); }
-      catch (e) { errs.body = "Body JSON 오류: " + e.message; }
-    }
-    if (successText.trim()) {
-      try { parsedSuccess = JSON.parse(successText); }
-      catch (e) { errs.success = "응답 JSON 오류: " + e.message; }
-    }
+    const body = parseSpecBodyInput(bodyText);
+    const success = parseSpecBodyInput(successText);
+    if (body.error) errs.body = "Body JSON 오류: " + body.error;
+    if (success.error) errs.success = "응답 JSON 오류: " + success.error;
     if (Object.keys(errs).length) { setErrors(errs); return; }
     onSave({
       method,
@@ -91,8 +87,8 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
       description: description.trim(),
       authRequired: auth,
       parameters: params.filter(p => p.name.trim()),
-      requestBody: parsedBody,
-      successResponse: parsedSuccess,
+      requestBody: body.value,
+      successResponse: success.value,
       errorCodes: errorText.trim() || null,
     });
   }
@@ -260,7 +256,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
           {/* Request Body */}
           <div style={{ marginBottom: 18 }}>
-            <label style={lbl}>Request Body (JSON)</label>
+            <label style={lbl}>Request Body (JSON 또는 텍스트)</label>
             <textarea
               value={bodyText}
               onChange={e => { setBodyText(e.target.value); setErrors(p => ({ ...p, body: "" })); }}
@@ -277,7 +273,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
           {/* 성공 응답 */}
           <div style={{ marginBottom: 18 }}>
-            <label style={lbl}>성공 응답 (JSON)</label>
+            <label style={lbl}>성공 응답 (JSON 또는 텍스트)</label>
             <textarea
               value={successText}
               onChange={e => { setSuccessText(e.target.value); setErrors(p => ({ ...p, success: "" })); }}
@@ -1301,7 +1297,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
     if (editingSpec.idx === "new") {
       endpoints.push(data);
     } else {
-      endpoints[editingSpec.idx] = data;
+      endpoints[editingSpec.idx] = mergeEditedEndpoint(endpoints[editingSpec.idx], data);
     }
     const newSpec = { ...currentSpec, endpoints };
     setOpSaving(true);
