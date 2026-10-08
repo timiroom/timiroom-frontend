@@ -966,7 +966,7 @@ function featuresToText(coreFeatures, simpleList) {
 /* ══════════════════════════════════════
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
-export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
+export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
   const { user } = useAuth();
   const [search,          setSearch]          = useState("");
   const [saving,          setSaving]          = useState(false);
@@ -1191,9 +1191,17 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
     await saveProjectDocument(project.id, "FEATURE_LIST", JSON.stringify(features));
   }
 
+  async function proposeFeatures(features) {
+    if (!onProposeDocument) return false;
+    const payload = buildSavePayload(features);
+    if (!payload) throw new Error("저장 대상 문서를 찾을 수 없습니다.");
+    return onProposeDocument({ sourceType: project?.artifactIds?.FEATURE_LIST ? "FEATURE_LIST" : "PRD", document: JSON.parse(payload.content) });
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
+      if (await proposeFeatures(editedFeatures)) return;
       const updatedIssues = await syncLinkedIssues(editedFeatures);
       await persistFeatures(editedFeatures);
       if (updatedIssues.length > 0) {
@@ -1232,6 +1240,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       throw new Error("저장 대상 기능 명세서를 찾을 수 없습니다. 파이프라인을 먼저 실행해 주세요.");
     }
 
+    if (await proposeFeatures(next)) return { pendingApproval: true };
     await updateArtifact(payload.artifactId, payload.content);
     savedFeaturesRef.current = cloneFeatures(next);
     setEditedFeatures(next.map(normalizeFeature));

@@ -1182,7 +1182,7 @@ function buildTagsFromApiSpec(apiSpec) {
 /* ══════════════════════════════════════
    API SPEC PANEL
 ══════════════════════════════════════ */
-export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
+export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
   const [search,       setSearch]       = useState("");
   const [localApiSpec, setLocalApiSpec] = useState(null);
   const [editingSpec,  setEditingSpec]  = useState(null); // null | { idx: number|"new", raw: {...}|null }
@@ -1213,6 +1213,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
   async function persistSpec(newSpec) {
     const artifactId = project?.artifactIds?.API_SPEC;
     if (!artifactId) return;
+    if (await onProposeDocument?.({ sourceType: "API_SPEC", document: newSpec })) return { pendingApproval: true };
     await updateArtifact(artifactId, JSON.stringify(newSpec));
     setLocalApiSpec(newSpec);
     onDocumentSaved?.({ sourceType: "API_SPEC", document: newSpec });
@@ -1231,7 +1232,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
     }
     const nextSpec = { ...(rawApiSpec || { endpoints: [] }) };
     edits.forEach(e => { nextSpec[e.section] = e.after; });
-    await persistSpec(nextSpec);
+    return persistSpec(nextSpec);
   }
 
   /* ── 추가 ── */

@@ -32,10 +32,14 @@ import {
   enrichProjectWithArtifacts,
   fetchProjectArtifacts,
   fetchProjectMembers,
+  fetchProject,
   fetchProjectsByTeam,
 } from "@/lib/projectApi";
 import { updateArtifact } from "@/lib/pipelineApi";
 import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
+import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
+import { latestSnapshot, publishSnapshot } from "@/lib/integrationApi";
+import { sourceMatchesSnapshot } from "@/lib/specSource";
 
 const ROLE_DOCUMENT_PERMISSIONS = {
   PM:       ["PRD", "DB_SCHEMA", "API_SPEC", "FEATURE_LIST", "MARKET_RESEARCH", "QA_REPORT"],
@@ -393,6 +397,10 @@ export default function DashboardPage() {
   const [documentSync, setDocumentSync] = useState(null);
   const [editingDocumentType, setEditingDocumentType] = useState(null);
   const [myProjectRole, setMyProjectRole] = useState(null);
+  const [specReview, setSpecReview] = useState(null);
+  const [publishing, setPublishing] = useState(false);
+  const integrationEnabled = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
+  const incomingProjectHandled = useRef(false);
   const selectedProjectIdRef = useRef(null);
   const runningPipelineRef = useRef(null);
   const documentSyncRequestRef = useRef(0);
@@ -511,7 +519,8 @@ export default function DashboardPage() {
         : null;
 
       const nextSelected = (
-        mergedList.find((project) => String(project.id) === String(selectedProjectIdRef.current))
+        mergedList.find((project) => String(project.id) === new URLSearchParams(window.location.search).get("projectId"))
+        ?? mergedList.find((project) => String(project.id) === String(selectedProjectIdRef.current))
         ?? (runningProjectId ? mergedList.find((project) => String(project.id) === runningProjectId) : null)
         ?? mergedList[0]
         ?? null
@@ -633,6 +642,17 @@ export default function DashboardPage() {
     loadProjects(activeWorkspaceId);
   }, [authLoading, user, activeWorkspaceId, loadProjects, loadWorkspaceDetail]);
 
+  useEffect(() => {
+    if (authLoading || !user || isLoadingWorkspaces || incomingProjectHandled.current) return;
+    const requested = new URLSearchParams(window.location.search).get("projectId");
+    if (!/^[1-9][0-9]*$/.test(requested || "")) { incomingProjectHandled.current = true; return; }
+    incomingProjectHandled.current = true;
+    fetchProject(requested).then((project) => {
+      if (!project) return;
+      if (project.teamId != null && String(project.teamId) !== String(activeWorkspaceId)) applyActiveWorkspaceId(project.teamId);
+    }).catch(() => { /* Existing project loaders display access and loading state. */ });
+  }, [authLoading, user, isLoadingWorkspaces, activeWorkspaceId]);
+
   if (authLoading) {
     return (
       <div style={{
@@ -737,7 +757,7 @@ export default function DashboardPage() {
     setSelectedView(view);
     setShowWizard(false);
     openTab(buildDocumentTab(project, view));
-    const alreadyLoaded = !!project.artifactIds;
+    const alreadyLoaded = !!project.artifactIds && (!integrationEnabled || !!project.artifactSources);
     if (!alreadyLoaded && (!isRunningActiveWorkspace || String(project.id) !== String(runningPipeline?.projectId))) {
       loadArtifacts(project);
     }
@@ -748,7 +768,7 @@ export default function DashboardPage() {
     setSelectedView(view);
     setShowWizard(false);
     openTab(buildDocumentTab(project, view));
-    if (!project.artifactIds) {
+    if (!project.artifactIds || (integrationEnabled && !project.artifactSources)) {
       loadArtifacts(project);
     }
   }
@@ -888,6 +908,29 @@ export default function DashboardPage() {
         targets: [],
       });
     }
+  }
+
+  async function handleProposeDocument({ sourceType, document }) {
+    if (!integrationEnabled) return false;
+    if (!canEditDocType(myProjectRole, sourceType)) throw new Error("이 문서를 수정할 권한이 없습니다.");
+    try {
+      const snapshot = await latestSnapshot(selectedProject.id);
+      const source = snapshot.documents.find((item) => item.type === sourceType);
+      if (!source) throw new Error("발행 기준에 대상 문서가 없습니다. PM이 기준을 다시 발행해야 합니다.");
+      if (!await sourceMatchesSnapshot(selectedProject, sourceType, source)) throw new Error("화면의 문서와 발행 기준이 다릅니다. 문서를 다시 불러온 뒤 수정해 주세요.");
+      setSpecReview({ project: selectedProject, draft: { sourceType, document, snapshot } });
+      return true;
+    } catch (error) {
+      if (error.code === "SPEC_NOT_PUBLISHED") return false;
+      throw error;
+    }
+  }
+
+  async function handlePublishSnapshot() {
+    setPublishing(true);
+    try { const snapshot = await publishSnapshot(selectedProject.id); showToast("success", `명세 기준 revision ${snapshot.revision}을 발행했습니다.`); }
+    catch (error) { showToast("error", error.message); }
+    finally { setPublishing(false); }
   }
 
   function handleOpenCreateProject() {
@@ -1052,6 +1095,11 @@ export default function DashboardPage() {
 
   return (
     <>
+      {integrationEnabled && specReview && <SpecChangeReview
+        project={specReview.project} draft={specReview.draft} proposalId={specReview.proposalId}
+        canApprove={myProjectRole === "PM"} allowedTargets={ROLE_DOCUMENT_PERMISSIONS[myProjectRole] || []}
+        onClose={() => setSpecReview(null)} onApproved={() => loadArtifacts(specReview.project)}
+      />}
       <style>{`
         @keyframes dash-panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
         @keyframes document-sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -1165,7 +1213,14 @@ export default function DashboardPage() {
               onClose={closeTab}
               onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
             />
-            <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", animation: "dash-panel-in 0.18s ease" }}>
+            <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", animation: "dash-panel-in 0.18s ease" }}>
+              {integrationEnabled && <div style={{ padding: "8px 20px", borderBottom: "1px solid var(--border)", display: "flex", gap: 12, alignItems: "center", fontSize: 12 }}>
+                <span>발행 후 문서 수정은 변경안 검토와 승인으로 적용합니다.</span>
+                <button onClick={() => loadArtifacts(selectedProject)}>문서 다시 불러오기</button>
+                <a href={`/spec-changes?projectId=${selectedProject.id}`}>변경안·검사 기록</a>
+                {myProjectRole === "PM" && <button disabled={publishing} onClick={handlePublishSnapshot}>{publishing ? "발행 중…" : "현재 명세 기준 발행"}</button>}
+              </div>}
+              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
               {selectedView === "prd" ? (
                 <PrdPanel
                   project={selectedProject}
@@ -1173,13 +1228,14 @@ export default function DashboardPage() {
                   onDocumentChange={handlePrdDocumentChange}
                   onDocumentSaved={handleDocumentSaved}
                   onDocumentEditingChange={handleDocumentEditingChange}
+                  onProposeDocument={handleProposeDocument}
                 />
               ) : selectedView === "features" ? (
-                <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+                <FeaturesPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "FEATURE_LIST")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} onProposeDocument={handleProposeDocument} />
               ) : selectedView === "api" ? (
-                <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+                <ApiSpecPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "API_SPEC")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} onProposeDocument={handleProposeDocument} />
               ) : selectedView === "erd" ? (
-                <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} />
+                <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} onProposeDocument={handleProposeDocument} />
               ) : selectedView === "graph" ? (
                 <KnowledgeGraph project={selectedProject} />
               ) : selectedView === "github" ? (
@@ -1191,6 +1247,7 @@ export default function DashboardPage() {
               ) : (
                 <AgentPanel project={selectedProject} view={selectedView} />
               )}
+              </div>
             </div>
           </div>
         ) : isLoadingProjects ? (

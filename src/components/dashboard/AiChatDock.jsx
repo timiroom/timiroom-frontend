@@ -246,7 +246,7 @@ function EditProposal({ msg, onAccept, onApply, onDismiss, applying }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <AiAvatar />
         <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 5, paddingTop: 4 }}>
-          {msg.applied
+          {msg.pendingApproval ? <>변경안 검토 화면을 열었습니다. 문서는 PM 승인 후 적용됩니다.</> : msg.applied
             ? <><span style={{ color: "#34d399", fontWeight: 700 }}>✓</span> 문서에 적용했습니다.</>
             : <><span>✗</span> 적용하지 않았습니다.</>}
         </div>
@@ -466,9 +466,9 @@ export function AiChatDock({
   const applyEdits = useCallback(async (msgId, edits) => {
     setApplying(true);
     try {
-      await onApplyEdits(edits);
+      const result = await onApplyEdits(edits);
       setMessages(prev => prev.map(m =>
-        m.id === msgId ? { ...m, resolved: true, applied: true } : m
+        m.id === msgId ? { ...m, resolved: true, applied: !result?.pendingApproval, pendingApproval: Boolean(result?.pendingApproval) } : m
       ));
       pendingRef.current = null;
     } catch (e) {

@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchProjects } from "@/lib/projectApi";
 import { getMyTeams, uploadUserAvatar, updateMemberGithubLogin, updateMemberName } from "@/lib/teamApi";
 import { TeamWorkspacePanel } from "@/components/dashboard/mypage/TeamWorkspacePanel";
+import { AiToolConnectionsPanel } from "@/components/dashboard/mypage/AiToolConnectionsPanel";
 
 /* ── 공통 카드 ── */
 function Card({ children, style }) {
@@ -544,6 +545,8 @@ export function MyPage() {
           loading={loadingT}
           onTeamsChanged={refreshTeams}
         />
+
+        {process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true" && <AiToolConnectionsPanel projects={projects} />}
 
         {/* ── 5. 계정 관리 (로그아웃) ── */}
         <Card>

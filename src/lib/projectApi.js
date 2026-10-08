@@ -219,9 +219,11 @@ export async function fetchProjectArtifacts(projectId) {
 export function enrichProjectWithArtifacts(project, artifacts) {
   const map = {};
   const idMap = {};
+  const sources = {};
   artifacts.forEach(a => {
     map[a.artifactType] = a.content;
     idMap[a.artifactType] = a.artifactId;
+    sources[a.artifactType] = { artifactId: a.artifactId, version: a.version, content: a.content };
   });
 
   const tryParse = (val) => {
@@ -246,5 +248,6 @@ export function enrichProjectWithArtifacts(project, artifacts) {
     featureList:    tryParse(map["FEATURE_LIST"])     ?? project.featureList    ?? [],
     marketResearch: tryParse(map["MARKET_RESEARCH"])  ?? project.marketResearch ?? null,
     artifactIds:    idMap,
+    artifactSources: sources,
   };
 }
