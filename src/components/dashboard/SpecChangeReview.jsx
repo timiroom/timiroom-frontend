@@ -72,6 +72,15 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       {proposal && <>
         <p className="review-state">{proposal.status} · 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base.revision}</p>
         <p className={proposal.artifactReviewPassed ? "review-pass" : "review-note"}>문서 교차검증: {proposal.artifactReviewPassed ? "PASS" : "통과 전"} · 코드의 PR 검증은 별도로 요청해야 합니다.</p>
+        {proposal.artifactReview && <section aria-label="문서 교차검증 결과">
+          <h3>문서 교차검증 결과 · {proposal.artifactReview.passed ? "PASS" : "검토 필요"}</h3>
+          <p>{proposal.artifactReview.summary}</p>
+          {(proposal.artifactReview.findings || []).map((finding, index) => <article key={index}>
+            <h4>{finding.severity} · {finding.area}</h4><p>{finding.message}</p>
+            {finding.evidence?.length > 0 && <ul>{finding.evidence.map((item, i) => <li key={i}>{item}</li>)}</ul>}
+            {finding.recommendation && <p>{finding.recommendation}</p>}
+          </article>)}
+        </section>}
         {proposal.impact?.summary && <p>{proposal.impact.summary}</p>}
       </>}
       {documentTypes.map((type) => {
