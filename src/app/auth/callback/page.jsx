@@ -11,7 +11,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { AUTH_RETURN_TO_KEY } from "@/lib/authConfig";
+import { AUTH_RETURN_TO_KEY, safeAuthReturnTo } from "@/lib/authConfig";
 
 function StatusScreen({ type, message }) {
   const isError = type === "error";
@@ -92,7 +92,7 @@ function CallbackInner() {
         window.localStorage.removeItem(AUTH_RETURN_TO_KEY);
       }
       setStatus({ type: "loading", message: "대시보드로 이동 중..." });
-      if (returnTo && returnTo.startsWith("/")) {
+      if (safeAuthReturnTo(returnTo)) {
         router.replace(returnTo);
       } else {
         router.replace("/dashboard");

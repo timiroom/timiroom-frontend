@@ -1217,6 +1217,7 @@ export default function DashboardPage() {
               {integrationEnabled && <div style={{ padding: "8px 20px", borderBottom: "1px solid var(--border)", display: "flex", gap: 12, alignItems: "center", fontSize: 12 }}>
                 <span>발행 후 문서 수정은 변경안 검토와 승인으로 적용합니다.</span>
                 <button onClick={() => loadArtifacts(selectedProject)}>문서 다시 불러오기</button>
+                <a href={`/spec-changes?projectId=${selectedProject.id}`}>변경안·검사 기록</a>
                 {myProjectRole === "PM" && <button disabled={publishing} onClick={handlePublishSnapshot}>{publishing ? "발행 중…" : "현재 명세 기준 발행"}</button>}
               </div>}
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>

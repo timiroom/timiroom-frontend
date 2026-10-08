@@ -41,6 +41,8 @@ const projectPath = (id) => `/api/v1/projects/${id}`;
 export const latestSnapshot = (project) => integrationRequest(`${projectPath(project)}/spec-snapshots/latest`);
 export const publishSnapshot = (project) => integrationRequest(`${projectPath(project)}/spec-snapshots`, { method: "POST" });
 export const specChange = (project, id) => integrationRequest(`${projectPath(project)}/spec-changes/${id}`);
+export const specChanges = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes?page=${page}`);
+export const integrationJobs = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes/jobs?page=${page}`);
 export const proposeManualChange = (project, input) => integrationRequest(`${projectPath(project)}/spec-changes`, { method: "POST", body: input });
 export const approveChange = (project, id, revision) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/approve`, { method: "POST", body: { revision } });
 export const rejectChange = (project, id, revision) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/reject`, { method: "POST", body: { revision } });
