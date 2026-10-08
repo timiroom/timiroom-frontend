@@ -1289,7 +1289,7 @@ function SqlModal({ sql, onClose }) {
 /* ══════════════════════════════════════
    ERD PANEL
 ══════════════════════════════════════ */
-export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
+export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
   const [search,        setSearch]        = useState("");
   const [expandAll,     setExpandAll]     = useState(null);
   const [showSql,       setShowSql]       = useState(false);
@@ -1315,6 +1315,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
   async function persistSchema(newSchema) {
     const artifactId = project?.artifactIds?.DB_SCHEMA;
     if (!artifactId) return;
+    if (await onProposeDocument?.({ sourceType: "DB_SCHEMA", document: newSchema })) return { pendingApproval: true };
     await updateArtifact(artifactId, JSON.stringify(newSchema));
     setLocalSchema(newSchema);
     onDocumentSaved?.({ sourceType: "DB_SCHEMA", document: newSchema });
@@ -1332,7 +1333,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
     }
     const nextSchema = { ...(schema || { tables: [], relationships: [] }) };
     edits.forEach(e => { nextSchema[e.section] = e.after; });
-    await persistSchema(nextSchema);
+    return persistSchema(nextSchema);
   }
 
   /* ── 테이블 추가 ── */
