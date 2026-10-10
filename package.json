@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test src/lib/aiConnectionLinks.test.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.7",
