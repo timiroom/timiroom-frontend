@@ -245,7 +245,12 @@ export function enrichProjectWithArtifacts(project, artifacts) {
     prdDocument:    tryParse(map["PRD"])              ?? project.prdDocument    ?? null,
     dbSchema:       tryParse(map["DB_SCHEMA"])        ?? project.dbSchema       ?? null,
     apiSpec:        tryParse(map["API_SPEC"])         ?? project.apiSpec        ?? null,
-    featureList:    tryParse(map["FEATURE_LIST"])     ?? project.featureList    ?? [],
+    // Feature Spec은 설명·요구사항·계약을 가진 상세 기능 객체다.
+    // 예전 FEATURE_LIST 문자열 배열을 우선 사용하면 화면에 빈 설명이
+    // 표시되므로, 상세 산출물을 기능 목록의 canonical source로 사용한다.
+    featureList:    tryParse(map["FEATURE_SPEC"])?.features
+                    ?? tryParse(map["FEATURE_LIST"])
+                    ?? project.featureList    ?? [],
     marketResearch: tryParse(map["MARKET_RESEARCH"])  ?? project.marketResearch ?? null,
     artifactIds:    idMap,
     artifactSources: sources,
