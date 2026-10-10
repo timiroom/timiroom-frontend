@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE_URL } from "@/lib/authConfig";
-import { connections, revokeConnection, slackConnection, linkSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
+import { connections, revokeConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
 const clientNames = { "timiroom-codex": "Codex", "timiroom-claude": "Claude Code" };
 const scopeNames = { "projects:read": "프로젝트 조회", "specs:read": "명세 조회", "specs:propose": "문서 수정 제안", "consistency:run": "정합성 검사 요청", "consistency:read": "검사 결과 조회" };
 
@@ -12,7 +12,6 @@ export function AiToolConnectionsPanel({ projects = [] }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [code, setCode] = useState("");
   const [project, setProject] = useState("");
   const [channel, setChannel] = useState("");
   const slackEnabled = process.env.NEXT_PUBLIC_SLACK_ENABLED === "true";
@@ -25,6 +24,25 @@ export function AiToolConnectionsPanel({ projects = [] }) {
     finally { setLoading(false); }
   }, [slackEnabled]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get("slack");
+    if (!result) return;
+    if (result === "cancelled") setFeedback("Slack 연결을 취소했습니다.");
+    else if (result === "failed") setFeedback("Slack 연결을 완료하지 못했습니다. 다시 시도해 주세요.");
+    // Connection badges always come from the server, never from this URL parameter.
+    url.searchParams.delete("slack");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
+  async function startSlackConnection() {
+    setBusy(true); setFeedback("");
+    try {
+      const { url } = await connectSlack();
+      const target = new URL(url);
+      if (target.origin !== "https://slack.com" || target.pathname !== "/openid/connect/authorize") throw new Error("Slack 연결 주소를 확인하지 못했습니다.");
+      window.location.assign(target.href);
+    } catch (error) { setFeedback(error.message); setBusy(false); }
+  }
   async function run(action, message) {
     setBusy(true); setFeedback("");
     try { await action(); await load(); setFeedback(message); }
@@ -57,14 +75,14 @@ export function AiToolConnectionsPanel({ projects = [] }) {
       )}
       {slackEnabled && <div className="integration-slack">
         <h3>Slack 연결</h3>
-        <p>Slack에서 <code>/timiroom connect</code>를 실행하고 본인에게 표시된 연결 코드를 입력하세요. 코드는 5분간 유효합니다.</p>
-        {slack?.connected ? <div className="integration-row">
-          <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className="connection-status active">연결됨</span></div><p className="connection-meta">{slack.account.user_id}</p></div>
-          <button disabled={busy} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
-        </div> : <form onSubmit={(event) => { event.preventDefault(); run(async () => { await linkSlack(code.trim()); setCode(""); }, "Slack 계정을 연결했습니다."); }}>
-          <label className="integration-label">연결 코드<input value={code} onChange={(event) => setCode(event.target.value)} maxLength={24} required autoComplete="off" /></label>
-          <button disabled={busy || !code.trim()}>계정 연결</button>
-        </form>}
+        <p>Slack 계정을 연결하면 프로젝트 알림을 받고 명세 조회와 검사를 요청할 수 있습니다.</p>
+        <div className="integration-row">
+          <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
+            {slack?.connected && <p className="connection-meta">{slack.account.user_id}</p>}
+          </div>
+          {slack?.connected ? <button disabled={busy || loading} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
+            : <button disabled={busy || loading || !slack} onClick={startSlackConnection}>{busy ? "연결 중…" : "연결"}</button>}
+        </div>
         {slack?.connected && <>
           <h4>프로젝트 알림 채널</h4>
           <p>PM이 프로젝트별 채널을 지정합니다. 알림에는 검사 상태와 티미룸 링크가 표시됩니다.</p>

@@ -6,6 +6,7 @@ const messages = {
   ARTIFACT_REVIEW_REQUIRED: "이 변경안의 문서 교차검증을 먼저 통과해야 합니다.",
   SPEC_NOT_PUBLISHED: "PM이 명세 기준을 발행한 뒤 이용할 수 있습니다.",
   SLACK_REQUEST_CONFLICT: "연결 코드가 만료되었거나 기존 연결과 충돌합니다. 새 코드를 확인해 주세요.",
+  SLACK_CONNECT_UNAVAILABLE: "Slack 연결 설정을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.",
   CONCURRENCY_LIMIT: "진행 중인 작업이 끝난 뒤 다시 요청해 주세요.",
   RATE_LIMITED: "요청이 많습니다. 잠시 후 다시 시도해 주세요.",
 };
@@ -32,6 +33,7 @@ export async function integrationRequest(path, { method = "GET", body } = {}) {
 export const connections = () => integrationRequest("/api/v1/integrations/connections");
 export const revokeConnection = (id) => integrationRequest(`/api/v1/integrations/connections/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const slackConnection = () => integrationRequest("/api/v1/integrations/slack");
+export const connectSlack = () => integrationRequest("/api/v1/integrations/slack/connect", { method: "POST" });
 export const linkSlack = (code) => integrationRequest("/api/v1/integrations/slack/link", { method: "POST", body: { code } });
 export const unlinkSlack = () => integrationRequest("/api/v1/integrations/slack/link", { method: "DELETE" });
 export const configureSlackChannel = (projectId, channelId) => integrationRequest("/api/v1/integrations/slack/channels", { method: "POST", body: { projectId, channelId } });
