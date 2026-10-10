@@ -1,34 +1,85 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/authConfig";
-import { connections, revokeConnection, slackConnection, linkSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
-const clientNames = { "timiroom-codex": "Codex", "timiroom-claude": "Claude Code" };
+import { aiClients, aiConnectionLink, connectionRows } from "@/lib/aiConnectionLinks.mjs";
+import { connections, revokeConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
 const scopeNames = { "projects:read": "프로젝트 조회", "specs:read": "명세 조회", "specs:propose": "문서 수정 제안", "consistency:run": "정합성 검사 요청", "consistency:read": "검사 결과 조회" };
 
 export function AiToolConnectionsPanel({ projects = [] }) {
   const [items, setItems] = useState([]);
   const [slack, setSlack] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [code, setCode] = useState("");
+  const [pendingClient, setPendingClient] = useState(null);
   const [project, setProject] = useState("");
   const [channel, setChannel] = useState("");
+  const loadGeneration = useRef(0);
   const slackEnabled = process.env.NEXT_PUBLIC_SLACK_ENABLED === "true";
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ quiet = false } = {}) => {
+    const generation = ++loadGeneration.current;
+    if (!quiet) setLoading(true);
     try {
       const [grants, account] = await Promise.all([connections(), slackEnabled ? slackConnection() : Promise.resolve(null)]);
-      setItems(grants); setSlack(account);
-    } catch (error) { setFeedback(error.message); }
-    finally { setLoading(false); }
+      if (generation !== loadGeneration.current) return;
+      setItems(grants); setSlack(account); setLoaded(true);
+    } catch (error) { if (generation === loadGeneration.current) setFeedback(error.message); }
+    finally { if (generation === loadGeneration.current) setLoading(false); }
   }, [slackEnabled]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === "visible") load({ quiet: true }); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [load]);
+  useEffect(() => {
+    if (!pendingClient) return;
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") load({ quiet: true }); }, 3000);
+    const timeout = window.setTimeout(() => {
+      setPendingClient(null); setFeedback("아직 연결이 확인되지 않았습니다. 앱에서 연결 요청을 실행했는지 확인한 뒤 다시 시도해 주세요.");
+    }, 180000);
+    return () => { window.clearInterval(timer); window.clearTimeout(timeout); };
+  }, [pendingClient, load]);
+  useEffect(() => {
+    if (pendingClient && items.some(item => item.clientId === pendingClient && item.active)) {
+      setFeedback(`${aiClients[pendingClient]} 연결을 확인했습니다.`); setPendingClient(null);
+    }
+  }, [items, pendingClient]);
+  function startAiConnection(clientId) {
+    try {
+      const link = aiConnectionLink(clientId, API_BASE_URL);
+      setPendingClient(clientId);
+      setFeedback(`${aiClients[clientId]} 앱에서 준비된 연결 요청을 보내 주세요. 인증이 끝나면 연결 상태가 자동으로 갱신됩니다. 앱이 설치되어 있어야 합니다.`);
+      window.location.assign(link);
+    } catch (error) { setPendingClient(null); setFeedback(error.message); }
+  }
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get("slack");
+    if (!result) return;
+    if (result === "cancelled") setFeedback("Slack 연결을 취소했습니다.");
+    else if (result === "failed") setFeedback("Slack 연결을 완료하지 못했습니다. 다시 시도해 주세요.");
+    // Connection badges always come from the server, never from this URL parameter.
+    url.searchParams.delete("slack");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
+  async function startSlackConnection() {
+    setBusy(true); setFeedback("");
+    try {
+      const { url } = await connectSlack();
+      const target = new URL(url);
+      if (target.origin !== "https://slack.com" || target.pathname !== "/openid/connect/authorize") throw new Error("Slack 연결 주소를 확인하지 못했습니다.");
+      window.location.assign(target.href);
+    } catch (error) { setFeedback(error.message); setBusy(false); }
+  }
   async function run(action, message) {
+    ++loadGeneration.current;
     setBusy(true); setFeedback("");
     try { await action(); await load(); setFeedback(message); }
-    catch (error) { setFeedback(error.message); }
+    catch (error) { await load(); setFeedback(error.message); }
     finally { setBusy(false); }
   }
   function projectName(id) {
@@ -43,28 +94,31 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         <input readOnly aria-label="MCP 연결 주소" value={`${API_BASE_URL}/mcp`} onFocus={(event) => event.target.select()} />
       </label>
       <p>연결된 도구가 만든 문서 변경안은 PM의 검토와 승인 후 적용됩니다.</p>
-      {loading ? <p role="status">연결을 확인하고 있습니다.</p> : items.length === 0 ? <p>연결된 AI 도구가 없습니다.</p> : (
-        <ul>{items.map((item) => <li key={item.connectionId}>
+      {loading ? <p role="status">연결을 확인하고 있습니다.</p> : (
+        <ul>{connectionRows(items).map(({ clientId, grants }) => <li key={clientId}>
           <div className="connection-detail">
-            <div className="connection-title"><strong>{clientNames[item.clientId] || item.clientId}</strong>
-              <span className={`connection-status ${item.active ? "active" : ""}`}>{item.active ? "연결됨" : "만료·해제됨"}</span>
+            <div className="connection-title"><strong>{aiClients[clientId] || clientId}</strong>
+              <span className={`connection-status ${grants.length ? "active" : ""}`}>{grants.length ? "연결됨" : !loaded ? "확인 실패" : pendingClient === clientId ? "연결 확인 중" : "미연결"}</span>
             </div>
-            <p className="connection-meta">{item.projectIds.map(projectName).join(", ")}</p>
-            <p className="connection-meta">{item.scopes.map((scope) => scopeNames[scope] || scope).join(", ")}</p>
+            {grants.length > 0 && <><p className="connection-meta">{[...new Set(grants.flatMap(item => item.projectIds))].map(projectName).join(", ")}</p>
+              <p className="connection-meta">{[...new Set(grants.flatMap(item => item.scopes))].map(scope => scopeNames[scope] || scope).join(", ")}</p></>}
           </div>
-          {item.active && <button disabled={busy} onClick={() => run(() => revokeConnection(item.connectionId), "AI 도구 연결을 해제했습니다.")}>연결 해제</button>}
+          {grants.length > 0 ? <button disabled={busy} onClick={() => run(async () => {
+            for (const grant of grants) await revokeConnection(grant.connectionId);
+          }, "AI 도구 연결을 해제했습니다.")}>연결 해제</button>
+            : <button disabled={busy || !loaded} onClick={() => startAiConnection(clientId)}>연결</button>}
         </li>)}</ul>
       )}
       {slackEnabled && <div className="integration-slack">
         <h3>Slack 연결</h3>
-        <p>Slack에서 <code>/timiroom connect</code>를 실행하고 본인에게 표시된 연결 코드를 입력하세요. 코드는 5분간 유효합니다.</p>
-        {slack?.connected ? <div className="integration-row">
-          <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className="connection-status active">연결됨</span></div><p className="connection-meta">{slack.account.user_id}</p></div>
-          <button disabled={busy} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
-        </div> : <form onSubmit={(event) => { event.preventDefault(); run(async () => { await linkSlack(code.trim()); setCode(""); }, "Slack 계정을 연결했습니다."); }}>
-          <label className="integration-label">연결 코드<input value={code} onChange={(event) => setCode(event.target.value)} maxLength={24} required autoComplete="off" /></label>
-          <button disabled={busy || !code.trim()}>계정 연결</button>
-        </form>}
+        <p>Slack 계정을 연결하면 프로젝트 알림을 받고 명세 조회와 검사를 요청할 수 있습니다.</p>
+        <div className="integration-row">
+          <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
+            {slack?.connected && <p className="connection-meta">{slack.account.user_id}</p>}
+          </div>
+          {slack?.connected ? <button disabled={busy || loading} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
+            : <button disabled={busy || loading || !slack} onClick={startSlackConnection}>{busy ? "연결 중…" : "연결"}</button>}
+        </div>
         {slack?.connected && <>
           <h4>프로젝트 알림 채널</h4>
           <p>PM이 프로젝트별 채널을 지정합니다. 알림에는 검사 상태와 티미룸 링크가 표시됩니다.</p>
