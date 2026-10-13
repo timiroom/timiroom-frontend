@@ -38,6 +38,7 @@ import {
 import { updateArtifact } from "@/lib/pipelineApi";
 import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
+import { SpecChangeBar } from "@/components/dashboard/SpecChangeBar";
 import { latestSnapshot, publishSnapshot } from "@/lib/integrationApi";
 import { sourceMatchesSnapshot } from "@/lib/specSource";
 
@@ -1214,12 +1215,15 @@ export default function DashboardPage() {
               onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
             />
             <div key={selectedProject.id} style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", animation: "dash-panel-in 0.18s ease" }}>
-              {integrationEnabled && <div style={{ padding: "8px 20px", borderBottom: "1px solid var(--border)", display: "flex", gap: 12, alignItems: "center", fontSize: 12 }}>
-                <span>발행 후 문서 수정은 변경안 검토와 승인으로 적용합니다.</span>
-                <button onClick={() => loadArtifacts(selectedProject)}>문서 다시 불러오기</button>
-                <a href={`/spec-changes?projectId=${selectedProject.id}`}>변경안·검사 기록</a>
-                {myProjectRole === "PM" && <button disabled={publishing} onClick={handlePublishSnapshot}>{publishing ? "발행 중…" : "현재 명세 기준 발행"}</button>}
-              </div>}
+              {integrationEnabled && (
+                <SpecChangeBar
+                  projectId={selectedProject.id}
+                  canPublish={myProjectRole === "PM"}
+                  publishing={publishing}
+                  onReload={() => loadArtifacts(selectedProject)}
+                  onPublish={handlePublishSnapshot}
+                />
+              )}
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
               {selectedView === "prd" ? (
                 <PrdPanel

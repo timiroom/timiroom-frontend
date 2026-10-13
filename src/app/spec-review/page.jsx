@@ -6,6 +6,9 @@ import { fetchProjectMembers } from "@/lib/projectApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { rememberAuthReturnTo } from "@/lib/authConfig";
 
+// 오류·로딩·기능 꺼짐 안내처럼 문구만 보이는 상태 화면용
+const note = { margin: 0, padding: "32px 24px", fontSize: 13, lineHeight: 1.7, color: "var(--text-2)" };
+
 export default function SpecReviewPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -30,13 +33,13 @@ export default function SpecReviewPage() {
     }).catch(() => { if (active) setRole(null); });
     return () => { active = false; };
   }, [isLoading, user, router]);
-  if (process.env.NEXT_PUBLIC_INTEGRATION_ENABLED !== "true") return <main><p>연결 기능을 사용할 수 없습니다.</p></main>;
+  if (process.env.NEXT_PUBLIC_INTEGRATION_ENABLED !== "true") return <main style={{ minHeight: "100vh", background: "#f7f6f3" }}><p style={note}>연결 기능을 사용할 수 없습니다.</p></main>;
   return <main style={{ minHeight: "100vh", background: "#f7f6f3" }}>
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert" style={{ ...note, color: "#b4413f" }}>{error}</p>}
     {target && <SpecChangeReview {...target} canApprove={role === "PM"}
       onProposalChanged={onProposalChanged}
       allowedTargets={role === "BACKEND" ? ["API_SPEC", "DB_SCHEMA"] : role === "FRONTEND" ? ["API_SPEC", "FEATURE_LIST"] : role === "DESIGNER" ? ["PRD", "FEATURE_LIST"] : role === "INFRA" ? ["DB_SCHEMA"] : []}
       onClose={() => router.push(`/spec-changes?projectId=${target.project.id}`)} />}
-    {!target && !error && <p role="status">변경안을 확인하고 있습니다.</p>}
+    {!target && !error && <p role="status" style={note}>변경안을 확인하고 있습니다.</p>}
   </main>;
 }

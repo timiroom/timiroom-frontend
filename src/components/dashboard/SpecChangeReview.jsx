@@ -155,7 +155,8 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       .review-body { overflow:auto; padding:16px 24px; } .review-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .review-columns>div { min-width:0; }
       pre { border:1px solid #dedcd5; border-radius:8px; padding:16px; background:white; overflow:auto; max-height:430px; font-size:12px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
       button { padding:10px 15px; border:1px solid #ccc9bf; border-radius:8px; color:#1a1916; background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
-      .review-primary { background:#1a1916; color:white; border-color:#1a1916; } button:focus-visible,input:focus-visible,pre:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
+      .review-primary { background:#1a1916; color:white; border-color:#1a1916; } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
+      a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
       .review-pass { color:#0f7a53; } .review-note { color:#6b6960; } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
       fieldset { border:1px solid #dedcd5; border-radius:8px; } legend { font-size:13px; }
       .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid #ccc9bf; border-radius:8px; }
