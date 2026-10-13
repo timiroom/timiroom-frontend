@@ -1,27 +1,36 @@
 "use client";
 
 /**
- * 발행된 명세 기준과 변경안 흐름의 진입점을 모아 둔 안내 바.
- * 바로 위 문서 탭바와 같은 톤(--bg, 1px 구분선, 12px)을 쓰고,
- * 버튼은 AI 도구 연결 패널과 같은 규칙(보조 = 흰 바탕 테두리, 주요 = --text-1 채움)을 따른다.
+ * 명세 기준(스냅샷)의 상태에 따라 필요한 안내와 버튼만 보여 주는 바.
+ *   none   — 아직 발행한 적 없음. PM에게 발행 버튼을 준다.
+ *   match  — 화면의 문서가 발행 기준과 같음. 기준 번호와 기록 링크만 둔다.
+ *   differ — 화면의 문서가 발행 기준과 다름(재생성 등). 다시 불러오기와 발행을 준다.
+ * 상태를 아직 모르면(status 없음) 아무것도 그리지 않는다.
  */
-export function SpecChangeBar({ projectId, canPublish, publishing, onReload, onPublish }) {
+export function SpecChangeBar({ projectId, status, canPublish, publishing, onReload, onPublish }) {
+  if (!status) return null;
+  const { state, revision } = status;
+  const publishButton = canPublish && (
+    <button type="button" className="spec-bar-primary" disabled={publishing} onClick={onPublish}>
+      {publishing ? "발행 중…" : "현재 명세 기준 발행"}
+    </button>
+  );
   return (
     <div className="spec-bar">
       <p className="spec-bar-note">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
-        발행 후 문서 수정은 변경안 검토와 승인으로 적용합니다.
+        {state === "none" && (canPublish
+          ? "아직 명세 기준을 발행하지 않았습니다. 발행하면 이후 수정은 변경안 검토와 승인으로 적용됩니다."
+          : "아직 명세 기준이 발행되지 않았습니다. PM이 발행하면 변경안 검토를 쓸 수 있습니다.")}
+        {state === "match" && `기준 revision ${revision} 발행됨. 문서 수정은 변경안 검토와 승인으로 적용합니다.`}
+        {state === "differ" && `화면의 문서가 발행 기준(revision ${revision})과 다릅니다.`}
       </p>
       <div className="spec-bar-actions">
-        <button type="button" onClick={onReload}>문서 다시 불러오기</button>
-        <a className="spec-bar-link" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</a>
-        {canPublish && (
-          <button type="button" className="spec-bar-primary" disabled={publishing} onClick={onPublish}>
-            {publishing ? "발행 중…" : "현재 명세 기준 발행"}
-          </button>
-        )}
+        {state === "differ" && <button type="button" onClick={onReload}>문서 다시 불러오기</button>}
+        {state !== "none" && <a className="spec-bar-link" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</a>}
+        {state !== "match" && publishButton}
       </div>
       <style jsx>{`
         .spec-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; flex-shrink:0; padding:6px 20px; background:var(--bg); border-bottom:1px solid var(--border); font-size:12px; color:var(--text-2); }
