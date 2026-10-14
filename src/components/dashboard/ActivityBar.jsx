@@ -8,6 +8,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { NotificationBell } from "./NotificationBell";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -412,6 +413,8 @@ export function ActivityBar({
           />
         </div>
       </div>
+
+      <NotificationBell />
 
       {/* 유저 아바타 (하단) */}
       <div style={{ position: "relative" }}>
