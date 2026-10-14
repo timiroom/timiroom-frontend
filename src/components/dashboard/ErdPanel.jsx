@@ -1,7 +1,7 @@
 "use client";
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { ActionButton, Badge, Icon, PanelHeader, PanelToolbar, SearchInput, StatGrid } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
@@ -1129,17 +1129,7 @@ function SchemaSummary({ schema }) {
     { label: "관계",   value: schema.relationships?.length ?? 0, color: "var(--text-1)" },
   ];
   return (
-    <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-      {stats.map(s => (
-        <div key={s.label} style={{
-          flex: "1 1 70px", borderRadius: 10, border: `1px solid ${C.border}`,
-          background: C.card, padding: "10px 14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-          <div style={{ fontSize: 10, color: C.sub, marginTop: 3, fontWeight: 600, letterSpacing: "0.04em" }}>{s.label}</div>
-        </div>
-      ))}
-    </div>
+    <div style={{ marginBottom: 16 }}><StatGrid items={stats} /></div>
   );
 }
 
@@ -1487,25 +1477,11 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
           )}
         </PanelHeader>
 
-        {/* 검색 바 */}
+        {/* 검색 */}
         {schema && (
-          <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-            <div style={{ position: "relative", maxWidth: 340 }}>
-              <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="테이블·컬럼 검색..."
-                style={{
-                  width: "100%", padding: "7px 12px 7px 26px",
-                  background: "var(--bg)", border: `1px solid ${C.border}`,
-                  borderRadius: 8, fontSize: 12, color: C.text, outline: "none", boxSizing: "border-box",
-                }}
-              />
-            </div>
-          </div>
+          <PanelToolbar>
+            <SearchInput value={search} onChange={setSearch} placeholder="테이블·컬럼 검색" />
+          </PanelToolbar>
         )}
 
         {/* 본문 */}

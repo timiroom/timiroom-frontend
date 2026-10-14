@@ -21,7 +21,7 @@
  *   4. 라벨은 원 밖  글자 길이가 원 크기를 끌고 다니지 않게 아래에 둔다.
  */
 
-import { Icon, PanelTitle } from "@/components/ui";
+import { ActionButton, Icon, PanelHeader, PanelToolbar } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { fetchProjectGraph, toCytoscapeElements } from "@/lib/graphApi";
@@ -316,18 +316,12 @@ export function KnowledgeGraph({ project }) {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
-      <div style={{
-        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
-        background: C.panel,
-      }}>
-        <PanelTitle project={project} label="지식그래프" />
-      </div>
-
-      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: C.bg, boxSizing: "border-box", overflow: "hidden" }}>
-      {/* ── 왼쪽: 도구줄 + 그래프 ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <PanelHeader project={project} label="지식 그래프">
+        <ActionButton onClick={rerunLayout} title="배치를 다시 계산합니다"><Icon name="refresh" size={12} /> 레이아웃</ActionButton>
+        <ActionButton onClick={exportPng} title="그래프 전체를 PNG로 저장합니다"><Icon name="download" size={12} /> 내보내기</ActionButton>
+        <ActionButton onClick={reset}>초기화</ActionButton>
+      </PanelHeader>
+      <PanelToolbar>
           {FILTERS
             .filter((f) => f.id !== "pr" || summary?.prCount > 0)
             .map((f) => (
@@ -339,13 +333,11 @@ export function KnowledgeGraph({ project }) {
                 )}
               </Chip>
             ))}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            <ToolButton onClick={rerunLayout} title="배치를 다시 계산합니다">레이아웃 ⟳</ToolButton>
-            <ToolButton onClick={exportPng} title="그래프 전체를 PNG로 저장합니다">내보내기 ↗</ToolButton>
-            <ToolButton onClick={reset}>초기화</ToolButton>
-          </div>
-        </div>
+      </PanelToolbar>
 
+      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: C.bg, boxSizing: "border-box", overflow: "hidden" }}>
+      {/* ── 왼쪽: 그래프 ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <div className="db-card" data-testid="kg-canvas" style={{
           flex: 1, position: "relative", overflow: "hidden", padding: 0, minHeight: 0,
           // 시안의 옅은 격자 — 빈 바탕이 평평한 종이처럼 죽지 않게 한다
@@ -413,9 +405,9 @@ export function KnowledgeGraph({ project }) {
         </Card>
 
         <Card title="빠른 작업">
-          <ActionButton icon="refresh" label="그래프 재분석" onClick={() => setReloadKey((k) => k + 1)} />
-          <ActionButton icon="download" label="PNG 내보내기" onClick={exportPng} />
-          <ActionButton icon="search" label="영향도 시뮬레이션" onClick={simulateImpact} />
+          <QuickActionButton icon="refresh" label="그래프 재분석" onClick={() => setReloadKey((k) => k + 1)} />
+          <QuickActionButton icon="download" label="PNG 내보내기" onClick={exportPng} />
+          <QuickActionButton icon="search" label="영향도 시뮬레이션" onClick={simulateImpact} />
         </Card>
 
         <Card title="표시">
@@ -831,7 +823,7 @@ function StatToggle({ label, value, active, disabled, onClick, hint, color }) {
   );
 }
 
-function ActionButton({ icon, label, onClick }) {
+function QuickActionButton({ icon, label, onClick }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", alignItems: "center", gap: 8, width: "100%",

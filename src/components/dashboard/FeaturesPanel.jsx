@@ -12,7 +12,7 @@
  */
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, Icon, PanelTitle } from "@/components/ui";
+import { ActionButton, Badge, Icon, PanelTitle, PanelToolbar, SearchInput } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
@@ -1479,24 +1479,13 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
               </ActionButton>
             )}
 
-            {/* 검색 */}
-            <div className="features-panel-search" style={{ position: "relative" }}>
-              <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-                width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="기능 검색..."
-                style={{
-                  padding: "7px 12px 7px 28px", width: 200,
-                  background: C.bg, border: `1px solid ${C.border}`,
-                  borderRadius: 8, fontSize: 12, color: C.text, outline: "none",
-                }}
-              />
-            </div>
           </div>
         </div>
+
+        {/* 검색 */}
+        <PanelToolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="기능 검색" />
+        </PanelToolbar>
 
         {/* 본문 */}
         <div style={{ flex: 1, overflowY: "auto" }}>

@@ -237,3 +237,26 @@
 .ui-confirm::backdrop { background: color-mix(in srgb, var(--text-1) 38%, transparent); }
 .ui-confirm__message { margin: 0 0 20px; font-size: 14px; line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
 .ui-confirm__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* 패널 헤더 바로 아래의 도구줄: 검색·필터·보조 동작. 모든 패널이 같은 높이와 여백을 쓴다. */
+.ui-panel-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+  min-height: 52px; box-sizing: border-box; padding: 10px 24px;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.ui-panel-toolbar__end { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.ui-search { position: relative; flex: 0 1 360px; min-width: 200px; }
+.ui-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
+.ui-search input {
+  width: 100%; box-sizing: border-box; height: 32px; padding: 0 12px 0 32px;
+  border: 1px solid var(--border); border-radius: var(--db-radius-sm); background: var(--surface);
+  color: var(--text-1); font: inherit; font-size: 13px; outline: none; transition: var(--db-transition);
+}
+.ui-search input:focus-visible { border-color: var(--text-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-1) 8%, transparent); }
+
+/* 숫자 요약 카드 묶음: 라벨 위, 값 아래로 통일 */
+.ui-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.ui-stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--db-radius); background: var(--surface); }
+.ui-stat__label { font-size: 11px; font-weight: 600; color: var(--text-3); }
+.ui-stat__value { margin-top: 6px; font-size: 22px; font-weight: 800; color: var(--text-1); font-variant-numeric: tabular-nums; line-height: 1.1; }

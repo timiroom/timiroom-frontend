@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelTitle } from "@/components/ui";
+import { PanelTitle, StatGrid } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -204,13 +204,11 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
         <button type="button" onClick={load} disabled={loading} style={{ padding: "6px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
       </div>
 
-      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
+      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "var(--surface)" }}>
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 9, marginBottom: 16 }}>
-          {[{ label: "연결 레포", value: repos.length, tone: "purple" }, { label: "최근 커밋", value: recentCommitCount, tone: "neutral" }, { label: "열린 Issue", value: openIssueCount, tone: "blue" }, { label: "열린 PR", value: pulls.length, tone: "green" }].map((stat) => <div key={stat.label} style={{ padding: "13px 14px", border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface }}><div style={{ color: C.muted, fontSize: 10.5 }}>{stat.label}</div><div style={{ marginTop: 5, color: C.text, fontSize: 20, fontWeight: 850 }}>{stat.value}</div></div>)}
-        </div>
+        <div style={{ marginBottom: 16 }}><StatGrid items={[{ label: "연결 레포", value: repos.length }, { label: "최근 커밋", value: recentCommitCount }, { label: "열린 Issue", value: openIssueCount }, { label: "열린 PR", value: pulls.length }]} /></div>
 
         {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
 

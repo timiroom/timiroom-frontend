@@ -1,7 +1,7 @@
 "use client";
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { ActionButton, Badge, Icon, PanelHeader, PanelToolbar, SearchInput } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useState, useMemo, useEffect } from "react";
 import { AiChatDock } from "./AiChatDock";
@@ -1337,24 +1337,10 @@ ${mockBaseUrl}`}>
           )}
         </PanelHeader>
 
-        {/* 검색 바 */}
-        <div style={{ padding: "12px 28px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-          <div style={{ position: "relative", maxWidth: 420 }}>
-            <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="엔드포인트 검색 (경로, 메서드, 요약)"
-              style={{
-                width: "100%", padding: "8px 12px 8px 32px",
-                background: "var(--bg)", border: `1px solid ${C.border}`,
-                borderRadius: 8, fontSize: 13, color: C.text, outline: "none", boxSizing: "border-box",
-              }}
-            />
-          </div>
-        </div>
+        {/* 검색 */}
+        <PanelToolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="엔드포인트 검색 (경로, 메서드, 요약)" />
+        </PanelToolbar>
 
         {/* 본문 */}
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
