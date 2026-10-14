@@ -23,7 +23,7 @@ import { createCommit, fetchCommits, fetchCommitsByProject } from "@/lib/commitA
 
 /* ── 색상 토큰 ── */
 const C = {
-  panel:      "var(--surface)",
+  panel:      "var(--bg)",
   border:     "rgba(0,0,0,0.07)",
   text:       "var(--text-1)",
   muted:      "#7a7a7a",

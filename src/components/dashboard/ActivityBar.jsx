@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 
 /* ── 색상 토큰 ── */
 const C = {
-  bar:       "var(--surface)",
+  bar:       "var(--db-bg-elevated)",
   border:    "rgba(0,0,0,0.06)",
   icon:      "var(--text-2)",
   iconHover: "#d4d4d4",
