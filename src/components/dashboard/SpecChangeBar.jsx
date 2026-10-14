@@ -31,7 +31,7 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         )}
       </div>
       <style jsx>{`
-        .spec-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; flex-shrink:0; padding:6px 20px; background:var(--bg); border-bottom:1px solid var(--border); font-size:12px; color:var(--text-2); }
+        .spec-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; flex-shrink:0; padding:6px 20px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; color:var(--text-2); }
         .spec-bar-note { display:flex; align-items:center; gap:8px; flex:1 1 280px; min-width:0; margin:0; line-height:1.5; }
         .spec-bar-note-strong { color:var(--text-1); }
         .spec-bar-dot { flex-shrink:0; width:8px; height:8px; margin:0 3px; border-radius:50%; background:var(--text-3); }
