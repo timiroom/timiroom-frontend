@@ -6,3 +6,4 @@ export { Button } from "./Button";
 export { SectionHeader } from "./SectionHeader";
 export { ConfirmHost } from "./ConfirmHost";
 export { PanelToolbar, SearchInput, StatGrid } from "./PanelToolbar";
+export { StatusPage } from "./StatusPage";

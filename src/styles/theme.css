@@ -261,3 +261,11 @@
 .ui-stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--db-radius); background: var(--surface); }
 .ui-stat__label { font-size: 11px; font-weight: 600; color: var(--text-3); }
 .ui-stat__value { margin-top: 6px; font-size: 22px; font-weight: 800; color: var(--text-1); font-variant-numeric: tabular-nums; line-height: 1.1; }
+
+/* ── 404·오류 같은 전체 화면 안내 (ui/StatusPage) ── */
+.ui-status-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
+.ui-status-page__box { max-width: 420px; text-align: center; }
+.ui-status-page__code { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.ui-status-page__title { margin: 0; font-size: 22px; font-weight: 700; color: var(--text-1); }
+.ui-status-page__message { margin: 10px 0 0; font-size: 14px; line-height: 1.7; color: var(--text-2); }
+.ui-status-page__actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
