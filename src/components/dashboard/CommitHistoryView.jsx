@@ -9,7 +9,6 @@
  */
 
 import { RepoConnectEmpty } from "./RepoConnectEmpty";
-import { tint } from "@/lib/color";
 import { useState, useEffect, useCallback } from "react";
 import {
   fetchProjectRepositories,
@@ -17,7 +16,7 @@ import {
   fetchRepositoryCommits,
 } from "@/lib/githubApi";
 import { createCommit, fetchCommits, fetchCommitsByProject } from "@/lib/commitApi";
-import { PanelHeader } from "@/components/ui";
+import { EmptyState, PanelHeader } from "@/components/ui";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -151,7 +150,7 @@ function ProjectCommitPanel({ selectedProject }) {
             <button type="button" onClick={loadCommits} style={{ fontSize: 11, color: C.accent, background: "none", border: `1px solid ${C.inputBdr}`, borderRadius: 5, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>다시 시도</button>
           </div>
         ) : commits.length === 0 ? (
-          <EmptyHistoryState message={selectedProject ? "아직 기록된 커밋이 없습니다." : "커밋을 보려면 프로젝트를 선택해 주세요."} />
+          selectedProject ? <EmptyState compact icon="list" title="아직 남긴 기록이 없습니다" description="문서를 크게 바꾼 뒤 아래에서 무엇을 바꿨는지 남겨 두면 팀이 흐름을 따라가기 쉽습니다." /> : <EmptyHistoryState message="커밋을 보려면 프로젝트를 선택해 주세요." />
         ) : commits.map((commit, index) => (
           <ProjectCommitItem key={commit.id} commit={commit} isLatest={index === 0} />
         ))}
@@ -346,11 +345,11 @@ function BranchHistoryPanel({ selectedProject }) {
         ) : !selectedProject ? (
           <EmptyHistoryState message="커밋을 보려면 프로젝트를 선택해 주세요." />
         ) : repos.length === 0 ? (
-          <RepoConnectEmpty projectId={selectedProject?.id} message="레포를 연결하면 브랜치별 커밋 기록을 볼 수 있습니다." />
+          <RepoConnectEmpty compact projectId={selectedProject?.id} message="레포를 연결하면 브랜치별 커밋 기록을 볼 수 있습니다." />
         ) : !branch ? (
           <EmptyHistoryState message="조회할 브랜치를 선택해 주세요." />
         ) : commits.length === 0 ? (
-          <EmptyHistoryState message="이 브랜치에 표시할 커밋이 없습니다." />
+          <EmptyState compact icon="list" title="이 브랜치에 커밋이 없습니다" description="다른 브랜치를 골라 보세요." />
         ) : commits.map((commit, index) => <GithubCommitItem key={commit.sha} commit={commit} isLatest={index === 0} />)}
       </div>
     </div>
@@ -397,10 +396,10 @@ function GithubCommitItem({ commit, isLatest }) {
 
 export function CommitHistoryView({ project }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: "var(--content-bg)" }}>
       <PanelHeader project={project} label="커밋 기록" />
       <div style={{ flex: 1, minHeight: 0, display: "flex", justifyContent: "center", overflow: "hidden" }}>
-        <div style={{ width: "min(760px, 100%)", display: "flex", flexDirection: "column", minHeight: 0, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, background: C.panel }}>
+        <div style={{ width: "min(760px, 100%)", display: "flex", flexDirection: "column", minHeight: 0, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <CommitHistoryPanel selectedProject={project} />
         </div>
       </div>

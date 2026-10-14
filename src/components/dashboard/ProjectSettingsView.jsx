@@ -25,7 +25,7 @@ export function ProjectSettingsView({ project, page = "general", onChangePage, o
           </button>
         ))}
       </nav>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "var(--content-bg)" }}>
         <div className="ui-set-page">
           <ProjectSettings
             key={project.id}

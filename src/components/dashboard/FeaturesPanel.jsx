@@ -12,8 +12,7 @@
  */
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, Icon, PanelTitle, PanelToolbar, SearchInput } from "@/components/ui";
-import { tint } from "@/lib/color";
+import { ActionButton, Badge, Icon, PanelHeader, PanelToolbar, SearchInput } from "@/components/ui";
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
@@ -1448,39 +1447,20 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
   return (
     <div className="features-panel-shell" style={{
       flex: 1, display: "flex", height: "100vh", overflow: "hidden",
-      background: C.bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      background: "var(--content-bg)", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       position: "relative", minWidth: 0, containerType: "inline-size", containerName: "features-panel",
     }}>
       {/* ── 왼쪽: 기능 목록 ── */}
       <div className="features-panel-main" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* 헤더 */}
-        <div className="features-panel-header" style={{
-          height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", padding: "0 24px",
-          justifyContent: "space-between", background: C.surface,
-        }}>
-          <div className="features-panel-title" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <PanelTitle project={project} label="기능 명세서" docType={["FEATURE_SPEC", "FEATURE_LIST"]} />
-            {total > 0 && (
-              <span style={{
-                fontSize: 11, color: C.muted, padding: "2px 8px", borderRadius: 10,
-                background: "rgba(0,0,0,0.05)",
-              }}>{total}개</span>
-            )}
-          </div>
-
-          <div className="features-panel-actions" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
-
-            {/* 저장 버튼 */}
-            {total > 0 && (
-              <ActionButton variant="primary" onClick={handleSave} disabled={saving || !canSave} title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}>
-                <Icon name="save" size={12} /> {saving ? "저장 중..." : "저장"}
-              </ActionButton>
-            )}
-
-          </div>
-        </div>
+        <PanelHeader project={project} label="기능 명세서" docType={["FEATURE_SPEC", "FEATURE_LIST"]}>
+          {total > 0 && <Badge>{total}개</Badge>}
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
+          {total > 0 && (
+            <ActionButton variant="primary" onClick={handleSave} disabled={saving || !canSave} title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}>
+              <Icon name="save" size={12} /> {saving ? "저장 중..." : "저장"}
+            </ActionButton>
+          )}
+        </PanelHeader>
 
         {/* 검색 */}
         <PanelToolbar>
@@ -1560,17 +1540,6 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       />
       <style>{`
         @container features-panel (max-width: 640px) {
-          .features-panel-header {
-            height: auto !important;
-            min-height: 52px;
-            padding: 9px 14px !important;
-            align-items: center !important;
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-          .features-panel-title { flex: 1; overflow: hidden; }
-          .features-panel-title > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .features-panel-actions { width: 100%; }
           .features-panel-search { flex: 1; min-width: 100px; }
           .features-panel-search input { width: 100% !important; box-sizing: border-box; }
           .features-panel-content { padding: 14px 12px 44px !important; }

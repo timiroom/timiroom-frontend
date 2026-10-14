@@ -315,7 +315,7 @@ export function KnowledgeGraph({ project }) {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--content-bg)" }}>
       <PanelHeader project={project} label="지식 그래프">
         <ActionButton onClick={rerunLayout} title="배치를 다시 계산합니다"><Icon name="refresh" size={12} /> 레이아웃</ActionButton>
         <ActionButton onClick={exportPng} title="그래프 전체를 PNG로 저장합니다"><Icon name="download" size={12} /> 내보내기</ActionButton>
@@ -335,7 +335,7 @@ export function KnowledgeGraph({ project }) {
             ))}
       </PanelToolbar>
 
-      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: C.bg, boxSizing: "border-box", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: "var(--content-bg)", boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── 왼쪽: 그래프 ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <div className="db-card" data-testid="kg-canvas" style={{

@@ -7,6 +7,8 @@
   /* ── New Base Palette ── */
   --bg:        #f9f9f9;
   --surface:   #ffffff;
+  /* 본문 영역 바탕. 흰 카드와 구분되도록 아주 살짝만 회색을 넣는다. */
+  --content-bg: #fcfcfc;
   --border:    #ececec;
   --border-2:  #dadada;
   --text-1:    #0d0d0d;
@@ -491,3 +493,42 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ui-tabs__item:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
 /* 탭 아래 설정 본문 폭 */
 .ui-set-page { display: flex; flex-direction: column; gap: 28px; max-width: 760px; margin: 0 auto; padding: 28px 24px 72px; }
+
+/* ── 빈 화면·불러오는 중 (ui/EmptyState) ── */
+.ui-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 56px 24px; }
+.ui-empty--compact { padding: 32px 16px; }
+.ui-empty__icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 14px; border-radius: 14px; background: var(--db-bg-elevated); color: var(--text-2); }
+.ui-empty--compact .ui-empty__icon { width: 38px; height: 38px; margin-bottom: 10px; border-radius: 11px; }
+.ui-empty__title { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-1); }
+.ui-empty--compact .ui-empty__title { font-size: 14px; }
+.ui-empty__desc { max-width: 380px; margin: 6px 0 0; font-size: 13px; line-height: 1.65; color: var(--text-3); }
+.ui-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+.ui-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 56px 24px; font-size: 13px; color: var(--text-3); }
+.ui-loading__spinner { width: 14px; height: 14px; border: 2px solid var(--border-2); border-top-color: var(--text-2); border-radius: 50%; animation: ctx-spin .8s linear infinite; }
+
+/* ── GitHub 목록 화면 공통 (Issues 전체, PRs 전체) ── */
+.gh-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--content-bg); }
+.gh-body { flex: 1; overflow-y: auto; }
+.gh-body__inner { max-width: 960px; margin: 0 auto; padding: 24px 24px 64px; }
+.gh-list { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.gh-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; color: inherit; text-decoration: none; transition: background .12s; }
+.gh-row + .gh-row { border-top: 1px solid var(--border); }
+.gh-row:hover { background: var(--bg); }
+.gh-row:focus-visible { outline: 2px solid var(--text-1); outline-offset: -2px; }
+.gh-row__icon { flex-shrink: 0; margin-top: 2px; color: var(--db-green); }
+.gh-row.is-closed .gh-row__icon { color: var(--text-3); }
+.gh-row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.gh-row__title { font-size: 14px; font-weight: 600; color: var(--text-1); overflow-wrap: anywhere; }
+.gh-row.is-closed .gh-row__title { color: var(--text-2); }
+.gh-row__meta { font-size: 12px; color: var(--text-3); }
+.gh-row__labels { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.gh-filter { display: flex; gap: 4px; }
+.gh-filter__item { padding: 5px 10px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--text-2); font-family: inherit; font-size: 12.5px; cursor: pointer; }
+.gh-filter__item span { margin-left: 2px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.gh-filter__item:hover { background: var(--db-bg-elevated); color: var(--text-1); }
+.gh-filter__item.is-active { border-color: var(--border); background: var(--surface); color: var(--text-1); font-weight: 600; }
+.gh-composer { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.gh-composer__actions { display: flex; justify-content: flex-end; gap: 8px; }
+.gh-error { margin-bottom: 14px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--db-red) 30%, transparent); border-radius: 10px; background: var(--db-red-bg); color: #b91c1c; font-size: 12.5px; }
+.gh-cards { display: flex; flex-direction: column; gap: 10px; }
+.gh-note { margin: 0 0 14px; font-size: 12.5px; color: var(--text-3); }

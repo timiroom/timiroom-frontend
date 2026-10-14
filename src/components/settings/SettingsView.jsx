@@ -188,7 +188,7 @@ export function SettingsView({ section = [] }) {
           <span>설정</span>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "var(--content-bg)" }}>
         <SettingsLayout nav={nav}>{content}</SettingsLayout>
       </div>
     </div>

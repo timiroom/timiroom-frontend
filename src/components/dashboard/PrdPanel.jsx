@@ -677,7 +677,7 @@ function NotionEditor({ editorRef, onTextChange }) {
       </div>
 
       {/* 편집 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "var(--content-bg)" }}>
         <div
           ref={editorRef}
           contentEditable suppressContentEditableWarning
@@ -851,7 +851,7 @@ ${content}</body></html>`;
   );
 
   return (
-    <div style={{ flex:1, display:"flex", height:"100vh", overflow:"hidden", background:C.bg, fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
+    <div style={{ flex:1, display:"flex", height:"100vh", overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
 
       {/* ── 뷰 모드 ── */}
       {!editMode && (

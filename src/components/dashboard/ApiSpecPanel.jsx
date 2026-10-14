@@ -1277,7 +1277,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
   return (
     <div style={{
       flex: 1, display: "flex", height: "100vh", overflow: "hidden",
-      background: C.bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      background: "var(--content-bg)", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
       {/* 드로어 */}
       {editingSpec && (

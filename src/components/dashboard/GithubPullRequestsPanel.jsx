@@ -1,9 +1,9 @@
 "use client";
 
-import { PanelTitle } from "@/components/ui";
-import { tint } from "@/lib/color";
+import { ActionButton, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
 import { useCallback, useEffect, useState } from "react";
-import { checkPullRequestConsistency, fetchProjectPullRequests } from "@/lib/githubApi";
+import { navigateDashboard } from "@/lib/dashboardUrl";
+import { checkPullRequestConsistency, fetchProjectPullRequests, fetchProjectRepositories } from "@/lib/githubApi";
 
 const C = {
   text: "var(--text-1)",
@@ -141,9 +141,9 @@ function PullRequestCard({ pull, canManage, checking, onCheck, result }) {
           </div>
         </div>
         {canManage && (
-          <button type="button" onClick={() => onCheck(pull)} disabled={checking === key} style={{ flexShrink: 0, padding: "8px 11px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.text, color: C.bg, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            {checking === key ? "검사 중…" : "검사 + 리뷰"}
-          </button>
+          <ActionButton variant="primary" disabled={checking === key} onClick={() => onCheck(pull)} title="명세와 맞는지 검사하고 GitHub에 리뷰를 남깁니다">
+            {checking === key ? "검사 중…" : "정합성 검사"}
+          </ActionButton>
         )}
       </div>
       <RelatedPullRequests pulls={pull.relatedPullRequests} />
@@ -152,8 +152,10 @@ function PullRequestCard({ pull, canManage, checking, onCheck, result }) {
   );
 }
 
+/** 연결된 레포의 열린 PR과 명세 정합성 검사 결과. 웹훅이 PR마다 자동 검사하고, PM은 다시 검사할 수 있다. */
 export function GithubPullRequestsPanel({ project, canManage }) {
   const [pulls, setPulls] = useState([]);
+  const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState("");
@@ -164,8 +166,12 @@ export function GithubPullRequestsPanel({ project, canManage }) {
     setLoading(true);
     setError("");
     try {
-      const loadedPulls = await fetchProjectPullRequests(project.id);
+      const [loadedPulls, loadedRepos] = await Promise.all([
+        fetchProjectPullRequests(project.id),
+        fetchProjectRepositories(project.id),
+      ]);
       setPulls(loadedPulls);
+      setRepos(loadedRepos);
       setResults(Object.fromEntries(
         loadedPulls
           .filter((pull) => pull.consistencyResult)
@@ -194,35 +200,47 @@ export function GithubPullRequestsPanel({ project, canManage }) {
     }
   }
 
+  let content;
+  if (loading) {
+    content = <LoadingState label="PR을 불러오는 중…" />;
+  } else if (error && pulls.length === 0) {
+    content = (
+      <EmptyState icon="warning" title="PR을 불러오지 못했습니다" description={error}>
+        <ActionButton onClick={load}><Icon name="refresh" size={13} /> 다시 시도</ActionButton>
+      </EmptyState>
+    );
+  } else if (repos.length === 0) {
+    content = (
+      <EmptyState icon="link" title="연결된 GitHub 레포가 없습니다" description="레포를 연결하면 PR이 열릴 때마다 명세와 맞는지 자동으로 검사해 여기에 보여 줍니다.">
+        <ActionButton variant="primary" onClick={() => navigateDashboard({ projectId: project.id, view: "settings", tab: "repositories" })}>레포 연결하기</ActionButton>
+      </EmptyState>
+    );
+  } else if (pulls.length === 0) {
+    content = (
+      <EmptyState icon="shuffle" title="열린 PR이 없습니다" description={`연결된 레포 ${repos.length}개에 열린 PR이 없습니다. PR이 열리면 자동으로 정합성 검사를 하고 결과를 여기에 남깁니다.`}>
+        <ActionButton onClick={load}><Icon name="refresh" size={13} /> 새로고침</ActionButton>
+      </EmptyState>
+    );
+  } else {
+    content = (
+      <div className="gh-cards">
+        {pulls.map((pull) => <PullRequestCard key={`${pull.repoId}-${pull.number}`} pull={pull} canManage={canManage} checking={checking} onCheck={runCheck} result={results[`${pull.repoId}-${pull.number}`]} />)}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* 헤더 */}
-      <div style={{
-        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center", padding: "0 24px",
-        justifyContent: "space-between", background: "var(--surface)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <PanelTitle project={project} label="PRs 전체" />
+    <div className="gh-panel">
+      <PanelHeader project={project} label="PRs 전체">
+        <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
+      </PanelHeader>
+      <div className="gh-body">
+        <div className="gh-body__inner">
+          {!canManage && pulls.length > 0 && <p className="gh-note">PR이 열리거나 바뀌면 자동으로 검사합니다. 다시 검사는 프로젝트 PM만 할 수 있습니다.</p>}
+          {error && pulls.length > 0 && <div className="gh-error" role="alert">{error}</div>}
+          {content}
         </div>
       </div>
-
-      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
-        <div style={{ marginBottom: 22, color: C.muted, fontSize: 13 }}>연결된 레포의 열린 PR과 명세 정합성 자동 리뷰 상태입니다.</div>
-        {!canManage && <div style={{ marginBottom: 16, color: C.muted, fontSize: 12 }}>웹훅은 PR 열기·동기화 시 자동 리뷰를 남깁니다. 수동 검사는 프로젝트 PM만 실행할 수 있어요.</div>}
-        {error && <div style={{ marginBottom: 16, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
-        {loading ? (
-          <div style={{ padding: 44, textAlign: "center", color: C.muted, fontSize: 13 }}>PR을 불러오는 중…</div>
-        ) : pulls.length === 0 ? (
-          <div style={{ padding: 52, textAlign: "center", border: `1px dashed ${C.border}`, borderRadius: 14, color: C.muted, fontSize: 13 }}>열린 PR이 없습니다.</div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {pulls.map((pull) => <PullRequestCard key={`${pull.repoId}-${pull.number}`} pull={pull} canManage={canManage} checking={checking} onCheck={runCheck} result={results[`${pull.repoId}-${pull.number}`]} />)}
-          </div>
-        )}
-      </div>
-      </section>
     </div>
   );
 }

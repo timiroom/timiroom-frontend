@@ -1,8 +1,7 @@
 "use client";
 
 import { RepoConnectEmpty } from "./RepoConnectEmpty";
-import { PanelTitle, StatGrid } from "@/components/ui";
-import { tint } from "@/lib/color";
+import { ActionButton, Icon, PanelHeader, StatGrid } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchProjectIssues,
@@ -193,19 +192,11 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* 헤더 */}
-      <div style={{
-        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center", padding: "0 24px",
-        justifyContent: "space-between", background: C.surface,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <PanelTitle project={project} label="GitHub 작업" />
-        </div>
-        <button type="button" onClick={load} disabled={loading} style={{ padding: "6px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
-      </div>
+      <PanelHeader project={project} label="GitHub 작업">
+        <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
+      </PanelHeader>
 
-      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "var(--surface)" }}>
+      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "var(--content-bg)" }}>
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 

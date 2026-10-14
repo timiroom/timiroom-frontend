@@ -11,10 +11,9 @@
  *   [입력 영역: 라운드 컨테이너]
  */
 
-import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
-import { Icon } from "@/components/ui";
+import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
 
 /* 모델은 EXAONE 하나로 고정 — API 키는 pipeline_py가 들고 있어
    사용자가 프로바이더나 키를 설정할 필요가 없다 */
@@ -273,7 +272,7 @@ export function AgentPanel({ project, view }) {
   return (
     <div style={{
       flex: 1, display: "flex", flexDirection: "column",
-      height: "100vh", background: C.bg, overflow: "hidden",
+      height: "100vh", background: "var(--content-bg)", overflow: "hidden",
       position: "relative",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
@@ -342,93 +341,16 @@ export function AgentPanel({ project, view }) {
 
 /* ── 상단 바 ── */
 function TopBar({ project, view, modelLabel, hasMessages, onClear }) {
-  const viewLabel = view ? VIEW_LABELS[view] : null;
+  const viewLabel = (view ? VIEW_LABELS[view] : null) ?? "AI 채팅";
   return (
-    <div style={{
-      height: 52, flexShrink: 0,
-      borderBottom: `1px solid ${C.border}`,
-      display: "flex", alignItems: "center",
-      padding: "0 24px",
-      justifyContent: "space-between",
-      background: C.topbar,
-    }}>
-      {/* 왼쪽: 프로젝트명 + 브레드크럼 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {project ? (
-          <>
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `${tint(project.color || "var(--text-1)", 13)}`,
-              border: `1px solid ${tint(project.color || "var(--text-1)", 27)}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "var(--text-2)",
-            }}>
-              {(project.name || "P").charAt(0).toUpperCase()}
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-
-            {/* 뷰 브레드크럼 */}
-            {viewLabel && (
-              <>
-                <span style={{ fontSize: 13, color: C.sub }}>›</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 500, color: C.accent,
-                  padding: "2px 8px", borderRadius: 6,
-                  background: "color-mix(in srgb, var(--text-2) 10%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
-                }}>
-                  {viewLabel}
-                </span>
-              </>
-            )}
-
-            {modelLabel && (
-              <span style={{
-                fontSize: 11, padding: "2px 8px", borderRadius: 20,
-                background: C.accentBg, border: `1px solid ${C.accentBdr}`,
-                color: C.accent, marginLeft: 2,
-              }}>
-                {modelLabel}
-              </span>
-            )}
-          </>
-        ) : (
-          <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>프로젝트를 선택하세요</span>
-        )}
-      </div>
-
-      {/* 오른쪽: 액션 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {hasMessages && (
-          <TopBarBtn onClick={onClear} title="대화 초기화">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
-            </svg>
-          </TopBarBtn>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TopBarBtn({ onClick, title, children }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick} title={title}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 32, height: 32, borderRadius: 7,
-        background: hovered ? C.hover : "transparent",
-        border: `1px solid ${hovered ? C.border : "transparent"}`,
-        cursor: "pointer", color: hovered ? C.text : C.muted,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.12s",
-      }}
-    >
-      {children}
-    </button>
+    <PanelHeader project={project} label={viewLabel}>
+      {modelLabel && <Badge>{modelLabel}</Badge>}
+      {hasMessages && (
+        <ActionButton variant="ghost" onClick={onClear} title="대화 초기화">
+          <Icon name="refresh" size={13} /> 대화 초기화
+        </ActionButton>
+      )}
+    </PanelHeader>
   );
 }
 
