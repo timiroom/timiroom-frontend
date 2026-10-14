@@ -1460,7 +1460,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
           justifyContent: "space-between", background: C.surface,
         }}>
           <div className="features-panel-title" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <PanelTitle project={project} label="기능 명세서" />
+            <PanelTitle project={project} label="기능 명세서" docType={["FEATURE_SPEC", "FEATURE_LIST"]} />
             {total > 0 && (
               <span style={{
                 fontSize: 11, color: C.muted, padding: "2px 8px", borderRadius: 10,

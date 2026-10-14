@@ -1462,7 +1462,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* 헤더 */}
-        <PanelHeader project={project} label="ERD 명세서">
+        <PanelHeader project={project} label="ERD 명세서" docType="DB_SCHEMA">
           {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="DB" />}
           {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
           {warnings.length > 0 && <Badge tone="warning">경고 {warnings.length}</Badge>}

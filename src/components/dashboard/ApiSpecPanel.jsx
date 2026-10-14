@@ -1314,7 +1314,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
       {/* ── 왼쪽: 명세 뷰어 ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* 헤더 */}
-        <PanelHeader project={project} label="API 명세서">
+        <PanelHeader project={project} label="API 명세서" docType="API_SPEC">
           {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="API" />}
           {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
           {/* Mock 서버 URL — 프론트가 백엔드 구현 전에 호출할 수 있는 주소 */}

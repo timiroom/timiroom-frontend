@@ -864,7 +864,7 @@ ${content}</body></html>`;
             onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
           <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-            <PanelHeader project={project} label="PRD">
+            <PanelHeader project={project} label="PRD" docType="PRD">
               {hasDraft && <Badge tone="success"><Icon name="check" size={11} /> AI 초안</Badge>}
               <PdfBtn disabled={!hasDraft} />
             </PanelHeader>

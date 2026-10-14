@@ -512,6 +512,21 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // 문서를 저장하면 서버가 version을 올린다. 화면의 문서 내용은 그대로 두고
+  // 헤더의 버전 표시와 명세 기준 비교에 쓰는 artifactSources만 서버 값으로 맞춘다.
+  const refreshArtifactSources = useCallback(async (projectId) => {
+    try {
+      const artifacts = await fetchProjectArtifacts(projectId);
+      if (artifacts.length === 0) return;
+      const sources = enrichProjectWithArtifacts({}, artifacts).artifactSources;
+      const withSources = (p) => (p?.id === projectId ? { ...p, artifactSources: sources } : p);
+      setSelectedProject(withSources);
+      setProjects((prev) => prev.map(withSources));
+    } catch (error) {
+      console.error("문서 버전 확인 실패:", error);
+    }
+  }, []);
+
   const loadProjects = useCallback(async (teamId) => {
     if (teamId == null) {
       setProjects([]);
@@ -825,6 +840,7 @@ export default function DashboardPage() {
     ));
 
     if (JSON.stringify(before) === JSON.stringify(document)) return;
+    refreshArtifactSources(projectSnapshot.id);
 
     const requestId = documentSyncRequestRef.current + 1;
     documentSyncRequestRef.current = requestId;
@@ -886,6 +902,7 @@ export default function DashboardPage() {
 
         try {
           await updateArtifact(projectSnapshot.artifactIds[update.type], JSON.stringify(update.document));
+          refreshArtifactSources(projectSnapshot.id);
           setSelectedProject(current =>
             current?.id === projectSnapshot.id ? replaceProjectDocument(current, update.type, update.document) : current
           );

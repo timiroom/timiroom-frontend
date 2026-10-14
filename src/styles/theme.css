@@ -227,6 +227,7 @@
   font-size: 10px; font-weight: 900; color: var(--text-2);
 }
 .ui-panel-header__sep { font-size: 13px; font-weight: 400; color: var(--text-3); }
+.ui-panel-header__version { font-size: 12px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .ui-panel-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 .ui-confirm {
