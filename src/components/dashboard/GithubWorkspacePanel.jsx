@@ -200,7 +200,9 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 
-        <div style={{ marginBottom: 16 }}><StatGrid items={[{ label: "연결 레포", value: repos.length }, { label: "최근 커밋", value: recentCommitCount }, { label: "열린 Issue", value: openIssueCount }, { label: "열린 PR", value: pulls.length }]} /></div>
+        {repos.length > 0 && (
+          <div style={{ marginBottom: 16 }}><StatGrid items={[{ label: "연결 레포", value: repos.length }, { label: "최근 커밋", value: recentCommitCount }, { label: "열린 Issue", value: openIssueCount }, { label: "열린 PR", value: pulls.length }]} /></div>
+        )}
 
         {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
 

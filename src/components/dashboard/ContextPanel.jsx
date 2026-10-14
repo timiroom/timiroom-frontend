@@ -82,7 +82,6 @@ function ProjectsPanel({
   onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
-  onDeleteProject,
   workspaces,
   activeWorkspaceId,
   workspacesLoading,
@@ -164,7 +163,6 @@ function ProjectsPanel({
                   isSelected={isSelected}
                   isOpen={isOpen}
                   onClick={() => handleProjectClick(project)}
-                  onDelete={onDeleteProject ? (e) => { e.stopPropagation(); onDeleteProject(project); } : null}
                 />
 
                 {isOpen && (
@@ -197,9 +195,10 @@ function ProjectsPanel({
   );
 }
 
-function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) {
+/* 프로젝트 삭제는 사이드바에서 하지 않는다. 프로젝트 설정 > 삭제 탭 한 곳에서만 한다. */
+function ProjectRow({ project, status, isSelected, isOpen, onClick }) {
   return (
-    <div className={`ctx-row${isSelected ? " is-selected" : ""}${onDelete ? " has-delete" : ""}`}>
+    <div className={`ctx-row${isSelected ? " is-selected" : ""}`}>
       <button type="button" className="ctx-row__main" onClick={onClick} aria-expanded={isOpen}>
         <svg className={`ctx-row__chevron${isOpen ? " is-open" : ""}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
           <polyline points="9 18 15 12 9 6" />
@@ -211,13 +210,6 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
         </Badge>
       </button>
 
-      {/* 삭제 버튼 — 워크스페이스 OWNER에게만 onDelete가 내려온다.
-          서버도 ProjectService.delete에서 requireOwner로 막고 있어 여기는 노출 제어일 뿐이다. */}
-      {onDelete && (
-        <button type="button" className="ctx-row__delete" onClick={onDelete} title="프로젝트 삭제" aria-label={`${project.name} 삭제`}>
-          <Icon name="trash" size={13} />
-        </button>
-      )}
     </div>
   );
 }
@@ -247,7 +239,6 @@ export function ContextPanel({
   onOpenDocument,
   onCreateProject,
   onOpenWorkspaceComposer,
-  onDeleteProject,
   workspaces = [],
   activeWorkspaceId,
   workspacesLoading = false,
@@ -269,7 +260,6 @@ export function ContextPanel({
           onOpenDocument={onOpenDocument}
           onCreateProject={onCreateProject}
           onOpenWorkspaceComposer={onOpenWorkspaceComposer}
-          onDeleteProject={onDeleteProject}
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
           workspacesLoading={workspacesLoading}

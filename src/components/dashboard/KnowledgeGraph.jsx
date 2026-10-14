@@ -21,7 +21,7 @@
  *   4. 라벨은 원 밖  글자 길이가 원 크기를 끌고 다니지 않게 아래에 둔다.
  */
 
-import { ActionButton, Icon, PanelHeader, PanelToolbar } from "@/components/ui";
+import { ActionButton, EmptyState, Icon, PanelHeader, PanelToolbar } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { fetchProjectGraph, toCytoscapeElements } from "@/lib/graphApi";
@@ -352,10 +352,7 @@ export function KnowledgeGraph({ project }) {
           {error && <Overlay tone="error">{error}</Overlay>}
           {!loading && !error && graph && !graph.nodes?.length && (
             <Overlay>
-              아직 명세가 없습니다.<br />
-              <span style={{ fontSize: 12, color: C.muted }}>
-                파이프라인을 실행하면 기능·API·테이블의 관계가 여기에 그려집니다.
-              </span>
+              <EmptyState icon="graph" title="아직 그릴 관계가 없습니다" description="PRD·기능 명세·API·ERD 문서가 만들어지면 기능, API, 테이블 사이의 관계가 여기에 그려집니다." />
             </Overlay>
           )}
           {notice && (

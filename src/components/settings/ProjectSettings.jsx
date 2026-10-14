@@ -101,6 +101,7 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
   const [project,        setProject]        = useState(null);
   const [projectMembers, setProjectMembers] = useState([]);
   const [teamMembers,    setTeamMembers]    = useState([]);
+  const [workspaceRole,  setWorkspaceRole]  = useState(null);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
 
@@ -154,6 +155,7 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
 
       setProjectMembers(Array.isArray(members) ? members : []);
       setTeamMembers(workspace?.members ?? []);
+      setWorkspaceRole(workspace?.viewerRole ?? workspace?.team?.viewerRole ?? null);
       setLinkedRepos(repos);
     } catch {
       setError("데이터를 불러오지 못했습니다.");
@@ -176,6 +178,8 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
   const myMemberId = user?.id ? String(user.id) : null;
   const myProjectRole = projectMembers.find(m => String(m.memberId) === myMemberId)?.projectRole ?? null;
   const isPm = myProjectRole === "PM";
+  // 프로젝트 삭제는 서버(ProjectService.delete → requireOwner)가 워크스페이스 소유자에게만 허용한다.
+  const canDeleteProject = workspaceRole === "OWNER";
 
   /* ── 저장 ── */
   async function handleSave() {
@@ -500,8 +504,8 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
 
       {page === "delete" && (
         <SettingsSection tone="danger">
-          <SettingsRow label="프로젝트 삭제" description={`멤버, 요구사항, 생성된 문서가 모두 지워지며 되돌릴 수 없습니다.${isPm ? "" : " PM만 삭제할 수 있습니다."}`}>
-            {isPm && <ActionButton variant="danger" disabled={deleting} onClick={handleDelete}>{deleting ? "삭제 중…" : "프로젝트 삭제"}</ActionButton>}
+          <SettingsRow label="프로젝트 삭제" description={`멤버, 요구사항, 생성된 문서가 모두 지워지며 되돌릴 수 없습니다.${canDeleteProject ? "" : " 워크스페이스 소유자만 삭제할 수 있습니다."}`}>
+            {canDeleteProject && <ActionButton variant="danger" disabled={deleting} onClick={handleDelete}>{deleting ? "삭제 중…" : "프로젝트 삭제"}</ActionButton>}
           </SettingsRow>
         </SettingsSection>
       )}

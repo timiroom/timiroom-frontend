@@ -32,7 +32,6 @@ import { GithubWorkspacePanel } from "@/components/dashboard/GithubWorkspacePane
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import {
-  deleteProject,
   enrichProjectWithArtifacts,
   fetchProjectArtifacts,
   fetchProjectMembers,
@@ -737,24 +736,6 @@ export default function DashboardPage() {
     return null;
   }
 
-  /* 프로젝트 삭제는 워크스페이스 OWNER만 가능하다 (서버: ProjectService.delete → requireOwner).
-     설정 > 워크스페이스와 같은 기준으로 판정해 두 화면이 어긋나지 않게 한다. */
-  const viewerRole = workspaceDetail?.viewerRole ?? workspaceDetail?.team?.viewerRole ?? "";
-  const isWorkspaceOwner = viewerRole === "OWNER";
-
-  async function handleDeleteProject(project) {
-    if (!await confirmDialog(`"${project.name}" 프로젝트를 삭제할까요?`, { danger: true })) return;
-
-    try {
-      await deleteProject(project.id);
-      removeProjectFromScreen(project.id);
-      showToast("success", "프로젝트를 삭제했어요.");
-    } catch (error) {
-      console.error("프로젝트 삭제 실패:", error);
-      showToast("error", "프로젝트 삭제에 실패했습니다.");
-    }
-  }
-
   /** 삭제된 프로젝트를 목록과 탭에서 빼고, 보고 있던 프로젝트였다면 다음 프로젝트를 연다. */
   function removeProjectFromScreen(projectId) {
     const remainingProjects = projects.filter((current) => String(current.id) !== String(projectId));
@@ -1210,7 +1191,6 @@ export default function DashboardPage() {
             setComposerError("");
             setComposerOpen(true);
           }}
-          onDeleteProject={isWorkspaceOwner ? handleDeleteProject : undefined}
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
           workspacesLoading={isLoadingWorkspaces}

@@ -16,7 +16,7 @@ import {
   fetchRepositoryCommits,
 } from "@/lib/githubApi";
 import { createCommit, fetchCommits, fetchCommitsByProject } from "@/lib/commitApi";
-import { EmptyState, PanelHeader } from "@/components/ui";
+import { ActionButton, EmptyState, PanelHeader } from "@/components/ui";
 
 /* ── 색상 토큰 ── */
 const C = {
@@ -41,30 +41,24 @@ function CommitHistoryPanel({ selectedProject }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>
-        {[
-          { id: "project", label: "프로젝트 기록" },
-          { id: "github", label: "GitHub" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setSource(item.id)}
-            style={{
-              padding: "7px 8px",
-              borderRadius: 8,
-              border: `1px solid ${source === item.id ? C.activeBdr : C.inputBdr}`,
-              background: source === item.id ? C.accentDim : C.input,
-              color: source === item.id ? C.text : C.muted,
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}` }}>
+        <div className="gh-filter" role="tablist" aria-label="기록 종류">
+          {[
+            { id: "project", label: "프로젝트 기록" },
+            { id: "github", label: "GitHub 커밋" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={source === item.id}
+              className={`gh-filter__item${source === item.id ? " is-active" : ""}`}
+              onClick={() => setSource(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         {source === "project"
@@ -156,44 +150,15 @@ function ProjectCommitPanel({ selectedProject }) {
         ))}
       </div>
 
-      <div style={{ padding: "16px 16px 20px", borderTop: `1px solid ${C.border}`, background: "rgba(0,0,0,0.015)" }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 10, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-          새 커밋
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "14px 16px 16px", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>새 기록 남기기</div>
+        <input className="ui-input" value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="무엇을 바꿨나요? (예: 결제 API 응답 형식 정리)" maxLength={80} aria-label="기록 제목" />
+        <textarea className="ui-input" value={desc} onChange={(event) => setDesc(event.target.value)} placeholder="자세한 설명 (선택)" rows={3} aria-label="기록 설명" style={{ minHeight: 0 }} />
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <ActionButton variant="primary" onClick={handleCommit} disabled={!summary.trim() || submitting || !selectedProject}>
+            {committed ? "남겼습니다" : submitting ? "남기는 중…" : "기록 남기기"}
+          </ActionButton>
         </div>
-        <input
-          value={summary}
-          onChange={(event) => setSummary(event.target.value)}
-          placeholder="커밋 제목"
-          maxLength={80}
-          style={{ width: "100%", padding: "10px 12px", background: C.input, border: `1px solid ${C.inputBdr}`, borderRadius: 10, fontSize: 12, color: C.text, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "inherit" }}
-        />
-        <textarea
-          value={desc}
-          onChange={(event) => setDesc(event.target.value)}
-          placeholder="상세 설명 (선택)"
-          rows={3}
-          style={{ width: "100%", padding: "10px 12px", background: C.input, border: `1px solid ${C.inputBdr}`, borderRadius: 10, fontSize: 12, color: C.text, outline: "none", resize: "none", boxSizing: "border-box", marginBottom: 10, lineHeight: 1.7, fontFamily: "inherit" }}
-        />
-        {!selectedProject && <div style={{ fontSize: 11, color: C.sub, marginBottom: 6, textAlign: "center" }}>먼저 프로젝트를 선택해 주세요.</div>}
-        <button
-          type="button"
-          onClick={handleCommit}
-          disabled={!summary.trim() || submitting || !selectedProject}
-          style={{
-            width: "100%",
-            padding: "11px 0",
-            borderRadius: 10,
-            border: "none",
-            background: committed ? "var(--text-3)" : !summary.trim() || submitting || !selectedProject ? "color-mix(in srgb, var(--text-1) 35%, transparent)" : C.commit,
-            color: committed ? "#064e3b" : "var(--bg)",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: !summary.trim() || submitting || !selectedProject ? "not-allowed" : "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          {committed ? "커밋 완료" : submitting ? "커밋 중..." : "커밋 남기기"}
-        </button>
       </div>
     </div>
   );

@@ -85,7 +85,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         <p>기준 revision {draft.snapshot.revision} · {draft.snapshot.snapshotId}</p>
       </>}
       {proposal && <>
-        <p className="review-state">{proposal.status} · 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base.revision}</p>
+        <p className="review-state">{proposal.status} · 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base?.revision ?? "-"}</p>
         {proposal.stale && <p role="status" className="review-error">명세 기준이 변경되었습니다. 최신 명세를 확인하고 새 변경안을 요청해 주세요. 아래 검사는 이전 기준의 기록입니다.</p>}
         <p><a href={`/spec-changes?projectId=${project.id}`}>변경안·검사 기록에서 다시 찾기</a></p>
         <p className={proposal.artifactReviewPassed ? "review-pass" : "review-note"}>문서 교차검증: {proposal.artifactReviewPassed ? "PASS" : "통과 전"} · 코드의 PR 검증은 별도로 요청해야 합니다.</p>
