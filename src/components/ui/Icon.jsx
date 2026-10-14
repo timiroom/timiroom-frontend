@@ -30,6 +30,9 @@ const PATHS = {
   zap: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
   play: <path d="M6 4l13 8-13 8z" />,
   trash: <><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></>,
+  overview: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M8 13h8M8 16.5h5" /></>,
+  checklist: <><path d="M4 6.5l1.5 1.5L8 5.5M4 12.5l1.5 1.5L8 11.5M4 18.5l1.5 1.5L8 17.5" /><path d="M11.5 7H20M11.5 13H20M11.5 19H20" /></>,
+  flag: <><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></>,
   pencil: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></>,
 };
 

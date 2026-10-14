@@ -20,7 +20,7 @@ const C = {
 };
 
 const PRD_SECTIONS = [
-  { key: "overview",  label: "프로젝트 개요",   icon: "doc", fields: ["projectOverview","background"] },
+  { key: "overview",  label: "프로젝트 개요",   icon: "overview", fields: ["projectOverview","background"] },
   { key: "goals",     label: "목표 & KPI",      icon: "target", fields: ["goals","kpi"] },
   { key: "features",  label: "핵심 기능",        icon: "star",     fields: ["coreFeatures"] },
   { key: "personas",  label: "사용자 페르소나",  icon: "users", fields: ["userPersonas"] },
@@ -72,6 +72,27 @@ function sectionHasData(doc, key) {
   });
 }
 
+/** 문서 제목(h2)의 낱말로 섹션 아이콘을 고른다. 맞는 낱말이 없으면 문서 아이콘. */
+const SECTION_ICON_RULES = [
+  [/개요|소개|요약|overview/i, "overview"],
+  [/배경|문제|background/i, "flag"],
+  [/목표|목적|kpi|goal/i, "target"],
+  [/요구사항|요건|requirement/i, "checklist"],
+  [/스토리|페르소나|사용자|user/i, "users"],
+  [/기능|feature/i, "star"],
+  [/범위|mvp|scope/i, "box"],
+  [/기술|스택|아키텍처|tech/i, "wrench"],
+  [/일정|릴리즈|마일스톤|schedule/i, "calendar"],
+];
+function sectionIcon(label) {
+  return SECTION_ICON_RULES.find(([pattern]) => pattern.test(label || ""))?.[1] ?? "doc";
+}
+
+/** 섹션 아이콘. 색은 쓰지 않고 모양으로만 섹션을 구분한다. */
+function SectionIcon({ name, size }) {
+  return <Icon name={name} size={size} strokeWidth={1.8} style={{ flexShrink: 0, color: "var(--text-1)" }} />;
+}
+
 function parseSectionsFromHtml(html) {
   if (typeof document === "undefined" || !html) return [];
   const div = document.createElement("div");
@@ -82,13 +103,13 @@ function parseSectionsFromHtml(html) {
     const tag = node.tagName?.toUpperCase();
     if (tag === "H2") {
       if (current) sections.push(current);
-      current = { key: node.textContent, label: node.textContent, icon: "doc", html: node.outerHTML };
+      current = { key: node.textContent, label: node.textContent, icon: sectionIcon(node.textContent), html: node.outerHTML };
     } else if (tag === "H1" && !current) {
-      current = { key: "__overview__", label: "개요", icon: "doc", html: node.outerHTML };
+      current = { key: "__overview__", label: "개요", icon: "overview", html: node.outerHTML };
     } else if (current) {
       current.html += node.outerHTML || "";
     } else {
-      if (!current) current = { key: "__overview__", label: "개요", icon: "doc", html: "" };
+      if (!current) current = { key: "__overview__", label: "개요", icon: "overview", html: "" };
       current.html += node.outerHTML || node.textContent || "";
     }
   });
@@ -165,7 +186,7 @@ function SectionTitle({ icon, title }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-        <Icon name={icon} size={22} style={{ color:C.muted, flexShrink:0 }} />
+        <SectionIcon name={icon} size={22} />
         <h1 style={{ margin:0, fontSize:24, fontWeight:800, color:C.text }}>{title}</h1>
       </div>
       <div style={{ height:2, background:"rgba(0,0,0,0.06)", borderRadius:1 }} />
@@ -186,7 +207,7 @@ function EmptySectionState({ label }) {
 function OverviewView({ doc }) {
   return (
     <div>
-      <SectionTitle icon="doc" title={"프로젝트 개요"} />
+      <SectionTitle icon="overview" title={"프로젝트 개요"} />
       {doc.projectOverview ? (
         <div style={{ padding:"20px 24px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
           <h2 style={{ margin:"0 0 12px", fontSize:20, fontWeight:700, color:C.text, whiteSpace:"pre-wrap" }}>{doc.projectOverview}</h2>
@@ -470,7 +491,7 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
               onMouseEnter={e=>{ if(!isActive) e.currentTarget.style.background="rgba(0,0,0,0.04)"; }}
               onMouseLeave={e=>{ e.currentTarget.style.background=isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent"; }}
             >
-              <Icon name={sec.icon} size={13} style={{ flexShrink:0 }} />
+              <SectionIcon name={sec.icon} size={15} />
               <span style={{ fontSize:13, color:isActive?C.text:C.muted, fontWeight:isActive?600:400 }}>{sec.label}</span>
             </button>
           );
