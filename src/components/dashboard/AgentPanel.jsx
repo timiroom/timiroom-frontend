@@ -14,6 +14,7 @@
 import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
+import { Icon } from "@/components/ui";
 
 /* 모델은 EXAONE 하나로 고정 — API 키는 pipeline_py가 들고 있어
    사용자가 프로바이더나 키를 설정할 필요가 없다 */
@@ -42,14 +43,14 @@ const C = {
 
 const MAX_W = 680;
 
-/* ── 프리셋 제안 프롬프트 ── */
+/* ── 프리셋 제안 프롬프트 (icon은 ui/Icon 이름) ── */
 const SUGGESTIONS = [
-  { icon: "✏️", text: "PRD 초안을 작성해줘" },
-  { icon: "🔌", text: "API 엔드포인트 설계 검토해줘" },
-  { icon: "🗄️", text: "DB 스키마 개선점 알려줘" },
-  { icon: "🧪", text: "QA 테스트 케이스 만들어줘" },
-  { icon: "🕸", text: "정합성 이슈 분석해줘" },
-  { icon: "📐", text: "아키텍처 리뷰 해줘" },
+  { icon: "doc", text: "PRD 초안을 작성해줘" },
+  { icon: "code", text: "API 엔드포인트 설계 검토해줘" },
+  { icon: "database", text: "DB 스키마 개선점 알려줘" },
+  { icon: "checklist", text: "QA 테스트 케이스 만들어줘" },
+  { icon: "graph", text: "정합성 이슈 분석해줘" },
+  { icon: "box", text: "아키텍처 리뷰 해줘" },
 ];
 
 /* ── 시간 포맷 ── */
@@ -452,7 +453,7 @@ function EmptyState({ project, onSelectSuggestion }) {
       }}>A</div>
 
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: "0 0 8px", textAlign: "center" }}>
-        {project ? `${project.name}에 대해 물어보세요` : "안녕하세요 👋"}
+        {project ? `${project.name}에 대해 물어보세요` : "무엇을 도와드릴까요?"}
       </h2>
       <p style={{ fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 1.65, margin: "0 0 32px" }}>
         {project
@@ -500,7 +501,7 @@ function SuggestionChip({ icon, text, onClick }) {
         fontFamily: "inherit",
       }}
     >
-      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+      <Icon name={icon} size={15} strokeWidth={1.8} style={{ flexShrink: 0, color: "var(--text-3)" }} />
       <span style={{ lineHeight: 1.4 }}>{text}</span>
     </button>
   );

@@ -15,11 +15,11 @@ function workspaceName(workspace) {
 }
 
 /**
- * 워크스페이스 전환 드롭다운. Slack·Notion처럼 왼쪽 패널 맨 위에 두고,
+ * 워크스페이스 전환 드롭다운. 사이드바 맨 위와 설정 메뉴에 둔다.
  * 누르면 내가 속한 워크스페이스 목록과 설정·새로 만들기 메뉴가 열린다.
  * onCreate가 없으면 새로 만들기 항목을 숨긴다(설정 화면처럼 만들기 창이 없는 곳).
  */
-export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreate, settingsHref = "/settings/workspace", subtitle, loading = false }) {
+export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreate, settingsHref = "/settings/workspace/general", subtitle, loading = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const active = workspaces.find((workspace) => String(workspaceId(workspace)) === String(activeId)) ?? null;

@@ -321,7 +321,7 @@ function PersonasView({ doc }) {
         {personas.map((p,i) => (
           <div key={i} style={{ padding:"18px 20px", borderRadius:14, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 6px rgba(0,0,0,0.05)" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{"👤"}</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}><Icon name="users" size={18} strokeWidth={1.7} /></div>
               <div>
                 <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{p.name}</div>
                 <div style={{ fontSize:12, color:C.muted }}>{[p.age,p.job].filter(Boolean).join(" · ")}</div>

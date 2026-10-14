@@ -1,5 +1,6 @@
 "use client";
 
+import { RepoConnectEmpty } from "./RepoConnectEmpty";
 import { PanelTitle, StatGrid } from "@/components/ui";
 import { tint } from "@/lib/color";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -213,7 +214,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
         {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
 
         {error && <div style={{ marginBottom: 15, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
-        {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <div style={{ padding: 54, border: `1px dashed ${C.border}`, borderRadius: 15, textAlign: "center", color: C.muted, fontSize: 13 }}>프로젝트 설정에서 GitHub 레포를 먼저 연결해 주세요.</div> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}
+        {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <RepoConnectEmpty projectId={project?.id} message="레포를 연결하면 브랜치·이슈·PR 현황을 한 화면에서 볼 수 있습니다." /> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}
       </div>
       </section>
     </div>

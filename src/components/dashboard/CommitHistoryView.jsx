@@ -8,6 +8,7 @@
  *   GitHub        — 연결된 레포의 브랜치별 커밋
  */
 
+import { RepoConnectEmpty } from "./RepoConnectEmpty";
 import { tint } from "@/lib/color";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -345,7 +346,7 @@ function BranchHistoryPanel({ selectedProject }) {
         ) : !selectedProject ? (
           <EmptyHistoryState message="커밋을 보려면 프로젝트를 선택해 주세요." />
         ) : repos.length === 0 ? (
-          <EmptyHistoryState message="프로젝트 설정에서 GitHub 레포를 연결하면 브랜치 히스토리를 볼 수 있어요." />
+          <RepoConnectEmpty projectId={selectedProject?.id} message="레포를 연결하면 브랜치별 커밋 기록을 볼 수 있습니다." />
         ) : !branch ? (
           <EmptyHistoryState message="조회할 브랜치를 선택해 주세요." />
         ) : commits.length === 0 ? (

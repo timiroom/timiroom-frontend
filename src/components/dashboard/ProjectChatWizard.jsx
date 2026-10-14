@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/ui";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
@@ -16,15 +17,15 @@ import { createProject } from "@/lib/projectApi";
    — Collaborative 멀티 에이전트 모드 기준
 ════════════════════════════════════════════ */
 const PIPELINE_STEPS = [
-  { key: "PHASE1",  label: "RAG 준비",    icon: "📚", agents: null },
-  { key: "SEARCH",  label: "시장 조사",    icon: "🔍", agents: null },
-  { key: "PM",      label: "기능 분석",    icon: "📋", agents: null },
-  { key: "PRD",     label: "PRD 작성",    icon: "📝", agents: null },
-  { key: "FEATURE_SPEC", label: "기능명세", icon: "🧩", agents: null },
-  { key: "DBA_API", label: "DB · API 설계", icon: "🔌", agents: "DBA · API 병렬" },
-  { key: "QA",      label: "QA 검수",      icon: "🧪", agents: null },
-  { key: "PHASE3",  label: "최종 검증",    icon: "✅", agents: null },
-  { key: "PHASE4",  label: "결과 저장",    icon: "💾", agents: null },
+  { key: "PHASE1",  label: "RAG 준비",    icon: "database", agents: null },
+  { key: "SEARCH",  label: "시장 조사",    icon: "search", agents: null },
+  { key: "PM",      label: "기능 분석",    icon: "list", agents: null },
+  { key: "PRD",     label: "PRD 작성",    icon: "doc", agents: null },
+  { key: "FEATURE_SPEC", label: "기능명세", icon: "checklist", agents: null },
+  { key: "DBA_API", label: "DB · API 설계", icon: "server", agents: "DBA · API 병렬" },
+  { key: "QA",      label: "QA 검수",      icon: "check", agents: null },
+  { key: "PHASE3",  label: "최종 검증",    icon: "target", agents: null },
+  { key: "PHASE4",  label: "결과 저장",    icon: "save", agents: null },
 ];
 
 const SSE_TO_STEP = {
@@ -114,7 +115,7 @@ function FlowNode({ step, status }) {
             </svg>
           </div>
         )}
-        <span style={{ fontSize: 22, opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s", marginTop: isParallel ? 4 : 0 }}>{step.icon}</span>
+        <Icon name={step.icon} size={20} strokeWidth={1.7} style={{ flexShrink: 0, color: "var(--text-1)", opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s", marginTop: isParallel ? 4 : 0 }} />
         <span style={{ fontSize: 10, fontWeight: 700, textAlign: "center", lineHeight: 1.35, color: isDone ? "var(--text-2)" : isRunning ? "var(--text-1)" : "var(--text-3)", transition: "color 0.3s" }}>{step.label}</span>
         {step.agents && (
           <span style={{
@@ -294,7 +295,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                {phase === "done" ? "✅ 생성 완료! 잠시 후 이동합니다..." : phase === "error" ? "❌ 생성 실패" : "파이프라인 실행 중..."}
+                {phase === "done" ? "생성을 마쳤습니다. 잠시 후 이동합니다." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
                 <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{elapsedLabel}</span>
@@ -425,7 +426,7 @@ function FileChip({ file, preview, onRemove }) {
           style={{ borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
       ) : (
         <span style={{ fontSize: 14, flexShrink: 0 }}>
-          {ALLOWED_EXTENSIONS[file.type]?.icon ?? "📎"}
+          <Icon name="doc" size={14} />
         </span>
       )}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
@@ -760,7 +761,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
 
           {messages.length <= 1 && (
             <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>💡</div>
+              <Icon name="chat" size={30} strokeWidth={1.6} style={{ marginBottom: 12, color: "var(--text-2)" }} />
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-1)", marginBottom: 8 }}>
                 어떤 문제를 해결하고 싶으신가요?
               </div>

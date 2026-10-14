@@ -3,17 +3,16 @@
 /**
  * app/dashboard/page.jsx
  *
- * 4패널 레이아웃:
- *   [Unified ActivityBar 80px] | [ContextPanel 280px] | [MainContent flex-1]
+ * 레이아웃: [사이드바(ContextPanel) 320px] | [본문 flex-1]
  *
- * 워크스페이스 기준으로 프로젝트를 묶고, 좌측 단일 레일에서 전환/생성/초대를 처리한다.
+ * 워크스페이스 기준으로 프로젝트를 묶는다. 사이드바 맨 위에서 워크스페이스를 바꾸고,
+ * 맨 아래 계정 줄에서 프로필·설정·로그아웃과 알림을 연다.
  */
 
 import { confirmDialog, toast } from "@/lib/feedback";
 import { tint } from "@/lib/color";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActivityBar } from "@/components/dashboard/ActivityBar";
 import { ContextPanel } from "@/components/dashboard/ContextPanel";
 import { AgentPanel } from "@/components/dashboard/AgentPanel";
 import { ApiSpecPanel } from "@/components/dashboard/ApiSpecPanel";
@@ -23,6 +22,7 @@ import { ErdPanel } from "@/components/dashboard/ErdPanel";
 import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
+import { Icon } from "@/components/ui";
 import { CommitHistoryView } from "@/components/dashboard/CommitHistoryView";
 import { GithubIssuesPanel } from "@/components/dashboard/GithubIssuesPanel";
 import { GithubPullRequestsPanel } from "@/components/dashboard/GithubPullRequestsPanel";
@@ -244,9 +244,9 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
           alignItems: "center",
           justifyContent: "center",
           background: "color-mix(in srgb, var(--text-1) 8%, transparent)",
-          fontSize: 28,
+          color: "var(--text-1)",
         }}>
-          {hasWorkspace ? "📁" : "👥"}
+          <Icon name={hasWorkspace ? "box" : "users"} size={26} strokeWidth={1.6} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", letterSpacing: "-.03em" }}>
           {hasWorkspace
@@ -1132,7 +1132,6 @@ export default function DashboardPage() {
         background: "var(--surface)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
-        <ActivityBar />
         <ContextPanel
           projects={projects}
           selectedProject={selectedProject}
