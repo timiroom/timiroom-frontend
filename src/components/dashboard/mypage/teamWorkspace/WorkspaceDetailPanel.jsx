@@ -1,45 +1,19 @@
 "use client";
 
+import { ActionButton as UiButton } from "@/components/ui";
 import { useState } from "react";
 import { EmptyState, Spinner } from "./PanelPrimitives";
 import { MemberRow } from "./MemberRow";
 import { buildInviteLink, getTeamId } from "./helpers";
 
-function ActionButton({ children, onClick, disabled = false, danger = false, outlined = false }) {
-  const background = danger
-    ? disabled ? "rgba(239,68,68,0.5)" : "#ef4444"
-    : outlined ? "var(--surface)" : "var(--text-1)";
-  const color = danger ? "white" : outlined ? "var(--text-2)" : "var(--bg)";
-  const border = outlined ? "1px solid var(--border-2)" : "none";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: "9px 14px",
-        borderRadius: "var(--db-radius-sm)",
-        border,
-        background,
-        color,
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: disabled ? "progress" : "pointer",
-        fontFamily: "inherit",
-        opacity: disabled ? 0.75 : 1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </button>
-  );
+function ActionButton({ danger = false, outlined = false, ...props }) {
+  return <UiButton size="lg" variant={danger ? "danger" : outlined ? "secondary" : "primary"} {...props} />;
 }
 
 function sectionWrapperStyle(isHighlighted) {
   return {
     borderRadius: "var(--db-radius)",
-    boxShadow: isHighlighted ? "0 0 0 2px rgba(107,105,96,0.18), 0 16px 34px rgba(26,25,22,0.08)" : "none",
+    boxShadow: isHighlighted ? "0 0 0 2px color-mix(in srgb, var(--text-2) 18%, transparent), 0 16px 34px color-mix(in srgb, var(--text-1) 8%, transparent)" : "none",
     transition: "box-shadow 0.18s ease",
   };
 }
@@ -563,7 +537,7 @@ export function WorkspaceDetailPanel({
               fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 999,
-              background: isOwner ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+              background: isOwner ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "rgba(59,130,246,0.08)",
               color: isOwner ? "var(--text-1)" : "#2563EB",
             }}>
               {isOwner ? "소유자" : "멤버"}

@@ -5,7 +5,7 @@ import { getTeamId } from "./helpers";
 const ROLE_META = {
   OWNER: {
     label: "소유자",
-    background: "rgba(26,25,22,0.1)",
+    background: "color-mix(in srgb, var(--text-1) 10%, transparent)",
     color: "var(--text-1)",
   },
   MEMBER: {
@@ -90,7 +90,7 @@ export function TeamListCard({ team, active, selected, copiedTeamId, onCopy, onS
                 letterSpacing: ".08em",
                 padding: "4px 9px",
                 borderRadius: 999,
-                background: "rgba(26,25,22,0.08)",
+                background: "color-mix(in srgb, var(--text-1) 8%, transparent)",
                 color: "var(--text-1)",
               }}>
                 {inviteCode}
@@ -105,7 +105,7 @@ export function TeamListCard({ team, active, selected, copiedTeamId, onCopy, onS
             fontWeight: 700,
             padding: "3px 8px",
             borderRadius: 999,
-            background: "rgba(26,25,22,0.06)",
+            background: "color-mix(in srgb, var(--text-1) 6%, transparent)",
             color: "var(--text-2)",
           }}>
             워크스페이스

@@ -96,7 +96,7 @@ export function WorkspaceSnapshotCard({
           {chip(
             isOwner ? "소유자" : (workspaceSummary?.viewerRole === "GUEST" ? "게스트" : "멤버"),
             isOwner ? "var(--text-1)" : (workspaceSummary?.viewerRole === "GUEST" ? "#B45309" : "#2563EB"),
-            isOwner ? "rgba(26,25,22,0.1)" : (workspaceSummary?.viewerRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)"),
+            isOwner ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : (workspaceSummary?.viewerRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)"),
           )}
         </div>
         <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6 }}>

@@ -25,16 +25,16 @@ const C = {
   bg: "var(--bg)",
   topbar: "var(--surface)",
   border: "var(--border)",
-  text: "#1a1916",
+  text: "var(--text-1)",
   muted: "var(--text-3)",
   subtle: "var(--text-2)",
-  accent: "#6b6960",
+  accent: "var(--text-2)",
 };
 
 const STATUS_META = {
   active:    { label: "진행 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
   running:   { label: "생성 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
-  draft:     { label: "기획 중", color: "#a8a69f", bg: "rgba(168,166,159,0.12)" },
+  draft:     { label: "기획 중", color: "var(--text-3)", bg: "color-mix(in srgb, var(--text-3) 12%, transparent)" },
   completed: { label: "완료",    color: "#10B981", bg: "rgba(16,185,129,0.1)"  },
   paused:    { label: "정지",    color: "#f59e0b", bg: "rgba(245,158,11,0.1)"  },
   archived:  { label: "보관",    color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
@@ -91,7 +91,7 @@ function QuickJumpButton({ active, children, onClick }) {
       style={{
         padding: "8px 12px",
         borderRadius: 999,
-        border: `1px solid ${active ? "rgba(26,25,22,0.16)" : "rgba(0,0,0,0.08)"}`,
+        border: `1px solid ${active ? "color-mix(in srgb, var(--text-1) 16%, transparent)" : "rgba(0,0,0,0.08)"}`,
         background: active ? "transparent" : "var(--surface)",
         color: active ? "var(--text-1)" : "var(--text-2)",
         fontSize: 12,
@@ -650,7 +650,7 @@ export function WorkspaceManagementView({
             style={{
               marginBottom: 22,
               borderRadius: 18,
-              boxShadow: highlightedSection === "overview" ? "0 0 0 2px rgba(107,105,96,0.18), 0 20px 40px rgba(26,25,22,0.08)" : "none",
+              boxShadow: highlightedSection === "overview" ? "0 0 0 2px color-mix(in srgb, var(--text-2) 18%, transparent), 0 20px 40px color-mix(in srgb, var(--text-1) 8%, transparent)" : "none",
               transition: "box-shadow 0.18s ease",
             }}
           >
@@ -671,8 +671,8 @@ export function WorkspaceManagementView({
                 onMouseLeave={() => setIconHovered(false)}
                 style={{
                   width: 56, height: 56, borderRadius: 16,
-                  border: isOwner ? "1.5px dashed rgba(26,25,22,0.2)" : "1.5px solid rgba(26,25,22,0.1)",
-                  background: workspaceSummary?.iconUrl ? "none" : "rgba(26,25,22,0.04)",
+                  border: isOwner ? "1.5px dashed color-mix(in srgb, var(--text-1) 20%, transparent)" : "1.5px solid color-mix(in srgb, var(--text-1) 10%, transparent)",
+                  background: workspaceSummary?.iconUrl ? "none" : "color-mix(in srgb, var(--text-1) 4%, transparent)",
                   cursor: isOwner && !uploadingIcon ? "pointer" : "default",
                   position: "relative", overflow: "hidden", flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -733,7 +733,7 @@ export function WorkspaceManagementView({
                 fontWeight: 700,
                 padding: "3px 8px",
                 borderRadius: 999,
-                background: viewerRole === "OWNER" ? "rgba(26,25,22,0.1)" : viewerRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)",
+                background: viewerRole === "OWNER" ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : viewerRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)",
                 color: viewerRole === "OWNER" ? C.text : viewerRole === "GUEST" ? "#B45309" : "#2563EB",
               }}>
                 {viewerRole === "OWNER" ? "소유자" : viewerRole === "GUEST" ? "게스트" : "멤버"}
@@ -757,7 +757,7 @@ export function WorkspaceManagementView({
               borderRadius: 14,
               border: `1px solid ${C.border}`,
               background: "var(--surface)",
-              boxShadow: highlightedSection === "projects" ? "0 0 0 2px rgba(107,105,96,0.18)" : "none",
+              boxShadow: highlightedSection === "projects" ? "0 0 0 2px color-mix(in srgb, var(--text-2) 18%, transparent)" : "none",
               transition: "box-shadow 0.18s ease",
             }}
           >

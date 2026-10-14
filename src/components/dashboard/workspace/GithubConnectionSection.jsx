@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionButton as UiButton } from "@/components/ui";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import {
@@ -12,34 +13,13 @@ import { useToast } from "@/context/ToastContext";
 
 const C = {
   border: "var(--border)",
-  text: "#1a1916",
+  text: "var(--text-1)",
   muted: "var(--text-3)",
   subtle: "var(--text-2)",
 };
 
-function ActionButton({ children, onClick, disabled = false, outlined = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: "7px 12px",
-        borderRadius: 8,
-        border: outlined ? "1px solid var(--border-2)" : "none",
-        background: outlined ? "var(--surface)" : "var(--text-1)",
-        color: outlined ? "var(--text-2)" : "var(--bg)",
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: disabled ? "progress" : "pointer",
-        fontFamily: "inherit",
-        opacity: disabled ? 0.7 : 1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </button>
-  );
+function ActionButton({ danger = false, outlined = false, ...props }) {
+  return <UiButton size="lg" variant={danger ? "danger" : outlined ? "secondary" : "primary"} {...props} />;
 }
 
 function accountTypeLabel(accountType) {
@@ -182,7 +162,7 @@ export function GithubConnectionSection({
         borderRadius: 14,
         border: `1px solid ${C.border}`,
         background: "var(--surface)",
-        boxShadow: highlighted ? "0 0 0 2px rgba(107,105,96,0.18)" : "none",
+        boxShadow: highlighted ? "0 0 0 2px color-mix(in srgb, var(--text-2) 18%, transparent)" : "none",
         transition: "box-shadow 0.18s ease",
       }}
     >

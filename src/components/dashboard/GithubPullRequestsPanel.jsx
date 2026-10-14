@@ -1,5 +1,7 @@
 "use client";
 
+import { PanelTitle } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useCallback, useEffect, useState } from "react";
 import { checkPullRequestConsistency, fetchProjectPullRequests } from "@/lib/githubApi";
 
@@ -201,26 +203,7 @@ export function GithubPullRequestsPanel({ project, canManage }) {
         justifyContent: "space-between", background: "var(--surface)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {project && (
-            <>
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>
-                {(project.name || "P").charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-              <span style={{ fontSize: 13, color: C.muted }}>›</span>
-            </>
-          )}
-          <span style={{
-            fontSize: 13, fontWeight: 500, color: "#22d3ee",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.25)",
-          }}>PRs 전체</span>
+          <PanelTitle project={project} label="PRs 전체" />
         </div>
       </div>
 

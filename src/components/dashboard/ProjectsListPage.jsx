@@ -1,5 +1,6 @@
 "use client";
 
+import { tint } from "@/lib/color";
 import { useState } from "react";
 import { MOCK_PROJECTS, STATUS_META, MEMBER_COLORS } from "@/lib/projectData";
 
@@ -76,7 +77,7 @@ function ProjectCard({ project, onSelect }) {
         transition: "var(--db-transition-slow)",
         transform: hovered ? "translateY(-4px)" : "none",
         boxShadow: hovered
-          ? `0 16px 40px rgba(0,0,0,.4), 0 0 0 1px ${project.color}33`
+          ? `0 16px 40px rgba(0,0,0,.4), 0 0 0 1px ${tint(project.color, 20)}`
           : "0 2px 8px rgba(0,0,0,.2)",
         display: "flex", flexDirection: "column", gap: 16,
         position: "relative", overflow: "hidden",
@@ -85,7 +86,7 @@ function ProjectCard({ project, onSelect }) {
       {/* 상단 색 줄 */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: 3,
-        background: `linear-gradient(90deg, ${project.color}, ${project.color}88)`,
+        background: `linear-gradient(90deg, ${project.color}, ${tint(project.color, 53)})`,
         opacity: hovered ? 1 : 0.5,
         transition: "opacity .3s",
       }}/>
@@ -125,7 +126,7 @@ function ProjectCard({ project, onSelect }) {
         <div style={{ height: 4, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
           <div style={{
             height: "100%", width: `${project.progress}%`,
-            background: `linear-gradient(90deg, ${project.color}, ${project.color}99)`,
+            background: `linear-gradient(90deg, ${project.color}, ${tint(project.color, 60)})`,
             borderRadius: 100,
             boxShadow: `0 0 6px ${project.color}`,
             transition: "width .8s ease",
@@ -177,7 +178,7 @@ function NewProjectCard({ onClick }) {
         borderRadius: "var(--db-radius-lg)",
         padding: "22px 24px", cursor: "pointer",
         transition: "var(--db-transition)",
-        background: hovered ? "rgba(26,25,22,.06)" : "transparent",
+        background: hovered ? "color-mix(in srgb, var(--text-1) 6%, transparent)" : "transparent",
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         gap: 12, minHeight: 220,
@@ -185,7 +186,7 @@ function NewProjectCard({ onClick }) {
     >
       <div style={{
         width: 48, height: 48, borderRadius: 14,
-        background: hovered ? "rgba(26,25,22,.2)" : "var(--border)",
+        background: hovered ? "color-mix(in srgb, var(--text-1) 20%, transparent)" : "var(--border)",
         border: `1px solid ${hovered ? "var(--db-purple-400)" : "var(--border)"}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 22, transition: "var(--db-transition)",
@@ -283,13 +284,13 @@ export function ProjectsListPage({ onSelectProject, onCreateProject, projects = 
               display: "flex", alignItems: "center", gap: 5,
               padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600,
               border: `1px solid ${filter===f.id ? "var(--db-purple-400)" : "var(--border)"}`,
-              background: filter===f.id ? "rgba(26,25,22,.18)" : "var(--surface)",
+              background: filter===f.id ? "color-mix(in srgb, var(--text-1) 18%, transparent)" : "var(--surface)",
               color: filter===f.id ? "var(--db-purple-300)" : "var(--text-3)",
               cursor: "pointer", transition: "var(--db-transition)",
             }}>
               {f.label}
               <span style={{
-                background: filter===f.id ? "rgba(26,25,22,.3)" : "var(--border)",
+                background: filter===f.id ? "color-mix(in srgb, var(--text-1) 30%, transparent)" : "var(--border)",
                 borderRadius: 100, padding: "0 5px", fontSize: 10, fontWeight: 700,
                 color: filter===f.id ? "var(--db-purple-200)" : "var(--text-3)",
               }}>{f.count}</span>

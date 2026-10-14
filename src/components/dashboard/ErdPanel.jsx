@@ -1,5 +1,8 @@
 "use client";
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { ConsistencyBadge } from "./ConsistencyBadge";
@@ -7,14 +10,14 @@ import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
   bg:      "var(--surface)",
-  surface: "#f7f6f3",
+  surface: "var(--bg)",
   border:  "rgba(0,0,0,0.07)",
-  text:    "#1a1916",
+  text:    "var(--text-1)",
   muted:   "var(--text-3)",
   sub:     "var(--text-3)",
-  accent:  "#6b6960",
+  accent:  "var(--text-2)",
   card:    "#ffffff",
-  codeBg:  "#f0eeeb",
+  codeBg:  "var(--db-bg-elevated)",
 };
 
 const SQL_TYPES = [
@@ -238,7 +241,7 @@ function TypeBadge({ type }) {
     <span style={{
       fontSize: 10, fontWeight: 700, fontFamily: "monospace",
       padding: "2px 7px", borderRadius: 4,
-      background: `${color}18`, border: `1px solid ${color}35`, color,
+      background: `${tint(color, 9)}`, border: `1px solid ${tint(color, 21)}`, color,
       whiteSpace: "nowrap", letterSpacing: "0.02em",
     }}>
       {type || "—"}
@@ -277,7 +280,7 @@ function RoleIcon({ role }) {
       width: 16, height: 16, borderRadius: 3,
       background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)",
       fontSize: 9, marginRight: 5, flexShrink: 0,
-    }}>🔑</span>
+    }}><Icon name="key" size={10} /></span>
   );
   if (role === "fk") return (
     <span title="Foreign Key" style={{
@@ -285,7 +288,7 @@ function RoleIcon({ role }) {
       width: 16, height: 16, borderRadius: 3,
       background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)",
       fontSize: 9, marginRight: 5, flexShrink: 0,
-    }}>🔗</span>
+    }}><Icon name="link" size={10} /></span>
   );
   if (role === "uq") return (
     <span title="Unique" style={{
@@ -310,7 +313,7 @@ function ConstraintChip({ text }) {
   return (
     <span style={{
       fontSize: 10, padding: "1px 6px", borderRadius: 3,
-      background: `${color}12`, border: `1px solid ${color}28`, color,
+      background: `${tint(color, 7)}`, border: `1px solid ${tint(color, 16)}`, color,
       fontFamily: "monospace", whiteSpace: "nowrap",
     }}>
       {text}
@@ -390,7 +393,7 @@ function WarningBanner({ warnings }) {
           cursor: "pointer", textAlign: "left",
         }}
       >
-        <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+        <Icon name="warning" size={14} style={{ flexShrink: 0, color: "#b45309" }} />
         <span style={{ fontSize: 12, fontWeight: 700, color: "#d97706", flex: 1 }}>
           스키마 경고 {warnings.length}개 — 저장은 되지만 검토가 필요합니다
         </span>
@@ -406,7 +409,7 @@ function WarningBanner({ warnings }) {
             <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "5px 0",
               borderBottom: i < warnings.length - 1 ? "1px solid rgba(245,158,11,0.1)" : "none" }}>
               <span style={{ fontSize: 11, color: "#92400e", marginTop: 1, flexShrink: 0 }}>
-                {w.type === "no-pk" ? "🔑" : w.type === "broken-fk" ? "🔗" : "🔀"}
+                <Icon name={w.type === "no-pk" ? "key" : w.type === "broken-fk" ? "link" : "shuffle"} size={12} />
               </span>
               <span style={{ fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>{w.msg}</span>
             </div>
@@ -482,7 +485,7 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
           {from && to && (
             <div style={{
               padding: "12px 16px", borderRadius: 10, marginBottom: 24,
-              background: "rgba(107,105,96,0.08)", border: "1px solid rgba(107,105,96,0.15)",
+              background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 15%, transparent)",
               display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
             }}>
               <code style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", fontFamily: "monospace",
@@ -743,7 +746,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               {CHIPS.map(chip => (
                 <button key={chip} onClick={() => appendConstraint(chip)} style={{
                   fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                  background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.2)",
+                  background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
                   color: "#9ca3af", cursor: "pointer",
                 }}>{chip}</button>
               ))}
@@ -819,7 +822,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
   return (
     <div style={{
       borderRadius: 12,
-      border: `1px solid ${open ? "rgba(107,105,96,0.18)" : C.border}`,
+      border: `1px solid ${open ? "color-mix(in srgb, var(--text-2) 18%, transparent)" : C.border}`,
       background: C.card,
       marginBottom: 12,
       overflow: "hidden",
@@ -855,7 +858,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
               fontSize: 10, padding: "2px 7px", borderRadius: 4,
               background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)",
               color: "#d97706", fontWeight: 700,
-            }}>⚠️ {warnings.join(", ")}</span>
+            }}>{warnings.join(", ")}</span>
           )}
 
           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
@@ -893,36 +896,8 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
             borderBottom: open ? `1px solid ${C.border}` : "none",
             alignSelf: "stretch", alignItems: "center",
           }}>
-            <button
-              onClick={() => onEdit(table)}
-              title="편집"
-              style={{
-                padding: "5px 8px", borderRadius: 6,
-                background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)",
-                color: "#fbbf24", cursor: "pointer",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button
-              onClick={() => onDelete(table)}
-              title="삭제"
-              style={{
-                padding: "5px 8px", borderRadius: 6,
-                background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
-                color: "#f87171", cursor: "pointer",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
-            </button>
+            <ActionButton size="sm" iconOnly onClick={() => onEdit(table)} title="편집" aria-label="편집"><Icon name="pencil" size={12} /></ActionButton>
+            <ActionButton size="sm" iconOnly variant="danger" onClick={() => onDelete(table)} title="삭제" aria-label="삭제"><Icon name="trash" size={12} /></ActionButton>
           </div>
         )}
       </div>
@@ -1013,7 +988,7 @@ function cardColor(card = "") {
   if (card.includes("1:1"))              return { bg: "rgba(139,92,246,0.1)",  bd: "rgba(139,92,246,0.3)",  c: "#7c3aed" };
   if (card.includes("1:N") || card.includes("N:1")) return { bg: "rgba(59,130,246,0.1)",  bd: "rgba(59,130,246,0.3)",  c: "#2563eb" };
   if (card.includes("N:M") || card.includes("M:N")) return { bg: "rgba(236,72,153,0.1)",  bd: "rgba(236,72,153,0.3)",  c: "#db2777" };
-  return { bg: "rgba(107,105,96,0.08)", bd: "rgba(107,105,96,0.2)", c: "#6b6960" };
+  return { bg: "color-mix(in srgb, var(--text-2) 8%, transparent)", bd: "color-mix(in srgb, var(--text-2) 20%, transparent)", c: "var(--text-2)" };
 }
 
 function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete }) {
@@ -1039,7 +1014,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
         >
           <div style={{
             width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-            background: "rgba(107,105,96,0.08)", border: "1px solid rgba(107,105,96,0.18)",
+            background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 18%, transparent)",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
           }}>⟷</div>
           <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text }}>테이블 관계</span>
@@ -1061,15 +1036,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
           </svg>
         </button>
         {canEdit && !collapsed && (
-          <button
-            onClick={onAdd}
-            style={{
-              marginRight: 14, padding: "5px 12px", borderRadius: 6,
-              fontSize: 11, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap",
-              background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)",
-              color: "#60a5fa", cursor: "pointer",
-            }}
-          >+ 관계 추가</button>
+          <ActionButton size="sm" onClick={onAdd} style={{ marginRight: 14 }}><Icon name="plus" size={11} strokeWidth={2.5} /> 관계 추가</ActionButton>
         )}
       </div>
 
@@ -1154,12 +1121,12 @@ function SchemaSummary({ schema }) {
   const fkCount  = schema.tables.reduce((s, t) => s + (t.columns||[]).filter(c => colRole(c.constraints) === "fk").length, 0);
   const idxCount = schema.tables.reduce((s, t) => s + (t.indexes?.length ?? 0), 0);
   const stats = [
-    { label: "테이블", value: schema.tables.length, color: "#34d399" },
-    { label: "컬럼",   value: colCount,              color: "#60a5fa" },
-    { label: "PK",     value: pkCount,               color: "#f59e0b" },
-    { label: "FK",     value: fkCount,               color: "#818cf8" },
-    { label: "인덱스", value: idxCount,              color: "#fb923c" },
-    { label: "관계",   value: schema.relationships?.length ?? 0, color: "#ec4899" },
+    { label: "테이블", value: schema.tables.length, color: "var(--text-1)" },
+    { label: "컬럼",   value: colCount,              color: "var(--text-1)" },
+    { label: "PK",     value: pkCount,               color: "var(--text-1)" },
+    { label: "FK",     value: fkCount,               color: "var(--text-1)" },
+    { label: "인덱스", value: idxCount,              color: "var(--text-1)" },
+    { label: "관계",   value: schema.relationships?.length ?? 0, color: "var(--text-1)" },
   ];
   return (
     <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
@@ -1362,7 +1329,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
       ? `테이블 "${name}"을 삭제할까요?\n\n아래 관계도 함께 삭제됩니다:\n${affected.map(r => `• ${r}`).join("\n")}`
       : `테이블 "${name}"을 삭제할까요?`;
 
-    if (!window.confirm(msg)) return;
+    if (!await confirmDialog(msg, { danger: true })) return;
 
     const tables = currentSchema.tables.filter(t => t.name !== name);
     const relationships = (currentSchema.relationships || []).filter(rel => {
@@ -1374,7 +1341,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
     try {
       await persistSchema({ ...currentSchema, tables, relationships });
     } catch (e) {
-      alert("삭제 실패: " + e.message);
+      toast.error("삭제 실패: " + e.message);
     } finally {
       setOpSaving(false);
     }
@@ -1408,7 +1375,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
       onDocumentEditingChange?.("DB_SCHEMA", false);
       setEditingTable(null);
     } catch (e) {
-      alert("저장 실패: " + e.message);
+      toast.error("저장 실패: " + e.message);
     } finally {
       setOpSaving(false);
     }
@@ -1438,18 +1405,18 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
       await persistSchema({ ...currentSchema, relationships: rels });
       onDocumentEditingChange?.("DB_SCHEMA", false);
       setEditingRelationship(null);
-    } catch (e) { alert("저장 실패: " + e.message); }
+    } catch (e) { toast.error("저장 실패: " + e.message); }
     finally { setOpSaving(false); }
   }
 
   /* ── 관계 삭제 ── */
   async function handleDeleteRelationship(idx) {
-    if (!window.confirm("이 관계를 삭제할까요?")) return;
+    if (!await confirmDialog("이 관계를 삭제할까요?", { danger: true })) return;
     const currentSchema = schema ?? { tables: [], relationships: [] };
     const relationships = (currentSchema.relationships || []).filter((_, i) => i !== idx);
     setOpSaving(true);
     try { await persistSchema({ ...currentSchema, relationships }); }
-    catch (e) { alert("저장 실패: " + e.message); }
+    catch (e) { toast.error("저장 실패: " + e.message); }
     finally { setOpSaving(false); }
   }
 
@@ -1505,84 +1472,20 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* 헤더 */}
-        <div style={{
-          height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
-          background: C.surface,
-        }}>
-          {project && (
+        <PanelHeader project={project} label="ERD 명세서">
+          {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="DB" />}
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
+          {warnings.length > 0 && <Badge tone="warning">경고 {warnings.length}</Badge>}
+          {schema && (
             <>
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>{(project.name || "P").charAt(0).toUpperCase()}</div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{project.name}</span>
-              <span style={{ fontSize: 13, color: C.sub }}>›</span>
+              <ActionButton onClick={() => setShowSql(true)}><Icon name="code" size={12} /> SQL 보기</ActionButton>
+              <ActionButton onClick={() => setExpandAll(v => v === true ? false : true)}>{expandAll === false ? "전체 펼치기" : "전체 접기"}</ActionButton>
             </>
           )}
-          <span style={{
-            fontSize: 12, fontWeight: 600, color: "#34d399",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
-          }}>ERD 명세서</span>
-
-          <div style={{ flex: 1 }} />
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="DB" />}
-            {saved && (
-              <span style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 5,
-                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
-                color: "#34d399", fontWeight: 600,
-              }}>✓ 저장됨</span>
-            )}
-            {warnings.length > 0 && (
-              <span style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 5,
-                background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)",
-                color: "#d97706", fontWeight: 600,
-              }}>⚠️ {warnings.length}</span>
-            )}
-            {schema && (
-              <>
-                <button onClick={() => setShowSql(true)} style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 11px", borderRadius: 7, fontSize: 11, fontWeight: 600,
-                  background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.25)",
-                  color: "#34d399", cursor: "pointer",
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                  </svg>
-                  SQL 보기
-                </button>
-                <button onClick={() => setExpandAll(v => v === true ? false : true)} style={{
-                  padding: "5px 11px", borderRadius: 7, fontSize: 11, fontWeight: 600,
-                  background: "none", border: `1px solid ${C.border}`,
-                  color: C.accent, cursor: "pointer",
-                }}>{expandAll === false ? "전체 펼치기" : "전체 접기"}</button>
-              </>
-            )}
-            {canEdit && (
-              <button onClick={handleAddTable} style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.35)",
-                color: "#34d399", cursor: "pointer",
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                테이블 추가
-              </button>
-            )}
-          </div>
-        </div>
+          {canEdit && (
+            <ActionButton variant="primary" onClick={handleAddTable}><Icon name="plus" size={12} strokeWidth={2.5} /> 테이블 추가</ActionButton>
+          )}
+        </PanelHeader>
 
         {/* 검색 바 */}
         {schema && (
@@ -1670,9 +1573,9 @@ function EmptyState({ canEdit, onAdd }) {
         width: 56, height: 56, borderRadius: 16,
         background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)",
         display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-      }}>🗄️</div>
+      }}><Icon name="database" size={26} strokeWidth={1.6} /></div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1916", marginBottom: 6 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>
           DB 스키마가 없습니다
         </div>
         <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.6 }}>

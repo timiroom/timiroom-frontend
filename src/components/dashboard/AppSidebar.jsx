@@ -12,6 +12,7 @@
  *   [설정 + 유저 프로필]
  */
 
+import { tint } from "@/lib/color";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,13 +20,13 @@ import { useAuth } from "@/context/AuthContext";
 const C = {
   sidebar:   "var(--surface)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   hover:     "rgba(0,0,0,0.05)",
-  active:    "rgba(26,25,22,0.12)",
-  activeBdr: "rgba(26,25,22,0.22)",
-  accent:    "#6b6960",
-  accentDim: "rgba(26,25,22,0.18)",
+  active:    "color-mix(in srgb, var(--text-1) 12%, transparent)",
+  activeBdr: "color-mix(in srgb, var(--text-1) 22%, transparent)",
+  accent:    "var(--text-2)",
+  accentDim: "color-mix(in srgb, var(--text-1) 18%, transparent)",
 };
 
 /* ── 아이콘 SVG ── */
@@ -124,7 +125,7 @@ export function AppSidebar({ projects = [], selectedProject, onSelectProject, is
             <div style={{
               width: 26, height: 26, borderRadius: 7,
               background: "var(--text-1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "var(--bg)",
-              boxShadow: "0 2px 8px rgba(26,25,22,0.35)",
+              boxShadow: "0 2px 8px color-mix(in srgb, var(--text-1) 35%, transparent)",
               flexShrink: 0,
             }}>A</div>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>
@@ -250,8 +251,8 @@ function ProjectItem({ project, isSelected, collapsed, onClick }) {
       {/* 아바타 */}
       <div style={{
         width: 22, height: 22, borderRadius: 6,
-        background: `${color}22`,
-        border: `1px solid ${color}44`,
+        background: `${tint(color, 13)}`,
+        border: `1px solid ${tint(color, 27)}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 10, fontWeight: 900, color: color,
         flexShrink: 0,

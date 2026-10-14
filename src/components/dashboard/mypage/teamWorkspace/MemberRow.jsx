@@ -3,7 +3,7 @@
 import { formatJoinedAt } from "./helpers";
 
 function roleBadgeStyle(teamRole) {
-  if (teamRole === "OWNER") return { background: "rgba(26,25,22,0.1)", color: "var(--text-1)" };
+  if (teamRole === "OWNER") return { background: "color-mix(in srgb, var(--text-1) 10%, transparent)", color: "var(--text-1)" };
   if (teamRole === "GUEST") return { background: "rgba(245,158,11,0.1)", color: "#B45309" };
   return { background: "rgba(59,130,246,0.08)", color: "#2563EB" };
 }

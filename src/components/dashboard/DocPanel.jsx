@@ -13,20 +13,21 @@
  *   view      "features" | "erd" | "qa"
  */
 
+import { tint } from "@/lib/color";
 import { useState } from "react";
 import { AiChatDock } from "./AiChatDock";
 
 const C = {
   bg:        "var(--surface)",
-  surface:   "#f7f6f3",
+  surface:   "var(--bg)",
   editor:    "var(--surface)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   sub:       "var(--text-3)",
-  accent:    "#6b6960",
-  accentBg:  "rgba(107,105,96,0.1)",
-  accentBdr: "rgba(107,105,96,0.25)",
+  accent:    "var(--text-2)",
+  accentBg:  "color-mix(in srgb, var(--text-2) 10%, transparent)",
+  accentBdr: "color-mix(in srgb, var(--text-2) 25%, transparent)",
 };
 
 /* ── 뷰별 레이블 ── */
@@ -360,8 +361,8 @@ function inlineFormat(text) {
   return esc(text)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g,     "<em>$1</em>")
-    .replace(/`(.+?)`/g,       `<code style="background:rgba(107,105,96,0.15);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.9em;color:#a8a69f;">$1</code>`)
-    .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:#6b6960;">$1</a>`);
+    .replace(/`(.+?)`/g,       `<code style="background:color-mix(in srgb, var(--text-2) 15%, transparent);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.9em;color:var(--text-3);">$1</code>`)
+    .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:var(--text-2);">$1</a>`);
 }
 function renderMarkdown(raw) {
   const lines  = raw.split("\n");
@@ -381,7 +382,7 @@ function renderMarkdown(raw) {
 
     if (line.startsWith("```")) {
       if (!inCode) { closeList(); inCode = true; codeBuf = []; continue; }
-      out.push(`<pre style="background:#f7f6f3;padding:12px 16px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);overflow-x:auto;margin:12px 0;"><code style="font-family:monospace;font-size:13px;color:#a8a69f;">${esc(codeBuf.join("\n"))}</code></pre>`);
+      out.push(`<pre style="background:var(--bg);padding:12px 16px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);overflow-x:auto;margin:12px 0;"><code style="font-family:monospace;font-size:13px;color:var(--text-3);">${esc(codeBuf.join("\n"))}</code></pre>`);
       inCode = false; codeBuf = []; continue;
     }
     if (inCode) { codeBuf.push(line); continue; }
@@ -390,10 +391,10 @@ function renderMarkdown(raw) {
     if (line.trim() === "") { closeList(); out.push("<br/>"); continue; }
 
     if (line.startsWith("### ")) { closeList(); out.push(`<h3 style="font-size:16px;font-weight:600;color:#d4d4d4;margin:16px 0 6px;">${inlineFormat(line.slice(4))}</h3>`); continue; }
-    if (line.startsWith("## "))  { closeList(); out.push(`<h2 style="font-size:20px;font-weight:700;color:#1a1916;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.07);">${inlineFormat(line.slice(3))}</h2>`); continue; }
-    if (line.startsWith("# "))   { closeList(); out.push(`<h1 style="font-size:28px;font-weight:900;color:#1a1916;margin:0 0 12px;line-height:1.25;">${inlineFormat(line.slice(2))}</h1>`); continue; }
+    if (line.startsWith("## "))  { closeList(); out.push(`<h2 style="font-size:20px;font-weight:700;color:var(--text-1);margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.07);">${inlineFormat(line.slice(3))}</h2>`); continue; }
+    if (line.startsWith("# "))   { closeList(); out.push(`<h1 style="font-size:28px;font-weight:900;color:var(--text-1);margin:0 0 12px;line-height:1.25;">${inlineFormat(line.slice(2))}</h1>`); continue; }
 
-    if (line.startsWith("> ")) { closeList(); out.push(`<blockquote style="border-left:3px solid #6b6960;margin:8px 0;padding:8px 14px;background:rgba(107,105,96,0.07);border-radius:0 6px 6px 0;font-style:italic;color:#9ca3af;">${inlineFormat(line.slice(2))}</blockquote>`); continue; }
+    if (line.startsWith("> ")) { closeList(); out.push(`<blockquote style="border-left:3px solid var(--text-2);margin:8px 0;padding:8px 14px;background:color-mix(in srgb, var(--text-2) 7%, transparent);border-radius:0 6px 6px 0;font-style:italic;color:#9ca3af;">${inlineFormat(line.slice(2))}</blockquote>`); continue; }
 
     if (/^[-*] /.test(line)) {
       if (inOL) { out.push("</ol>"); inOL = false; }
@@ -581,10 +582,10 @@ export function DocPanel({ project, view }) {
             <>
               <div style={{
                 width: 20, height: 20, borderRadius: 5,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
+                background: `${tint(project.color || "var(--text-1)", 13)}`,
+                border: `1px solid ${tint(project.color || "var(--text-1)", 27)}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 9, fontWeight: 900, color: project.color || "#6b6960",
+                fontSize: 9, fontWeight: 900, color: project.color || "var(--text-2)",
               }}>
                 {(project.name || "P").charAt(0).toUpperCase()}
               </div>

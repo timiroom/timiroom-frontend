@@ -1,5 +1,7 @@
 "use client";
 
+import { PanelTitle } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useCallback, useEffect, useState } from "react";
 import {
   createProjectIssue,
@@ -85,26 +87,7 @@ export function GithubIssuesPanel({ project, canManage }) {
         justifyContent: "space-between", background: "var(--surface)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {project && (
-            <>
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>
-                {(project.name || "P").charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>{project.name}</span>
-              <span style={{ fontSize: 13, color: "var(--text-3)" }}>›</span>
-            </>
-          )}
-          <span style={{
-            fontSize: 13, fontWeight: 500, color: "#f472b6",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(244,114,182,0.1)", border: "1px solid rgba(244,114,182,0.25)",
-          }}>Issues 전체</span>
+          <PanelTitle project={project} label="Issues 전체" />
         </div>
         {canManage && <button type="button" onClick={() => setComposerOpen((open) => !open)} disabled={repos.length === 0} style={{ padding: "6px 12px", border: "none", borderRadius: 8, background: "var(--text-1)", color: "var(--bg)", fontSize: 12, fontWeight: 700, cursor: repos.length ? "pointer" : "not-allowed", fontFamily: "inherit" }}>{composerOpen ? "취소" : "이슈 만들기"}</button>}
       </div>

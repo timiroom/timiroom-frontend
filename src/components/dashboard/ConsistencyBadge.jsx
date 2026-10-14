@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui";
 import { useEffect, useState } from "react";
 import { fetchLatestConsistencySummary } from "@/lib/githubApi";
 
@@ -44,20 +45,10 @@ export function ConsistencyBadge({ projectId, areaKeyword }) {
   const title = `PR #${summary.pullNumber} (${summary.repoFullName}) 기준 최근 정합성 검사 · ${evaluator}`;
 
   return (
-    <a
-      href={summary.reviewUrl || undefined}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={title}
-      style={{
-        fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 5,
-        textDecoration: "none", cursor: summary.reviewUrl ? "pointer" : "default",
-        background: isWarning ? "rgba(245,158,11,0.1)" : isInconclusive ? "rgba(99,102,241,0.1)" : "rgba(52,211,153,0.1)",
-        border: `1px solid ${isWarning ? "rgba(245,158,11,0.25)" : isInconclusive ? "rgba(99,102,241,0.25)" : "rgba(52,211,153,0.25)"}`,
-        color: isWarning ? "#d97706" : isInconclusive ? "#6366f1" : "#34d399",
-      }}
-    >
-      {isWarning ? `⚠️ 정합성 경고 ${warningCount}` : isInconclusive ? "? 정합성 판정 보류" : "✓ 정합성 확인됨"}
+    <a href={summary.reviewUrl || undefined} target="_blank" rel="noopener noreferrer" title={title} style={{ textDecoration: "none", cursor: summary.reviewUrl ? "pointer" : "default" }}>
+      <Badge tone={isWarning ? "warning" : isInconclusive ? "info" : "success"}>
+        {isWarning ? `정합성 경고 ${warningCount}` : isInconclusive ? "정합성 판정 보류" : "정합성 확인됨"}
+      </Badge>
     </a>
   );
 }

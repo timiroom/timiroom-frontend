@@ -110,11 +110,11 @@ function ProjectSwitcher({ project, projects, collapsed, onBackToList }) {
               <div key={p.id} style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "8px 10px", cursor: isCurrent ? "default" : "pointer",
-                background: isCurrent ? "rgba(26,25,22,.1)" : "transparent",
+                background: isCurrent ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "transparent",
                 transition: "var(--db-transition)",
               }}
               onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--border)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isCurrent ? "rgba(26,25,22,.1)" : "transparent"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isCurrent ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "transparent"; }}
               onClick={() => setOpen(false)}
               >
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: m.color, flexShrink: 0 }}/>
@@ -188,7 +188,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, project, projects, onB
                 padding: collapsed ? "10px 0" : "10px 12px",
                 justifyContent: collapsed ? "center" : "flex-start",
                 borderRadius: "var(--db-radius-sm)", border: "none", cursor: "pointer", width: "100%",
-                background: isActive ? "rgba(26,25,22,.18)" : "transparent",
+                background: isActive ? "color-mix(in srgb, var(--text-1) 18%, transparent)" : "transparent",
                 color: isActive ? "var(--db-purple-300)" : "var(--text-2)",
                 fontWeight: isActive ? 700 : 500,
                 fontSize: 14, transition: "var(--db-transition)",
@@ -267,7 +267,7 @@ function Topbar({ view, project }) {
         {/* 정합성 스코어 칩 */}
         <div style={{
           display: "flex", alignItems: "center", gap: 5,
-          background: "rgba(26,25,22,.12)", border: "1px solid var(--db-border-mid)",
+          background: "color-mix(in srgb, var(--text-1) 12%, transparent)", border: "1px solid var(--db-border-mid)",
           borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 700,
           color: "var(--db-purple-300)",
         }}>

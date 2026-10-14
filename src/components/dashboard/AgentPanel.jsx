@@ -11,6 +11,7 @@
  *   [입력 영역: 라운드 컨테이너]
  */
 
+import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
 
@@ -23,18 +24,18 @@ const MODEL_LABEL = "EXAONE";
 ══════════════════════════════════════ */
 const C = {
   bg:         "var(--surface)",
-  topbar:     "#f7f6f3",
+  topbar:     "var(--bg)",
   border:     "rgba(0,0,0,0.07)",
-  text:       "#1a1916",
+  text:       "var(--text-1)",
   muted:      "var(--text-3)",
   subtle:     "var(--text-2)",
   userBg:     "var(--bg)",
   inputBg:    "var(--bg)",
   inputBdr:   "rgba(0,0,0,0.10)",
   hover:      "rgba(0,0,0,0.05)",
-  accent:     "#6b6960",
-  accentBg:   "rgba(26,25,22,0.14)",
-  accentBdr:  "rgba(26,25,22,0.28)",
+  accent:     "var(--text-2)",
+  accentBg:   "color-mix(in srgb, var(--text-1) 14%, transparent)",
+  accentBdr:  "color-mix(in srgb, var(--text-1) 28%, transparent)",
   sendBg:     "var(--text-1)",
   sendHover:  "var(--text-2)",
 };
@@ -126,7 +127,7 @@ function MessageBubble({ msg }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 13, fontWeight: 900, color: "var(--bg)",
         flexShrink: 0, marginTop: 2,
-        boxShadow: "0 2px 8px rgba(26,25,22,0.3)",
+        boxShadow: "0 2px 8px color-mix(in srgb, var(--text-1) 30%, transparent)",
       }}>A</div>
 
       {/* 텍스트 */}
@@ -356,10 +357,10 @@ function TopBar({ project, view, modelLabel, hasMessages, onClear }) {
           <>
             <div style={{
               width: 22, height: 22, borderRadius: 6,
-              background: `${project.color || "var(--text-1)"}22`,
-              border: `1px solid ${project.color || "var(--text-1)"}44`,
+              background: `${tint(project.color || "var(--text-1)", 13)}`,
+              border: `1px solid ${tint(project.color || "var(--text-1)", 27)}`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
+              fontSize: 10, fontWeight: 900, color: project.color || "var(--text-2)",
             }}>
               {(project.name || "P").charAt(0).toUpperCase()}
             </div>
@@ -372,8 +373,8 @@ function TopBar({ project, view, modelLabel, hasMessages, onClear }) {
                 <span style={{
                   fontSize: 13, fontWeight: 500, color: C.accent,
                   padding: "2px 8px", borderRadius: 6,
-                  background: "rgba(107,105,96,0.1)",
-                  border: "1px solid rgba(107,105,96,0.2)",
+                  background: "color-mix(in srgb, var(--text-2) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
                 }}>
                   {viewLabel}
                 </span>
@@ -446,7 +447,7 @@ function EmptyState({ project, onSelectSuggestion }) {
         background: "var(--text-1)",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 24, fontWeight: 900, color: "var(--bg)",
-        boxShadow: "0 8px 28px rgba(26,25,22,0.35)",
+        boxShadow: "0 8px 28px color-mix(in srgb, var(--text-1) 35%, transparent)",
         marginBottom: 20,
       }}>A</div>
 
@@ -517,7 +518,7 @@ function ChatInput({ input, setInput, isLoading, onSend, onKeyDown, onInput, tex
       <div style={{
         maxWidth: MAX_W, margin: "0 auto",
         background: C.inputBg,
-        border: `1px solid ${focused ? "rgba(26,25,22,0.35)" : C.inputBdr}`,
+        border: `1px solid ${focused ? "color-mix(in srgb, var(--text-1) 35%, transparent)" : C.inputBdr}`,
         borderRadius: 14,
         transition: "border-color 0.15s",
         overflow: "hidden",
@@ -578,7 +579,7 @@ function SendButton({ onClick, disabled }) {
         border: "none", cursor: disabled ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "background 0.12s",
-        boxShadow: disabled ? "none" : "0 2px 8px rgba(26,25,22,0.3)",
+        boxShadow: disabled ? "none" : "0 2px 8px color-mix(in srgb, var(--text-1) 30%, transparent)",
       }}
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={disabled ? C.muted : "#fff"} strokeWidth="2.2" strokeLinecap="round">

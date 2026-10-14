@@ -96,7 +96,7 @@ function SectionBox({ title, sRef, highlighted, children }) {
       ref={sRef}
       style={{
         marginBottom: 24, padding: "20px 24px", borderRadius: C.radius,
-        border: `1px solid ${highlighted ? "rgba(26,25,22,0.22)" : C.border}`,
+        border: `1px solid ${highlighted ? "color-mix(in srgb, var(--text-1) 22%, transparent)" : C.border}`,
         background: C.surface, transition: "border-color 0.4s",
         scrollMarginTop: 104,
       }}
@@ -121,7 +121,7 @@ function QuickJumpBtn({ active, onClick, children }) {
       onClick={onClick}
       style={{
         padding: "8px 12px", borderRadius: 999,
-        border: `1px solid ${active ? "rgba(26,25,22,0.16)" : "rgba(0,0,0,0.08)"}`,
+        border: `1px solid ${active ? "color-mix(in srgb, var(--text-1) 16%, transparent)" : "rgba(0,0,0,0.08)"}`,
         background: active ? "transparent" : C.surface,
         color: active ? C.text1 : C.text2,
         fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -559,7 +559,7 @@ export function ProjectManagementView({ projectId }) {
                 {myProjectRole && (
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                    background: isPm ? "rgba(26,25,22,0.08)" : C.border,
+                    background: isPm ? "color-mix(in srgb, var(--text-1) 8%, transparent)" : C.border,
                     color: isPm ? C.text1 : C.text2,
                   }}>
                     {roleLabel(myProjectRole)}
@@ -720,7 +720,7 @@ export function ProjectManagementView({ projectId }) {
                         ) : (
                           <span style={{
                             fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                            background: m.projectRole === "PM" ? "rgba(26,25,22,0.08)" : C.border,
+                            background: m.projectRole === "PM" ? "color-mix(in srgb, var(--text-1) 8%, transparent)" : C.border,
                             color: m.projectRole === "PM" ? C.text1 : C.text2,
                           }}>
                             {roleLabel(m.projectRole)}
@@ -829,7 +829,7 @@ export function ProjectManagementView({ projectId }) {
             </SectionBox>
 
             {repoConnectorOpen && (
-              <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(26,25,22,0.28)" }}>
+              <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "color-mix(in srgb, var(--text-1) 28%, transparent)" }}>
                 <div role="dialog" aria-modal="true" aria-label="GitHub 레포 연결" style={{ width: "min(520px, 100%)", maxHeight: "calc(100vh - 40px)", overflowY: "auto", padding: 24, borderRadius: 16, background: C.surface, border: `1px solid ${C.border2}`, boxShadow: "0 20px 56px rgba(0,0,0,0.2)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
                     <div>

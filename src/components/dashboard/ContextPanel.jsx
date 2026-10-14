@@ -12,6 +12,7 @@
  *   프로젝트 기록과 연결된 GitHub 레포의 브랜치·커밋 히스토리
  */
 
+import { tint } from "@/lib/color";
 import { useState, useEffect, useCallback } from "react";
 import {
   fetchProjectRepositories,
@@ -24,14 +25,14 @@ import { createCommit, fetchCommits, fetchCommitsByProject } from "@/lib/commitA
 const C = {
   panel:      "var(--surface)",
   border:     "rgba(0,0,0,0.07)",
-  text:       "#1a1916",
+  text:       "var(--text-1)",
   muted:      "#7a7a7a",
   sub:        "var(--text-3)",
   hover:      "rgba(0,0,0,0.04)",
-  active:     "rgba(26,25,22,0.12)",
-  activeBdr:  "rgba(26,25,22,0.25)",
-  accent:     "#6b6960",
-  accentDim:  "rgba(107,105,96,0.15)",
+  active:     "color-mix(in srgb, var(--text-1) 12%, transparent)",
+  activeBdr:  "color-mix(in srgb, var(--text-1) 25%, transparent)",
+  accent:     "var(--text-2)",
+  accentDim:  "color-mix(in srgb, var(--text-2) 15%, transparent)",
   input:      "var(--surface)",
   inputBdr:   "rgba(0,0,0,0.09)",
   commit:     "var(--text-1)",
@@ -50,9 +51,9 @@ function IconGear() {
 
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
-  active:    { label: "진행 중", color: "#a8a69f" },
+  active:    { label: "진행 중", color: "var(--text-3)" },
   draft:     { label: "기획 중", color: "#6b7280" },
-  completed: { label: "완료",   color: "#6b6960" },
+  completed: { label: "완료",   color: "var(--text-2)" },
   archived:  { label: "보관",   color: "#4b5563" },
   running:   { label: "생성 중", color: "#6b55dc" },
 };
@@ -155,7 +156,7 @@ function ProjectsPanel({
           padding: 16,
           borderRadius: 16,
           border: `1px solid ${C.inputBdr}`,
-          background: "linear-gradient(180deg, rgba(26,25,22,0.03) 0%, rgba(26,25,22,0.015) 100%)",
+          background: "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, color-mix(in srgb, var(--text-1) 1.5%, transparent) 100%)",
           marginBottom: 16,
         }}>
           <div style={{
@@ -233,7 +234,7 @@ function ProjectsPanel({
                   fontWeight: 700,
                   padding: "4px 9px",
                   borderRadius: 999,
-                  background: workspace.viewerRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                  background: workspace.viewerRole === "OWNER" ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "rgba(59,130,246,0.08)",
                   color: workspace.viewerRole === "OWNER" ? C.text : "#2563EB",
                 }}>
                   {workspace.viewerRole === "OWNER" ? "소유자" : "멤버"}
@@ -249,14 +250,6 @@ function ProjectsPanel({
                 lineHeight: 1.65,
               }}>
                 {workspace.description?.trim() || "워크스페이스 설명이 아직 없습니다."}
-              </div>
-              <div style={{
-                fontSize: 11,
-                color: C.muted,
-                marginTop: 10,
-                lineHeight: 1.6,
-              }}>
-                이름, 설명, 초대 코드, 권한 관리는 워크스페이스 관리 탭에서 바로 열 수 있어요.
               </div>
             </>
           ) : (
@@ -420,7 +413,7 @@ function WorkspacePanel({
             padding: 16,
             borderRadius: 16,
             border: `1px solid ${C.inputBdr}`,
-            background: "rgba(26,25,22,0.015)",
+            background: "color-mix(in srgb, var(--text-1) 1.5%, transparent)",
           }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 8 }}>
               아직 관리할 워크스페이스가 없습니다
@@ -453,7 +446,7 @@ function WorkspacePanel({
               padding: 16,
               borderRadius: 16,
               border: `1px solid ${C.inputBdr}`,
-              background: "linear-gradient(180deg, rgba(26,25,22,0.03) 0%, rgba(26,25,22,0.015) 100%)",
+              background: "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, color-mix(in srgb, var(--text-1) 1.5%, transparent) 100%)",
             }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -479,7 +472,7 @@ function WorkspacePanel({
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: 999,
-                  background: workspace.viewerRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                  background: workspace.viewerRole === "OWNER" ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "rgba(59,130,246,0.08)",
                   color: workspace.viewerRole === "OWNER" ? C.text : "#2563EB",
                   flexShrink: 0,
                 }}>
@@ -596,7 +589,7 @@ function WorkspacePanel({
                         fontWeight: 700,
                         padding: "3px 8px",
                         borderRadius: 999,
-                        background: member.teamRole === "OWNER" ? "rgba(26,25,22,0.1)" : "rgba(59,130,246,0.08)",
+                        background: member.teamRole === "OWNER" ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : "rgba(59,130,246,0.08)",
                         color: member.teamRole === "OWNER" ? C.text : "#2563EB",
                         whiteSpace: "nowrap",
                       }}>
@@ -670,7 +663,7 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
           <span style={{
             display: "flex", alignItems: "center", gap: 4,
             fontSize: 10, fontWeight: 700, color: status.color,
-            background: `${status.color}18`, padding: "4px 7px",
+            background: `${tint(status.color, 9)}`, padding: "4px 7px",
             borderRadius: 100, whiteSpace: "nowrap", flexShrink: 0,
           }}>
             {project.status === "running" && (
@@ -760,7 +753,7 @@ function DocItem({ doc, projectName, isActive, syncStatus, onClick }) {
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
       }}>
-        {projectName}_{doc.label}
+        {doc.label}
       </span>
       {syncStatus && (
         <span style={{
@@ -932,7 +925,7 @@ function ProjectCommitPanel({ selectedProject }) {
             padding: "11px 0",
             borderRadius: 10,
             border: "none",
-            background: committed ? "#a8a69f" : !summary.trim() || submitting || !selectedProject ? "rgba(26,25,22,0.35)" : C.commit,
+            background: committed ? "var(--text-3)" : !summary.trim() || submitting || !selectedProject ? "color-mix(in srgb, var(--text-1) 35%, transparent)" : C.commit,
             color: committed ? "#064e3b" : "var(--bg)",
             fontSize: 13,
             fontWeight: 700,
@@ -951,7 +944,7 @@ function ProjectCommitItem({ commit, isLatest }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.05)", background: "rgba(0,0,0,0.015)", marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid rgba(26,25,22,0.4)" : "none" }} />
+        <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid color-mix(in srgb, var(--text-1) 40%, transparent)" : "none" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.summary}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
@@ -1132,7 +1125,7 @@ function GithubCommitItem({ commit, isLatest }) {
 
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={{ display: "flex", gap: 8, padding: "12px", borderRadius: 14, border: "1px solid rgba(0,0,0,0.05)", background: hovered ? C.itemHover : "rgba(0,0,0,0.015)", marginBottom: 8, transition: "background 0.12s" }}>
-      <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid rgba(26,25,22,0.4)" : "none" }} />
+      <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid color-mix(in srgb, var(--text-1) 40%, transparent)" : "none" }} />
       {commit.htmlUrl ? <a href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 0, textDecoration: "none" }}>{content}</a> : <div style={{ flex: 1, minWidth: 0 }}>{content}</div>}
     </div>
   );

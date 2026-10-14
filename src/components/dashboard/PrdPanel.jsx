@@ -1,30 +1,32 @@
 "use client";
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
   bg:        "var(--surface)",
-  surface:   "#f7f6f3",
+  surface:   "var(--bg)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   sub:       "var(--text-3)",
-  accent:    "#6b6960",
-  accentBg:  "rgba(107,105,96,0.1)",
-  accentBdr: "rgba(107,105,96,0.25)",
+  accent:    "var(--text-2)",
+  accentBg:  "color-mix(in srgb, var(--text-2) 10%, transparent)",
+  accentBdr: "color-mix(in srgb, var(--text-2) 25%, transparent)",
   card:      "#ffffff",
 };
 
 const PRD_SECTIONS = [
-  { key: "overview",  label: "프로젝트 개요",   icon: "📋", fields: ["projectOverview","background"] },
-  { key: "goals",     label: "목표 & KPI",      icon: "🎯", fields: ["goals","kpi"] },
-  { key: "features",  label: "핵심 기능",        icon: "✨",     fields: ["coreFeatures"] },
-  { key: "personas",  label: "사용자 페르소나",  icon: "👥", fields: ["userPersonas"] },
-  { key: "mvp",       label: "MVP 범위",         icon: "📦", fields: ["mvpScope"] },
-  { key: "techstack", label: "기술 스택",        icon: "🛠️", fields: ["techStack"] },
-  { key: "schedule",  label: "릴리즈 일정",      icon: "📅", fields: ["releaseSchedule"] },
+  { key: "overview",  label: "프로젝트 개요",   icon: "doc", fields: ["projectOverview","background"] },
+  { key: "goals",     label: "목표 & KPI",      icon: "target", fields: ["goals","kpi"] },
+  { key: "features",  label: "핵심 기능",        icon: "star",     fields: ["coreFeatures"] },
+  { key: "personas",  label: "사용자 페르소나",  icon: "users", fields: ["userPersonas"] },
+  { key: "mvp",       label: "MVP 범위",         icon: "box", fields: ["mvpScope"] },
+  { key: "techstack", label: "기술 스택",        icon: "wrench", fields: ["techStack"] },
+  { key: "schedule",  label: "릴리즈 일정",      icon: "calendar", fields: ["releaseSchedule"] },
 ];
 
 const PRIORITY_COLOR = {
@@ -80,13 +82,13 @@ function parseSectionsFromHtml(html) {
     const tag = node.tagName?.toUpperCase();
     if (tag === "H2") {
       if (current) sections.push(current);
-      current = { key: node.textContent, label: node.textContent, icon: "📄", html: node.outerHTML };
+      current = { key: node.textContent, label: node.textContent, icon: "doc", html: node.outerHTML };
     } else if (tag === "H1" && !current) {
-      current = { key: "__overview__", label: "개요", icon: "📋", html: node.outerHTML };
+      current = { key: "__overview__", label: "개요", icon: "doc", html: node.outerHTML };
     } else if (current) {
       current.html += node.outerHTML || "";
     } else {
-      if (!current) current = { key: "__overview__", label: "개요", icon: "📋", html: "" };
+      if (!current) current = { key: "__overview__", label: "개요", icon: "doc", html: "" };
       current.html += node.outerHTML || node.textContent || "";
     }
   });
@@ -163,7 +165,7 @@ function SectionTitle({ icon, title }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-        <span style={{ fontSize:22 }}>{icon}</span>
+        <Icon name={icon} size={22} style={{ color:C.muted, flexShrink:0 }} />
         <h1 style={{ margin:0, fontSize:24, fontWeight:800, color:C.text }}>{title}</h1>
       </div>
       <div style={{ height:2, background:"rgba(0,0,0,0.06)", borderRadius:1 }} />
@@ -174,7 +176,7 @@ function SectionTitle({ icon, title }) {
 function EmptySectionState({ label }) {
   return (
     <div style={{ textAlign:"center", padding:"60px 0", color:C.muted }}>
-      <div style={{ fontSize:32, marginBottom:12 }}>{"📄"}</div>
+      <div style={{ marginBottom:12, color:C.muted }}><Icon name="doc" size={30} strokeWidth={1.6} /></div>
       <div style={{ fontSize:14, fontWeight:600 }}>{label} {"정보가 없습니다"}</div>
       <div style={{ fontSize:12, marginTop:4 }}>{"파이프라인을 실행하거나 편집 모드에서 추가하세요"}</div>
     </div>
@@ -184,7 +186,7 @@ function EmptySectionState({ label }) {
 function OverviewView({ doc }) {
   return (
     <div>
-      <SectionTitle icon={"📋"} title={"프로젝트 개요"} />
+      <SectionTitle icon="doc" title={"프로젝트 개요"} />
       {doc.projectOverview ? (
         <div style={{ padding:"20px 24px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
           <h2 style={{ margin:"0 0 12px", fontSize:20, fontWeight:700, color:C.text, whiteSpace:"pre-wrap" }}>{doc.projectOverview}</h2>
@@ -200,14 +202,14 @@ function GoalsView({ doc }) {
   const kpi = asList(doc.kpi);
   return (
     <div>
-      <SectionTitle icon={"🎯"} title={"목표 & KPI"} />
+      <SectionTitle icon="target" title={"목표 & KPI"} />
       {goals.length > 0 && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:10 }}>{"목표"}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {goals.map((g,i) => (
               <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"12px 16px", borderRadius:10, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.03)" }}>
-                <span style={{ fontSize:11, fontWeight:800, color:"#6b6960", background:"rgba(107,105,96,0.1)", border:"1px solid rgba(107,105,96,0.2)", padding:"2px 7px", borderRadius:5, flexShrink:0, marginTop:1 }}>{i+1}</span>
+                <span style={{ fontSize:11, fontWeight:800, color:"var(--text-2)", background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", padding:"2px 7px", borderRadius:5, flexShrink:0, marginTop:1 }}>{i+1}</span>
                 <span style={{ fontSize:14, color:C.text, lineHeight:1.7 }}><SourceText text={g} /></span>
               </div>
             ))}
@@ -253,11 +255,11 @@ function FeaturesView({ doc }) {
   ].filter(g=>g.items.length>0);
 
   if (!features.length) return (
-    <div><SectionTitle icon={"✨"} title={"핵심 기능"} /><EmptySectionState label={"핵심 기능"} /></div>
+    <div><SectionTitle icon="star" title={"핵심 기능"} /><EmptySectionState label={"핵심 기능"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"✨"} title={"핵심 기능"} />
+      <SectionTitle icon="star" title={"핵심 기능"} />
       {groups.map(group => {
         const pc = PRIORITY_COLOR[group.key] || { bg:"#f9fafb", border:"#e5e7eb", text:"#6b7280" };
         return (
@@ -289,16 +291,16 @@ function FeaturesView({ doc }) {
 function PersonasView({ doc }) {
   const personas = asList(doc.userPersonas);
   if (!personas.length) return (
-    <div><SectionTitle icon={"👥"} title={"사용자 페르소나"} /><EmptySectionState label={"사용자 페르소나"} /></div>
+    <div><SectionTitle icon="users" title={"사용자 페르소나"} /><EmptySectionState label={"사용자 페르소나"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"👥"} title={"사용자 페르소나"} />
+      <SectionTitle icon="users" title={"사용자 페르소나"} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
         {personas.map((p,i) => (
           <div key={i} style={{ padding:"18px 20px", borderRadius:14, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 6px rgba(0,0,0,0.05)" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"rgba(107,105,96,0.1)", border:"1px solid rgba(107,105,96,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{"👤"}</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{"👤"}</div>
               <div>
                 <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{p.name}</div>
                 <div style={{ fontSize:12, color:C.muted }}>{[p.age,p.job].filter(Boolean).join(" · ")}</div>
@@ -326,17 +328,17 @@ function PersonasView({ doc }) {
 function MvpView({ doc }) {
   const mvp = doc.mvpScope;
   if (!mvp) return (
-    <div><SectionTitle icon={"📦"} title={"MVP 범위"} /><EmptySectionState label={"MVP 범위"} /></div>
+    <div><SectionTitle icon="box" title={"MVP 범위"} /><EmptySectionState label={"MVP 범위"} /></div>
   );
   const included = asList(mvp.included);
   const excluded = asList(mvp.excluded);
   return (
     <div>
-      <SectionTitle icon={"📦"} title={"MVP 범위"} />
+      <SectionTitle icon="box" title={"MVP 범위"} />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
         {included.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#f0fdf4", border:"1px solid #bbf7d0" }}>
-            <div style={{ fontSize:12, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"✅ 포함"}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"포함"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
               {included.map((item,i)=><li key={i} style={{ fontSize:13, color:"#166534", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
@@ -344,7 +346,7 @@ function MvpView({ doc }) {
         )}
         {excluded.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#fef2f2", border:"1px solid #fecaca" }}>
-            <div style={{ fontSize:12, fontWeight:700, color:"#dc2626", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"❌ 제외"}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#dc2626", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"제외"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
               {excluded.map((item,i)=><li key={i} style={{ fontSize:13, color:"#991b1b", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
@@ -366,11 +368,11 @@ const TECH_COLOR = { frontend:"#3b82f6",backend:"#10b981",database:"#f59e0b",inf
 function TechStackView({ doc }) {
   const stack = doc.techStack;
   if (!stack||typeof stack!=="object"||!Object.keys(stack).length) return (
-    <div><SectionTitle icon={"🛠️"} title={"기술 스택"} /><EmptySectionState label={"기술 스택"} /></div>
+    <div><SectionTitle icon="wrench" title={"기술 스택"} /><EmptySectionState label={"기술 스택"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"🛠️"} title={"기술 스택"} />
+      <SectionTitle icon="wrench" title={"기술 스택"} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
         {Object.entries(stack).map(([key,value]) => {
           const ck = Object.keys(TECH_COLOR).find(k=>key.toLowerCase().includes(k));
@@ -390,16 +392,16 @@ function TechStackView({ doc }) {
 function ScheduleView({ doc }) {
   const schedule = asList(doc.releaseSchedule);
   if (!schedule?.length) return (
-    <div><SectionTitle icon={"📅"} title={"릴리즈 일정"} /><EmptySectionState label={"릴리즈 일정"} /></div>
+    <div><SectionTitle icon="calendar" title={"릴리즈 일정"} /><EmptySectionState label={"릴리즈 일정"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"📅"} title={"릴리즈 일정"} />
+      <SectionTitle icon="calendar" title={"릴리즈 일정"} />
       <div style={{ position:"relative", paddingLeft:28 }}>
         <div style={{ position:"absolute", left:8, top:8, bottom:8, width:2, background:"rgba(0,0,0,0.08)", borderRadius:1 }} />
         {schedule.map((r,i) => (
           <div key={i} style={{ position:"relative", marginBottom:20 }}>
-            <div style={{ position:"absolute", left:-24, top:14, width:10, height:10, borderRadius:"50%", background:"#6b6960", border:"2px solid white", boxShadow:"0 0 0 2px rgba(107,105,96,0.3)" }} />
+            <div style={{ position:"absolute", left:-24, top:14, width:10, height:10, borderRadius:"50%", background:"var(--text-2)", border:"2px solid white", boxShadow:"0 0 0 2px color-mix(in srgb, var(--text-2) 30%, transparent)" }} />
             <div style={{ padding:"14px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
                 <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{r.milestone}</span>
@@ -464,11 +466,11 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
             <button
               key={sec.key}
               onClick={()=>onSelect(sec.key)}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:7, marginBottom:1, background:isActive?"rgba(107,105,96,0.12)":"transparent", border:"none", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:7, marginBottom:1, background:isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent", border:"none", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
               onMouseEnter={e=>{ if(!isActive) e.currentTarget.style.background="rgba(0,0,0,0.04)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background=isActive?"rgba(107,105,96,0.12)":"transparent"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background=isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent"; }}
             >
-              <span style={{ fontSize:13, flexShrink:0 }}>{sec.icon}</span>
+              <Icon name={sec.icon} size={13} style={{ flexShrink:0 }} />
               <span style={{ fontSize:13, color:isActive?C.text:C.muted, fontWeight:isActive?600:400 }}>{sec.label}</span>
             </button>
           );
@@ -503,7 +505,7 @@ const BLOCK_OPTS = [
 ];
 const FONT_SIZES = [12,13,14,15,16,18,20,24,28,32];
 const TEXT_COLORS = [
-  { label: "기본", value: "#1a1916" }, { label: "회색", value: "#9ca3af" },
+  { label: "기본", value: "var(--text-1)" }, { label: "회색", value: "#9ca3af" },
   { label: "빨강", value: "#ef4444" }, { label: "주황", value: "#f97316" },
   { label: "노랑", value: "#ca8a04" }, { label: "초록", value: "#16a34a" },
   { label: "파랑", value: "#2563eb" }, { label: "보라", value: "#7c3aed" },
@@ -520,7 +522,7 @@ const HL_COLORS = [
 function NotionEditor({ editorRef, onTextChange }) {
   const [blockType, setBlockType] = useState("p");
   const [fontSize,  setFontSize]  = useState(14);
-  const [textColor, setTextColor] = useState("#1a1916");
+  const [textColor, setTextColor] = useState("var(--text-1)");
   const [hlColor,   setHlColor]   = useState("transparent");
   const [isBold,    setIsBold]    = useState(false);
   const [isItalic,  setIsItalic]  = useState(false);
@@ -572,13 +574,13 @@ function NotionEditor({ editorRef, onTextChange }) {
   const Btn = ({ label, active, onClick, title, xs }) => (
     <button onMouseDown={e => { e.preventDefault(); onClick(); }} title={title} style={{
       minWidth: 28, height: 26, borderRadius: 5, border: "none", cursor: "pointer",
-      background: active ? "rgba(107,105,96,0.15)" : "none",
+      background: active ? "color-mix(in srgb, var(--text-2) 15%, transparent)" : "none",
       color: active ? C.text : C.muted, fontSize: 12, fontWeight: 600,
       padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center",
       transition: "all 0.1s", ...xs,
     }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(0,0,0,0.06)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? "rgba(107,105,96,0.15)" : "none"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? "color-mix(in srgb, var(--text-2) 15%, transparent)" : "none"; }}
     >{label}</button>
   );
   const Sep = () => <div style={{ width: 1, height: 18, background: C.border, margin: "0 3px", flexShrink: 0 }} />;
@@ -586,8 +588,8 @@ function NotionEditor({ editorRef, onTextChange }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* 툴바 */}
-      <div style={{ height: 42, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 14px", gap: 2, borderBottom: `1px solid ${C.border}`, background: "#f7f6f3", overflowX: "auto" }}>
-        <select value={blockType} onChange={e => setBlock(e.target.value)} style={{ height: 26, padding: "0 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "#f7f6f3", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer", outline: "none", marginRight: 2 }}>
+      <div style={{ height: 42, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 14px", gap: 2, borderBottom: `1px solid ${C.border}`, background: "var(--bg)", overflowX: "auto" }}>
+        <select value={blockType} onChange={e => setBlock(e.target.value)} style={{ height: 26, padding: "0 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--bg)", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer", outline: "none", marginRight: 2 }}>
           {BLOCK_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <Sep />
@@ -596,7 +598,7 @@ function NotionEditor({ editorRef, onTextChange }) {
         <Btn label="U" active={false}    onClick={() => exec("underline")}     title="밑줄 (Ctrl+U)"   xs={{ textDecoration: "underline" }} />
         <Btn label="S" active={false}    onClick={() => exec("strikeThrough")} title="취소선"           xs={{ textDecoration: "line-through" }} />
         <Sep />
-        <select value={fontSize} onChange={e => applyFontSize(Number(e.target.value))} style={{ height: 26, padding: "0 4px", borderRadius: 6, border: `1px solid ${C.border}`, background: "#f7f6f3", fontSize: 11, color: C.text, cursor: "pointer", outline: "none" }}>
+        <select value={fontSize} onChange={e => applyFontSize(Number(e.target.value))} style={{ height: 26, padding: "0 4px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--bg)", fontSize: 11, color: C.text, cursor: "pointer", outline: "none" }}>
           {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
         </select>
         <Sep />
@@ -613,7 +615,7 @@ function NotionEditor({ editorRef, onTextChange }) {
               <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
                 {TEXT_COLORS.map(col => (
                   <button key={col.value} onMouseDown={e => { e.preventDefault(); applyTextColor(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value, border: textColor === col.value ? "2px solid #6b6960" : "1px solid rgba(0,0,0,0.1)", color: ["#1a1916","#7c3aed","#2563eb","#db2777"].includes(col.value) ? "white" : "#1a1916", fontSize: 9, fontWeight: 700 }}>
+                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value, border: textColor === col.value ? "2px solid var(--text-2)" : "1px solid rgba(0,0,0,0.1)", color: ["var(--text-1)","#7c3aed","#2563eb","#db2777"].includes(col.value) ? "white" : "var(--text-1)", fontSize: 9, fontWeight: 700 }}>
                     {col.label}
                   </button>
                 ))}
@@ -634,7 +636,7 @@ function NotionEditor({ editorRef, onTextChange }) {
               <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
                 {HL_COLORS.map(col => (
                   <button key={col.value} onMouseDown={e => { e.preventDefault(); applyHL(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value === "transparent" ? "repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 2px,white 2px,white 8px)" : col.value, border: hlColor === col.value ? "2px solid #6b6960" : "1px solid rgba(0,0,0,0.1)", color: "#1a1916", fontSize: 9, fontWeight: 700 }}>
+                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value === "transparent" ? "repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 2px,white 2px,white 8px)" : col.value, border: hlColor === col.value ? "2px solid var(--text-2)" : "1px solid rgba(0,0,0,0.1)", color: "var(--text-1)", fontSize: 9, fontWeight: 700 }}>
                     {col.label}
                   </button>
                 ))}
@@ -649,7 +651,7 @@ function NotionEditor({ editorRef, onTextChange }) {
         <Btn label="→" active={false} onClick={() => exec("indent")}  title="들여쓰기" />
         <Btn label="←" active={false} onClick={() => exec("outdent")} title="내어쓰기" />
         <Sep />
-        <Btn label="🔗" active={false} onClick={() => { const url = prompt("링크 URL:"); if (url) exec("createLink", url); }} title="링크 삽입" />
+        <Btn label={<Icon name="link" size={13} />} active={false} onClick={() => { const url = prompt("링크 URL:"); if (url) exec("createLink", url); }} title="링크 삽입" />
         <Btn label="⎯"  active={false} onClick={() => exec("insertHorizontalRule")} title="구분선" />
       </div>
 
@@ -667,17 +669,17 @@ function NotionEditor({ editorRef, onTextChange }) {
 
       <style>{`
         .prd-notion-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--text-3); pointer-events: none; display: block; }
-        .prd-notion-editor h1 { font-size: 28px; font-weight: 900; color: #1a1916; margin: 0 0 16px; line-height: 1.25; }
-        .prd-notion-editor h2 { font-size: 20px; font-weight: 700; color: #1a1916; margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.08); }
-        .prd-notion-editor h3 { font-size: 16px; font-weight: 600; color: #1a1916; margin: 22px 0 6px; }
+        .prd-notion-editor h1 { font-size: 28px; font-weight: 900; color: var(--text-1); margin: 0 0 16px; line-height: 1.25; }
+        .prd-notion-editor h2 { font-size: 20px; font-weight: 700; color: var(--text-1); margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+        .prd-notion-editor h3 { font-size: 16px; font-weight: 600; color: var(--text-1); margin: 22px 0 6px; }
         .prd-notion-editor p  { margin: 5px 0; }
         .prd-notion-editor ul { padding-left: 24px; margin: 6px 0; }
         .prd-notion-editor ol { padding-left: 26px; margin: 6px 0; }
         .prd-notion-editor li { margin: 4px 0; line-height: 1.7; }
-        .prd-notion-editor blockquote { border-left: 3px solid #6b6960; margin: 12px 0; padding: 10px 18px; background: rgba(107,105,96,0.07); border-radius: 0 8px 8px 0; color: #6b6960; font-style: italic; }
-        .prd-notion-editor pre { background: #f0eeeb; padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); overflow-x: auto; margin: 12px 0; font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 13px; color: #6b6960; white-space: pre; }
-        .prd-notion-editor code { background: rgba(107,105,96,0.12); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.88em; color: #6b6960; }
-        .prd-notion-editor a { color: #6b6960; text-decoration: underline; }
+        .prd-notion-editor blockquote { border-left: 3px solid var(--text-2); margin: 12px 0; padding: 10px 18px; background: color-mix(in srgb, var(--text-2) 7%, transparent); border-radius: 0 8px 8px 0; color: var(--text-2); font-style: italic; }
+        .prd-notion-editor pre { background: var(--db-bg-elevated); padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); overflow-x: auto; margin: 12px 0; font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 13px; color: var(--text-2); white-space: pre; }
+        .prd-notion-editor code { background: color-mix(in srgb, var(--text-2) 12%, transparent); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.88em; color: var(--text-2); }
+        .prd-notion-editor a { color: var(--text-2); text-decoration: underline; }
         .prd-notion-editor hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 20px 0; }
         .prd-notion-editor:focus { outline: none; }
       `}</style>
@@ -707,7 +709,7 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
 
   const availableSections = useMemo(() => {
     if (!doc) return [];
-    if (isHtmlDoc) return htmlSections.length>0 ? htmlSections : [{ key:"__all__", label:"전체", icon:"📄" }];
+    if (isHtmlDoc) return htmlSections.length>0 ? htmlSections : [{ key:"__all__", label:"전체", icon:"doc" }];
     return PRD_SECTIONS.filter(s=>sectionHasData(doc, s.key));
   }, [doc, isHtmlDoc, htmlSections]);
 
@@ -751,7 +753,7 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
       onDocumentChange?.(nextDoc);
       onDocumentSaved?.({ sourceType: "PRD", document: nextDoc });
       setSaved(true); setTimeout(()=>setSaved(false), 3000);
-    } catch(e) { alert("저장 실패: "+e.message); }
+    } catch(e) { toast.error("저장 실패: "+e.message); }
     finally { setSaving(false); }
   }
 
@@ -804,14 +806,14 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     const now = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
     const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${projectName} — PRD</title>
 <style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
-@page{margin:20mm 25mm;size:A4}body{font-family:'Noto Sans KR',sans-serif;color:#1a1916;line-height:1.75;font-size:14px}
-.doc-header{border-bottom:2px solid #1a1916;padding-bottom:14px;margin-bottom:36px}
-.doc-header .title{font-size:11px;font-weight:700;color:#6b6960;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+@page{margin:20mm 25mm;size:A4}body{font-family:'Noto Sans KR',sans-serif;color:var(--text-1);line-height:1.75;font-size:14px}
+.doc-header{border-bottom:2px solid var(--text-1);padding-bottom:14px;margin-bottom:36px}
+.doc-header .title{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
 .doc-header h1{font-size:26px;font-weight:900;margin:0 0 6px}.doc-header .meta{font-size:11px;color:#9ca3af}
 h1{font-size:24px;font-weight:900;margin:0 0 14px}h2{font-size:17px;font-weight:700;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.1)}
 h3{font-size:14px;font-weight:600;margin:20px 0 6px;color:#374151}p{margin:5px 0}ul{padding-left:22px;margin:6px 0}ol{padding-left:24px;margin:6px 0}li{margin:4px 0}
-blockquote{border-left:3px solid #6b6960;margin:12px 0;padding:10px 16px;background:rgba(107,105,96,0.07);color:#6b6960;border-radius:0 6px 6px 0}
-pre{background:#f5f4f0;padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}
+blockquote{border-left:3px solid var(--text-2);margin:12px 0;padding:10px 16px;background:color-mix(in srgb, var(--text-2) 7%, transparent);color:var(--text-2);border-radius:0 6px 6px 0}
+pre{background:var(--db-bg-elevated);padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
 <div class="doc-header"><div class="title">Product Requirements Document</div><h1>${projectName}</h1><div class="meta">생성일 ${now} · Timiroom AI</div></div>
 ${content}</body></html>`;
@@ -824,13 +826,7 @@ ${content}</body></html>`;
   }
 
   const PdfBtn = ({ disabled }) => (
-    <button onClick={handleExportPdf} disabled={disabled} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:!disabled?C.accentBg:"rgba(0,0,0,0.04)", border:`1px solid ${!disabled?C.accentBdr:"rgba(0,0,0,0.08)"}`, color:!disabled?C.accent:"#9ca3af", cursor:!disabled?"pointer":"not-allowed", display:"flex", alignItems:"center", gap:5 }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-        <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>
-      </svg>
-      PDF
-    </button>
+    <ActionButton onClick={handleExportPdf} disabled={disabled}><Icon name="download" size={12} /> PDF</ActionButton>
   );
 
   return (
@@ -847,27 +843,17 @@ ${content}</body></html>`;
             onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
           <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-            <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface, justifyContent:"space-between" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                {project && <>
-                  <div style={{ width:20, height:20, borderRadius:5, background:`${project.color||"var(--text-1)"}22`, border:`1px solid ${project.color||"var(--text-1)"}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:900, color:project.color||"#6b6960" }}>{(project.name||"P").charAt(0).toUpperCase()}</div>
-                  <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>
-                  <span style={{ fontSize:13, color:C.sub }}>›</span>
-                </>}
-                <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD</span>
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                {hasDraft && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ AI 초안"}</span>}
-                <PdfBtn disabled={!hasDraft} />
-              </div>
-            </div>
+            <PanelHeader project={project} label="PRD">
+              {hasDraft && <Badge tone="success"><Icon name="check" size={11} /> AI 초안</Badge>}
+              <PdfBtn disabled={!hasDraft} />
+            </PanelHeader>
             <div style={{ flex:1, overflowY:"auto" }}>
               {!doc ? (
                 <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"80px 0", gap:14 }}>
-                  <div style={{ fontSize:32 }}>{"📄"}</div>
+                  <div style={{ color:C.muted }}><Icon name="doc" size={30} strokeWidth={1.6} /></div>
                   <div style={{ fontSize:16, fontWeight:700, color:C.text }}>PRD{"가 없습니다"}</div>
                   <div style={{ fontSize:13, color:C.muted }}>{"파이프라인을 실행하거나 편집 모드에서 작성하세요"}</div>
-                  {!readOnly && <button onClick={()=>setEditMode(true)} style={{ marginTop:4, padding:"8px 18px", borderRadius:8, fontSize:13, fontWeight:600, background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, cursor:"pointer" }}>{"편집 모드 열기"}</button>}
+                  {!readOnly && <ActionButton size="lg" onClick={()=>setEditMode(true)}>편집 모드 열기</ActionButton>}
                 </div>
               ) : (
                 <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
@@ -887,9 +873,9 @@ ${content}</body></html>`;
           </button>
           {project && <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>}
           <span style={{ fontSize:13, color:C.sub }}>›</span>
-          <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD {"편집"}</span>
+          <Badge>PRD 편집</Badge>
           <div style={{ flex:1 }} />
-          {saved && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ 저장됨"}</span>}
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
           <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
             {saved ? "저장됨" : saving ? "저장 중..." : (
               <>

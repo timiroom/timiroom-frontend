@@ -1,5 +1,7 @@
 "use client";
 
+import { PanelTitle } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchProjectIssues,
@@ -197,26 +199,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
         justifyContent: "space-between", background: C.surface,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {project && (
-            <>
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>
-                {(project.name || "P").charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-              <span style={{ fontSize: 13, color: C.muted }}>›</span>
-            </>
-          )}
-          <span style={{
-            fontSize: 13, fontWeight: 500, color: "#818cf8",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(129,140,248,0.1)", border: "1px solid rgba(129,140,248,0.25)",
-          }}>GitHub 작업</span>
+          <PanelTitle project={project} label="GitHub 작업" />
         </div>
         <button type="button" onClick={load} disabled={loading} style={{ padding: "6px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
       </div>

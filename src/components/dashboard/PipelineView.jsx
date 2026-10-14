@@ -99,10 +99,10 @@ function StepCard({ step, index, isSelected, onClick }) {
       style={{
         display:"flex", gap:14, padding:"14px 16px",
         borderRadius:"var(--db-radius)",
-        border:`1px solid ${isSelected ? "var(--db-border-active)" : isRunning ? "rgba(107,105,96,.25)" : "var(--border)"}`,
-        background: isSelected ? "rgba(26,25,22,.1)" : isRunning ? "rgba(107,105,96,.06)" : "var(--surface)",
+        border:`1px solid ${isSelected ? "var(--db-border-active)" : isRunning ? "color-mix(in srgb, var(--text-2) 25%, transparent)" : "var(--border)"}`,
+        background: isSelected ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : isRunning ? "color-mix(in srgb, var(--text-2) 6%, transparent)" : "var(--surface)",
         cursor:"pointer", transition:"var(--db-transition)",
-        boxShadow: isRunning ? "0 0 16px rgba(107,105,96,.15)" : "none",
+        boxShadow: isRunning ? "0 0 16px color-mix(in srgb, var(--text-2) 15%, transparent)" : "none",
       }}
     >
       {/* Step index & connector */}
@@ -114,7 +114,7 @@ function StepCard({ step, index, isSelected, onClick }) {
           display:"flex", alignItems:"center", justifyContent:"center",
           fontSize:14, color:step.status==="done" ? "var(--text-2)" : step.status==="running" ? "var(--text-1)" : "var(--text-3)",
           fontWeight:700,
-          boxShadow: isRunning ? "0 0 10px rgba(107,105,96,.4)" : "none",
+          boxShadow: isRunning ? "0 0 10px color-mix(in srgb, var(--text-2) 40%, transparent)" : "none",
         }}>
           {step.status === "done" ? "✓" : step.status === "running" ? <span style={{ animation:"db-spin 1s linear infinite", display:"block" }}>↻</span> : index+1}
         </div>
@@ -138,7 +138,7 @@ function StepCard({ step, index, isSelected, onClick }) {
             {step.outputs.map((o,i) => (
               <span key={i} style={{
                 fontSize:10, padding:"2px 8px", borderRadius:100,
-                background:"rgba(26,25,22,.12)", color:"var(--db-purple-200)",
+                background:"color-mix(in srgb, var(--text-1) 12%, transparent)", color:"var(--db-purple-200)",
                 border:"1px solid var(--border)",
               }}>{o}</span>
             ))}
@@ -237,7 +237,7 @@ export function PipelineView() {
             </div>
             <div ref={logRef} style={{ flex:1, overflowY:"auto", padding:"12px 16px", fontFamily:"'JetBrains Mono', 'Fira Code', monospace" }}>
               {LOG_LINES.map((line, i) => (
-                <div key={i} style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, borderBottom:"1px solid rgba(26,25,22,.05)", paddingBottom:2 }}>
+                <div key={i} style={{ display:"flex", gap:10, fontSize:11, lineHeight:1.8, borderBottom:"1px solid color-mix(in srgb, var(--text-1) 5%, transparent)", paddingBottom:2 }}>
                   <span style={{ color:"var(--text-3)", flexShrink:0 }}>{line.t}</span>
                   <span style={{ color:LVL_COLORS[line.lvl], fontWeight:700, flexShrink:0, width:42 }}>{line.lvl}</span>
                   <span style={{ color:"var(--text-2)" }}>{line.msg}</span>

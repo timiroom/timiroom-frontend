@@ -1,5 +1,8 @@
 "use client";
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useState, useMemo, useEffect } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { ConsistencyBadge } from "./ConsistencyBadge";
@@ -16,14 +19,14 @@ import { parseSpecBodyInput, endpointContractFields, mergeEditedEndpoint } from 
 
 const C = {
   bg:       "var(--surface)",
-  surface:  "#f7f6f3",
+  surface:  "var(--bg)",
   card:     "var(--surface)",
   cardOpen: "var(--bg)",
   border:   "rgba(0,0,0,0.07)",
-  text:     "#1a1916",
+  text:     "var(--text-1)",
   muted:    "var(--text-3)",
   sub:      "var(--text-3)",
-  accent:   "#6b6960",
+  accent:   "var(--text-2)",
   code:     "var(--surface)",
 };
 
@@ -187,7 +190,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#fbbf24" }}
             />
             <label htmlFor="drawer-auth" style={{ fontSize: 13, color: "#e2e8f0", cursor: "pointer" }}>
-              JWT 인증 필요 (🔒)
+              JWT 인증 필요
             </label>
           </div>
 
@@ -358,7 +361,7 @@ function PathDisplay({ path }) {
 const IN_STYLE = {
   path:   { bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.3)",   text: "#ef4444" },
   query:  { bg: "rgba(96,165,250,0.1)",  border: "rgba(96,165,250,0.3)",  text: "#60a5fa" },
-  header: { bg: "rgba(107,105,96,0.08)", border: "rgba(107,105,96,0.25)", text: "#6b6960" },
+  header: { bg: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "color-mix(in srgb, var(--text-2) 25%, transparent)", text: "var(--text-2)" },
   cookie: { bg: "rgba(251,146,60,0.1)",  border: "rgba(251,146,60,0.3)",  text: "#fb923c" },
 };
 const TYPE_COLOR = {
@@ -392,7 +395,7 @@ function ParamRow({ param, isLast }) {
           }}>{param.in}</span>
           <span style={{
             fontSize: 10, padding: "1px 6px", borderRadius: 4,
-            background: `${typeColor}14`, border: `1px solid ${typeColor}35`, color: typeColor,
+            background: `${tint(typeColor, 8)}`, border: `1px solid ${tint(typeColor, 21)}`, color: typeColor,
             fontFamily: "monospace",
           }}>{param.type || "string"}</span>
         </div>
@@ -427,7 +430,7 @@ function SchemaBlock({ data }) {
   return (
     <pre style={{
       margin: 0, padding: "10px 12px", background: C.code, borderRadius: 6,
-      border: `1px solid ${C.border}`, fontSize: 11.5, color: "#a8a69f",
+      border: `1px solid ${C.border}`, fontSize: 11.5, color: "var(--text-3)",
       fontFamily: "'JetBrains Mono','Fira Code',monospace",
       lineHeight: 1.7, overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word",
     }}>{text}</pre>
@@ -439,7 +442,7 @@ function StatusBadge({ status }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 800, padding: "2px 7px", borderRadius: 4,
-      background: `${color}18`, border: `1px solid ${color}40`, color,
+      background: `${tint(color, 9)}`, border: `1px solid ${tint(color, 25)}`, color,
       fontFamily: "monospace", flexShrink: 0,
     }}>{status}</span>
   );
@@ -480,7 +483,7 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert("클립보드 복사에 실패했습니다");
+      toast.error("클립보드 복사에 실패했습니다");
     }
   }
 
@@ -574,7 +577,7 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
               border: `1px solid ${copied ? "rgba(52,211,153,0.35)" : "rgba(96,165,250,0.35)"}`,
               color: copied ? "#34d399" : "#60a5fa",
             }}
-          >{copied ? "✓ 복사됨" : "코드 복사"}</button>
+          >{copied ? "복사됨" : "코드 복사"}</button>
         </div>
       </div>
     </div>
@@ -878,7 +881,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
   return (
     <div style={{
       borderRadius: 8,
-      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
+      border: `1px solid ${open ? "color-mix(in srgb, var(--text-2) 20%, transparent)" : C.border}`,
       background: open ? C.cardOpen : C.card,
       marginBottom: 6, overflow: "hidden", transition: "all 0.15s",
     }}>
@@ -917,7 +920,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
               fontSize: 10, padding: "2px 7px", borderRadius: 4,
               background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)",
               color: "#fbbf24", flexShrink: 0,
-            }}>🔒 JWT</span>
+            }}><Icon name="lock" size={10} /> JWT</span>
           )}
 
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -929,69 +932,15 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
 
         {/* 테스트 및 코드 생성 — 읽기 전용이어도 사용 가능 */}
         <div style={{ display: "flex", gap: 4, paddingLeft: 12, flexShrink: 0 }}>
-          <button
-            onClick={() => onTest(endpoint)}
-            title="API 요청 테스트"
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "5px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-              background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.22)",
-              color: "#16a34a", cursor: "pointer",
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 3l14 9-14 9V3z"/>
-            </svg>
-            테스트
-          </button>
-          <button
-            onClick={() => onShowCode(endpoint.specIdx)}
-            title="클라이언트 코드 생성"
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "5px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-              background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)",
-              color: "#60a5fa", cursor: "pointer",
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-            </svg>
-            코드
-          </button>
+          <ActionButton size="sm" onClick={() => onTest(endpoint)} title="API 요청 테스트"><Icon name="play" size={11} /> 테스트</ActionButton>
+          <ActionButton size="sm" onClick={() => onShowCode(endpoint.specIdx)} title="클라이언트 코드 생성"><Icon name="code" size={11} /> 코드</ActionButton>
         </div>
 
         {/* 편집/삭제 버튼 */}
         {canEdit && (
           <div style={{ display: "flex", gap: 4, padding: "0 12px", flexShrink: 0 }}>
-            <button
-              onClick={() => onEdit(endpoint.specIdx)}
-              title="편집"
-              style={{
-                padding: "5px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)",
-                color: "#fbbf24", cursor: "pointer",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button
-              onClick={() => onDelete(endpoint.specIdx)}
-              title="삭제"
-              style={{
-                padding: "5px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
-                color: "#f87171", cursor: "pointer",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-              </svg>
-            </button>
+            <ActionButton size="sm" iconOnly onClick={() => onEdit(endpoint.specIdx)} title="편집" aria-label="편집"><Icon name="pencil" size={12} /></ActionButton>
+            <ActionButton size="sm" iconOnly variant="danger" onClick={() => onDelete(endpoint.specIdx)} title="삭제" aria-label="삭제"><Icon name="trash" size={12} /></ActionButton>
           </div>
         )}
       </div>
@@ -1077,14 +1026,7 @@ function TagGroup({ tag, canEdit, onEdit, onDelete, onAdd, onShowCode, onTest })
           }}>{tag.endpoints.length}</span>
         </button>
         {canEdit && (
-          <button
-            onClick={() => onAdd()}
-            style={{
-              marginLeft: 10, marginBottom: 8, fontSize: 11, padding: "4px 10px", borderRadius: 6,
-              background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)",
-              color: "#60a5fa", cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap",
-            }}
-          >+ 추가</button>
+          <ActionButton size="sm" onClick={() => onAdd()} style={{ marginLeft: 10, marginBottom: 8 }}><Icon name="plus" size={11} strokeWidth={2.5} /> 추가</ActionButton>
         )}
       </div>
 
@@ -1256,7 +1198,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
       setMockCopied(true);
       setTimeout(() => setMockCopied(false), 2000);
     } catch {
-      alert("클립보드 복사에 실패했습니다");
+      toast.error("클립보드 복사에 실패했습니다");
     }
   }
 
@@ -1267,7 +1209,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
       if (kind === "postman") exportToPostman(rawApiSpec, name, mockBaseUrl);
       else exportToOpenApi(rawApiSpec, name, mockBaseUrl);
     } catch (e) {
-      alert("내보내기 실패: " + e.message);
+      toast.error("내보내기 실패: " + e.message);
     }
   }
 
@@ -1280,7 +1222,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
 
   /* ── 삭제 ── */
   async function handleDeleteEndpoint(specIdx) {
-    if (!window.confirm("이 API 엔드포인트를 삭제할까요?")) return;
+    if (!await confirmDialog("이 API 엔드포인트를 삭제할까요?", { danger: true })) return;
     const currentSpec = rawApiSpec ?? { endpoints: [] };
     const endpoints = [...(currentSpec.endpoints || [])];
     endpoints.splice(specIdx, 1);
@@ -1289,7 +1231,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
     try {
       await persistSpec(newSpec);
     } catch (e) {
-      alert("삭제 실패: " + e.message);
+      toast.error("삭제 실패: " + e.message);
     } finally {
       setOpSaving(false);
     }
@@ -1311,7 +1253,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
       onDocumentEditingChange?.("API_SPEC", false);
       setEditingSpec(null);
     } catch (e) {
-      alert("저장 실패: " + e.message);
+      toast.error("저장 실패: " + e.message);
     } finally {
       setOpSaving(false);
     }
@@ -1372,107 +1314,28 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
       {/* ── 왼쪽: 명세 뷰어 ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* 헤더 */}
-        <div style={{
-          height: 52, flexShrink: 0,
-          borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center",
-          padding: "0 24px", justifyContent: "space-between",
-          background: C.surface,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {project && (
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>
-                {(project.name || "P").charAt(0).toUpperCase()}
-              </div>
-            )}
-            {project && <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>}
-            <span style={{ fontSize: 13, color: C.sub }}>›</span>
-            <span style={{
-              fontSize: 13, fontWeight: 500, color: "#60a5fa",
-              padding: "2px 8px", borderRadius: 6,
-              background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.2)",
-            }}>API 명세서</span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="API" />}
-            {saved && (
-              <span style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 5,
-                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
-                color: "#34d399", fontWeight: 600,
-              }}>✓ 저장됨</span>
-            )}
-
-            {/* Mock 서버 URL — 프론트가 백엔드 구현 전에 호출할 수 있는 주소 */}
-            {hasEndpoints && mockBaseUrl && (
-              <button
-                onClick={handleCopyMockUrl}
-                title={`Mock 서버 주소 복사\n${mockBaseUrl}`}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                  background: mockCopied ? "rgba(52,211,153,0.12)" : "rgba(167,139,250,0.12)",
-                  border: `1px solid ${mockCopied ? "rgba(52,211,153,0.35)" : "rgba(167,139,250,0.35)"}`,
-                  color: mockCopied ? "#34d399" : "#a78bfa", cursor: "pointer",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
-                  <line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
-                </svg>
-                {mockCopied ? "복사됨" : "Mock 서버"}
-              </button>
-            )}
-
-            {/* 내보내기 */}
-            {hasEndpoints && (
-              <>
-                <button
-                  onClick={() => handleExport("postman")}
-                  title="Postman Collection v2.1로 내보내기"
-                  style={{
-                    padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                    background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.3)",
-                    color: "#fb923c", cursor: "pointer",
-                  }}
-                >Postman</button>
-                <button
-                  onClick={() => handleExport("openapi")}
-                  title="OpenAPI 3.0 문서로 내보내기"
-                  style={{
-                    padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                    background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
-                    color: "#34d399", cursor: "pointer",
-                  }}
-                >OpenAPI</button>
-              </>
-            )}
-
-            {canEdit && (
-              <button
-                onClick={handleAddEndpoint}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                  background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.35)",
-                  color: "#60a5fa", cursor: "pointer",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                API 추가
-              </button>
-            )}
-          </div>
-        </div>
+        <PanelHeader project={project} label="API 명세서">
+          {project?.id && <ConsistencyBadge projectId={project.id} areaKeyword="API" />}
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
+          {/* Mock 서버 URL — 프론트가 백엔드 구현 전에 호출할 수 있는 주소 */}
+          {hasEndpoints && mockBaseUrl && (
+            <ActionButton onClick={handleCopyMockUrl} title={`Mock 서버 주소 복사
+${mockBaseUrl}`}>
+              <Icon name={mockCopied ? "check" : "server"} size={12} />
+              {mockCopied ? "복사됨" : "Mock 서버"}
+            </ActionButton>
+          )}
+          {/* 내보내기 */}
+          {hasEndpoints && (
+            <>
+              <ActionButton onClick={() => handleExport("postman")} title="Postman Collection v2.1로 내보내기">Postman</ActionButton>
+              <ActionButton onClick={() => handleExport("openapi")} title="OpenAPI 3.0 문서로 내보내기">OpenAPI</ActionButton>
+            </>
+          )}
+          {canEdit && (
+            <ActionButton variant="primary" onClick={handleAddEndpoint}><Icon name="plus" size={12} strokeWidth={2.5} /> API 추가</ActionButton>
+          )}
+        </PanelHeader>
 
         {/* 검색 바 */}
         <div style={{ padding: "12px 28px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
@@ -1518,7 +1381,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
                 width: 56, height: 56, borderRadius: 16,
                 background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)",
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-              }}>📋</div>
+              }}><Icon name="doc" size={26} strokeWidth={1.6} /></div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   API 명세가 없습니다

@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionButton } from "@/components/ui";
+
 /**
  * 명세 기준(스냅샷)의 상태에 따라 필요한 안내와 버튼만 보여 주는 바.
  *   none   — 아직 발행한 적 없음. PM에게 발행 버튼을 준다.
@@ -22,13 +24,10 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         {state === "differ" && `화면의 문서가 발행 기준(revision ${revision})과 다릅니다.`}
       </p>
       <div className="spec-bar-actions">
-        {state === "differ" && <button type="button" onClick={onReload}>문서 다시 불러오기</button>}
-        {state !== "none" && <a className="spec-bar-link" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</a>}
-        {/* styled-jsx는 <style jsx>와 같은 JSX 트리 안의 요소에만 범위 클래스를 붙인다. 버튼을 바깥 변수로 빼면 스타일이 빠진다. */}
+        {state === "differ" && <ActionButton size="sm" onClick={onReload}>문서 다시 불러오기</ActionButton>}
+        {state !== "none" && <ActionButton size="sm" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</ActionButton>}
         {state !== "match" && canPublish && (
-          <button type="button" className="spec-bar-primary" disabled={publishing} onClick={onPublish}>
-            {publishing ? "발행 중…" : "현재 명세 기준 발행"}
-          </button>
+          <ActionButton size="sm" variant="primary" disabled={publishing} onClick={onPublish}>{publishing ? "발행 중…" : "현재 명세 기준 발행"}</ActionButton>
         )}
       </div>
       <style jsx>{`
@@ -39,12 +38,6 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         .spec-bar-dot-match { background:var(--db-green); }
         .spec-bar-dot-differ { background:var(--db-orange); }
         .spec-bar-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
-        button, .spec-bar-link { display:inline-flex; align-items:center; min-height:28px; padding:0 12px; border:1px solid var(--border-2); border-radius:var(--db-radius-sm); background:var(--surface); color:var(--text-2); font-family:inherit; font-size:12px; font-weight:600; line-height:1; white-space:nowrap; text-decoration:none; cursor:pointer; transition:var(--db-transition); }
-        button:hover:not(:disabled), .spec-bar-link:hover { background:var(--bg); color:var(--text-1); }
-        .spec-bar-primary { background:var(--text-1); border-color:var(--text-1); color:var(--bg); }
-        button.spec-bar-primary:hover:not(:disabled) { background:var(--db-purple-800); color:var(--accent-fg); }
-        button:disabled { opacity:.55; cursor:not-allowed; }
-        button:focus-visible, .spec-bar-link:focus-visible { outline:2px solid var(--text-1); outline-offset:2px; }
       `}</style>
     </div>
   );

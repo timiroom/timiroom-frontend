@@ -29,18 +29,19 @@
  *   onApplyEdits   (edits: object[]) => Promise<void> | void — 승인된 수정안 적용
  */
 
+import { tint } from "@/lib/color";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { sendMessageStream, requestDocumentEdit } from "@/lib/agentApi";
 
 const C = {
-  bg:       "#f7f6f3",
+  bg:       "var(--bg)",
   border:   "rgba(0,0,0,0.07)",
-  text:     "#1a1916",
+  text:     "var(--text-1)",
   muted:    "var(--text-3)",
-  accent:   "#6b6960",
+  accent:   "var(--text-2)",
   inputBg:  "var(--bg)",
   inputBdr: "rgba(0,0,0,0.10)",
-  aiColor:  "#7d4cfc",
+  aiColor:  "var(--text-1)",
   addBg:    "rgba(52,211,153,0.12)",
   addText:  "#0f7a53",
   delBg:    "rgba(248,113,113,0.12)",
@@ -139,7 +140,7 @@ function IconBtn({ onClick, title, children }) {
 const AiAvatar = ({ size = 24 }) => (
   <div style={{
     width: size, height: size, borderRadius: size / 4, flexShrink: 0, marginTop: 2,
-    background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+    background: C.aiColor,
     display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: size / 2.2, color: "white", fontWeight: 800,
   }}>A</div>
@@ -261,7 +262,7 @@ function EditProposal({ msg, onAccept, onApply, onDismiss, applying }) {
       <AiAvatar />
       <div style={{
         flex: 1, minWidth: 0, padding: "12px 12px 11px",
-        background: `${C.aiColor}0c`, border: `1px solid ${C.aiColor}2a`,
+        background: `${tint(C.aiColor, 5)}`, border: `1px solid ${tint(C.aiColor, 16)}`,
         borderRadius: "6px 14px 14px 14px",
       }}>
         {msg.reply && (
@@ -362,7 +363,7 @@ function MessageBubble({ msg, isStreaming }) {
               border: `1px solid ${C.border}`, background: "transparent",
               color: C.muted, fontSize: 11, cursor: "pointer",
             }}>
-              {copied ? "✓ 복사됨" : "복사"}
+              {copied ? "복사됨" : "복사"}
             </button>
           </div>
         )}
@@ -637,10 +638,10 @@ export function AiChatDock({
         style={{
           position: "fixed", right: 24, bottom: 24, zIndex: 60,
           width: 52, height: 52, borderRadius: "50%", border: "none",
-          background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+          background: C.aiColor,
           color: "white", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 6px 20px rgba(125,76,252,0.38)",
+          boxShadow: "0 6px 20px color-mix(in srgb, var(--text-1) 28%, transparent)",
           transition: "transform 0.15s, box-shadow 0.15s",
         }}
         onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.06)"; }}
@@ -693,7 +694,7 @@ export function AiChatDock({
           </div>
           <span style={{
             fontSize: 10, padding: "2px 7px", borderRadius: 10,
-            background: `${C.aiColor}14`, border: `1px solid ${C.aiColor}30`,
+            background: `${tint(C.aiColor, 8)}`, border: `1px solid ${tint(C.aiColor, 19)}`,
             color: C.aiColor, fontWeight: 600,
           }}>
             EXAONE
@@ -774,7 +775,7 @@ export function AiChatDock({
             disabled={!busy && !input.trim()}
             style={{
               width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-              background: busy ? "#f87171" : (input.trim() ? C.aiColor : "rgba(26,25,22,0.2)"),
+              background: busy ? "#f87171" : (input.trim() ? C.aiColor : "color-mix(in srgb, var(--text-1) 20%, transparent)"),
               border: "none",
               cursor: busy || input.trim() ? "pointer" : "not-allowed",
               display: "flex", alignItems: "center", justifyContent: "center",

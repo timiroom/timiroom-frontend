@@ -9,6 +9,8 @@
  * 워크스페이스 기준으로 프로젝트를 묶고, 좌측 단일 레일에서 전환/생성/초대를 처리한다.
  */
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { tint } from "@/lib/color";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActivityBar } from "@/components/dashboard/ActivityBar";
@@ -221,7 +223,7 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
       alignItems: "center",
       justifyContent: "center",
       padding: 40,
-      background: "linear-gradient(180deg, rgba(26,25,22,0.03) 0%, var(--surface) 100%)",
+      background: "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, var(--surface) 100%)",
     }}>
       <div style={{
         width: "min(520px, 100%)",
@@ -240,7 +242,7 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "rgba(26,25,22,0.08)",
+          background: "color-mix(in srgb, var(--text-1) 8%, transparent)",
           fontSize: 28,
         }}>
           {hasWorkspace ? "📁" : "👥"}
@@ -336,7 +338,7 @@ function DocumentSyncStatus({ sync }) {
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
         <span style={{
           width: 18, height: 18, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
-          background: `${accent}14`, color: accent, fontSize: 11, fontWeight: 900,
+          background: `${tint(accent, 8)}`, color: accent, fontSize: 11, fontWeight: 900,
           animation: isRunning ? "document-sync-spin 0.9s linear infinite" : "none",
         }}>{isRunning ? "↻" : isError ? "!" : "✓"}</span>
         <div style={{ flex: 1 }}>
@@ -698,7 +700,7 @@ export default function DashboardPage() {
   const isWorkspaceOwner = viewerRole === "OWNER";
 
   async function handleDeleteProject(project) {
-    if (!window.confirm(`"${project.name}" 프로젝트를 삭제할까요?`)) return;
+    if (!await confirmDialog(`"${project.name}" 프로젝트를 삭제할까요?`, { danger: true })) return;
 
     try {
       await deleteProject(project.id);
@@ -960,11 +962,11 @@ export default function DashboardPage() {
     setSelectedView(null);
   }
 
-  function handleSelectWorkspace(nextWorkspaceId) {
+  async function handleSelectWorkspace(nextWorkspaceId) {
     if (!nextWorkspaceId || nextWorkspaceId === activeWorkspaceId) return;
 
     if (runningPipeline && runningPipeline.teamId === activeWorkspaceId) {
-      const proceed = window.confirm("이 워크스페이스에서 파이프라인이 실행 중입니다. 다른 워크스페이스로 이동해도 실행은 계속됩니다. 이동할까요?");
+      const proceed = await confirmDialog("이 워크스페이스에서 파이프라인이 실행 중입니다. 다른 워크스페이스로 이동해도 실행은 계속됩니다. 이동할까요?");
       if (!proceed) return;
     }
 

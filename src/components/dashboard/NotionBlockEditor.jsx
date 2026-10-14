@@ -20,9 +20,9 @@ import Typography from "@tiptap/extension-typography";
 const C = {
   bg:     "var(--surface)",
   border: "rgba(0,0,0,0.07)",
-  text:   "#1a1916",
+  text:   "var(--text-1)",
   muted:  "rgba(55,53,47,0.45)",
-  accent: "#6b6960",
+  accent: "var(--text-2)",
 };
 
 /* ── 슬래시 커맨드 목록 ── */
@@ -88,7 +88,7 @@ function SlashMenu({ visible, left, top, query, onSelect, selectedIdx, setSelect
           style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "7px 10px", borderRadius: 7, cursor: "pointer",
-            background: idx === selectedIdx ? "rgba(107,105,96,0.1)" : "transparent",
+            background: idx === selectedIdx ? "color-mix(in srgb, var(--text-2) 10%, transparent)" : "transparent",
             transition: "background 0.1s",
           }}
         >
@@ -149,7 +149,7 @@ function BubbleToolbar({ editor }) {
         <s>S</s>
       </BtnB>
       <BtnB active={editor.isActive("highlight")} onMouseDown={() => editor.chain().focus().toggleHighlight().run()} title="형광펜">
-        <span style={{ background: "#fef08a", color: "#1a1916", padding: "0 3px", borderRadius: 2 }}>H</span>
+        <span style={{ background: "#fef08a", color: "var(--text-1)", padding: "0 3px", borderRadius: 2 }}>H</span>
       </BtnB>
       <Sep />
       <BtnB active={editor.isActive("heading", { level: 1 })} onMouseDown={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="제목 1">H1</BtnB>
@@ -344,15 +344,15 @@ export const NotionBlockEditor = forwardRef(function NotionBlockEditor(
         .notion-block-editor > * + * { margin-top: 2px; }
 
         .notion-block-editor h1 {
-          font-size: 2em; font-weight: 900; color: #1a1916;
+          font-size: 2em; font-weight: 900; color: var(--text-1);
           margin: 28px 0 6px; line-height: 1.2;
         }
         .notion-block-editor h2 {
-          font-size: 1.5em; font-weight: 700; color: #1a1916;
+          font-size: 1.5em; font-weight: 700; color: var(--text-1);
           margin: 24px 0 4px; line-height: 1.3;
         }
         .notion-block-editor h3 {
-          font-size: 1.2em; font-weight: 600; color: #1a1916;
+          font-size: 1.2em; font-weight: 600; color: var(--text-1);
           margin: 18px 0 4px; line-height: 1.4;
         }
         .notion-block-editor p {
@@ -383,24 +383,24 @@ export const NotionBlockEditor = forwardRef(function NotionBlockEditor(
           flex-shrink: 0; margin-top: 3px; cursor: pointer;
         }
         .notion-block-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
-          width: 16px; height: 16px; cursor: pointer; accent-color: #6b6960;
+          width: 16px; height: 16px; cursor: pointer; accent-color: var(--text-2);
         }
         .notion-block-editor ul[data-type="taskList"] li[data-checked="true"] > div {
           text-decoration: line-through; color: rgba(55,53,47,0.45);
         }
         .notion-block-editor blockquote {
-          border-left: 3px solid #6b6960; margin: 8px 0;
+          border-left: 3px solid var(--text-2); margin: 8px 0;
           padding: 6px 0 6px 16px;
           color: rgba(55,53,47,0.65);
         }
         .notion-block-editor pre {
-          background: #f0eeeb; border: 1px solid rgba(0,0,0,0.08);
+          background: var(--db-bg-elevated); border: 1px solid rgba(0,0,0,0.08);
           border-radius: 8px; padding: 16px 20px; margin: 8px 0;
           overflow-x: auto;
         }
         .notion-block-editor pre code {
           font-family: 'JetBrains Mono','Fira Code','Menlo',monospace;
-          font-size: 13px; color: #6b6960; background: none;
+          font-size: 13px; color: var(--text-2); background: none;
           padding: 0; border-radius: 0;
         }
         .notion-block-editor code {
@@ -415,7 +415,7 @@ export const NotionBlockEditor = forwardRef(function NotionBlockEditor(
           margin: 20px 0;
         }
         .notion-block-editor a {
-          color: #6b6960; text-decoration: underline;
+          color: var(--text-2); text-decoration: underline;
           text-underline-offset: 2px;
         }
         .notion-block-editor mark {

@@ -21,6 +21,8 @@
  *   4. 라벨은 원 밖  글자 길이가 원 크기를 끌고 다니지 않게 아래에 둔다.
  */
 
+import { Icon, PanelTitle } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { fetchProjectGraph, toCytoscapeElements } from "@/lib/graphApi";
 
@@ -29,13 +31,13 @@ import { fetchProjectGraph, toCytoscapeElements } from "@/lib/graphApi";
  * 값은 지어내지 않고 디자인 시스템 토큰(styles/theme.css)을 그대로 옮겼다.
  */
 const C = {
-  bg:      "#f7f6f3",   // --bg
+  bg:      "#f9f9f9",   // --bg
   panel:   "#ffffff",   // --surface
-  border:  "#e4e2db",   // --border
-  text:    "#1a1916",   // --text-1
-  muted:   "#6b6960",   // --text-2
-  faint:   "#a8a69f",   // --text-3
-  soft:    "#f2f0ea",
+  border:  "#ececec",   // --border
+  text:    "#0d0d0d",   // --text-1
+  muted:   "#5d5d5d",   // --text-2
+  faint:   "#8f8f8f",   // --text-3
+  soft:    "#f4f4f4",
 };
 
 /**
@@ -49,7 +51,7 @@ const TYPE_STYLE = {
   api:     { color: "#3b82f6", light: "#93c5fd", deep: "#1d4ed8", label: "API" },
   table:   { color: "#ec4899", light: "#f9a8d4", deep: "#be185d", label: "테이블" },
   // 코드(PR)는 기획 세 계층과 결이 달라 형태로도 구분한다 — 아래에서 사각형으로 그린다.
-  pr:      { color: "#6b6960", light: "#a8a69f", deep: "#3c3a33", label: "PR" },
+  pr:      { color: "#5d5d5d", light: "#8f8f8f", deep: "#2f2f2f", label: "PR" },
 };
 
 /* 시안의 필터 칩 — 이 그래프에 실제로 있는 계층으로 채운다 */
@@ -66,7 +68,7 @@ const FILTERS = [
  * 이건 "잘못됐다"가 아니라 "이어질 것이 없다"는 부재다.
  * 밝은 바닥에서 색을 빼면 그냥 사라지므로, 속을 비우고 테두리만 남긴다.
  */
-const ORPHAN_STYLE = { color: "#d0cec6", light: "#e4e2db", deep: "#b3b0a5" };
+const ORPHAN_STYLE = { color: "#dadada", light: "#ececec", deep: "#8f8f8f" };
 
 /**
  * 변경 표시 — 전부 같은 호박색 계열이고 진하기로만 갈린다.
@@ -102,16 +104,16 @@ const MAX_STEP = 2;
  * 이 화면만 다른 제품처럼 튀지 않는다.
  */
 const CANVAS = {
-  label:      "#6b6960",
-  labelPlate: "#f7f6f3",
-  edge:       "#6b6960",
+  label:      "#5d5d5d",
+  labelPlate: "#f9f9f9",
+  edge:       "#5d5d5d",
   edgeOpacity: 0.42,
-  groupLabel: "#1a1916",
+  groupLabel: "#0d0d0d",
   groupOpacity: 0.3,
-  focusRing:  "#1a1916",
+  focusRing:  "#0d0d0d",
   dim:        0.14,
   orphanFill:      0,
-  orphanRing:      "#8f8c82",
+  orphanRing:      "#8f8f8f",
   orphanRingWidth: 2,
   orphanRingStyle: "dashed",
 };
@@ -319,24 +321,7 @@ export function KnowledgeGraph({ project }) {
         display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
         background: C.panel,
       }}>
-        {project && (
-          <>
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `${project.color || C.text}22`,
-              border: `1px solid ${project.color || C.text}44`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || C.muted,
-            }}>{(project.name || "P").charAt(0).toUpperCase()}</div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-            <span style={{ fontSize: 13, color: C.faint }}>›</span>
-          </>
-        )}
-        <span style={{
-          fontSize: 13, fontWeight: 500, color: "#2dd4bf",
-          padding: "2px 8px", borderRadius: 6,
-          background: "rgba(45,212,191,0.1)", border: "1px solid rgba(45,212,191,0.25)",
-        }}>지식그래프</span>
+        <PanelTitle project={project} label="지식그래프" />
       </div>
 
       <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: C.bg, boxSizing: "border-box", overflow: "hidden" }}>
@@ -366,7 +351,7 @@ export function KnowledgeGraph({ project }) {
           // 시안의 옅은 격자 — 빈 바탕이 평평한 종이처럼 죽지 않게 한다
           backgroundColor: C.panel,
           backgroundImage:
-            "linear-gradient(rgba(26,25,22,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(26,25,22,.05) 1px, transparent 1px)",
+            "linear-gradient(rgba(13,13,13,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(13,13,13,.05) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
         }}>
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
@@ -398,7 +383,7 @@ export function KnowledgeGraph({ project }) {
           <DetailPanel selection={selected} onClose={() => setSelected(null)} />
         ) : (
           <div className="db-card" style={{ padding: 20, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🕸️</div>
+            <div style={{ marginBottom: 12, color: C.muted }}><Icon name="graph" size={30} strokeWidth={1.6} /></div>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: C.text }}>노드를 선택하세요</div>
             <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
               그래프에서 노드를 클릭하면 연결 관계와 영향 단계를 확인할 수 있습니다.
@@ -428,9 +413,9 @@ export function KnowledgeGraph({ project }) {
         </Card>
 
         <Card title="빠른 작업">
-          <ActionButton icon="🔄" label="그래프 재분석" onClick={() => setReloadKey((k) => k + 1)} />
-          <ActionButton icon="📤" label="PNG 내보내기" onClick={exportPng} />
-          <ActionButton icon="🔍" label="영향도 시뮬레이션" onClick={simulateImpact} />
+          <ActionButton icon="refresh" label="그래프 재분석" onClick={() => setReloadKey((k) => k + 1)} />
+          <ActionButton icon="download" label="PNG 내보내기" onClick={exportPng} />
+          <ActionButton icon="search" label="영향도 시뮬레이션" onClick={simulateImpact} />
         </Card>
 
         <Card title="표시">
@@ -784,7 +769,7 @@ function Chip({ active, onClick, children }) {
       display: "flex", alignItems: "center", gap: 6,
       padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer",
       border: `1px solid ${active ? "var(--db-purple-400)" : "var(--border)"}`,
-      background: active ? "rgba(26,25,22,.08)" : "var(--surface)",
+      background: active ? "rgba(13,13,13,.08)" : "var(--surface)",
       color: active ? "var(--text-1)" : "var(--text-3)",
       transition: "var(--db-transition)",
     }}>{children}</button>
@@ -837,7 +822,7 @@ function StatToggle({ label, value, active, disabled, onClick, hint, color }) {
       display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%",
       padding: "7px 8px", margin: "4px 0 0", borderRadius: 8, cursor: disabled ? "default" : "pointer",
       border: `1px solid ${active ? (color || C.faint) : "transparent"}`,
-      background: active ? (color ? `${color}14` : C.soft) : "transparent",
+      background: active ? (color ? `${tint(color, 8)}` : C.soft) : "transparent",
       opacity: disabled ? 0.55 : 1,
     }}>
       <span style={{ fontSize: 12, color: color || C.muted }}>{label} {active ? "· 보는 중" : ""}</span>
@@ -857,7 +842,7 @@ function ActionButton({ icon, label, onClick }) {
     }}
     onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--db-border-mid)"; e.currentTarget.style.color = "var(--text-1)"; }}
     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-2)"; }}
-    ><span>{icon}</span>{label}</button>
+    ><Icon name={icon} size={13} />{label}</button>
   );
 }
 
@@ -888,7 +873,7 @@ function Legend({ summary, stepsShown }) {
     <div style={{
       position: "absolute", left: 16, bottom: 16, display: "flex", gap: 12, flexWrap: "wrap", maxWidth: "calc(100% - 32px)",
       padding: "8px 12px", borderRadius: 10, fontSize: 10.5,
-      background: "rgba(247,246,243,0.9)", backdropFilter: "blur(8px)",
+      background: "rgba(249,249,249,0.9)", backdropFilter: "blur(8px)",
       border: `1px solid ${C.border}`, color: C.muted,
     }}>
       {Object.entries(TYPE_STYLE)
@@ -899,7 +884,7 @@ function Legend({ summary, stepsShown }) {
       <LegendItem label="연결 안 됨">
         <i style={{
           width: 9, height: 9, borderRadius: "50%", background: "transparent",
-          border: `1.5px dashed #8f8c82`, display: "inline-block", boxSizing: "border-box",
+          border: `1.5px dashed #8f8f8f`, display: "inline-block", boxSizing: "border-box",
         }} />
       </LegendItem>
 
@@ -949,7 +934,7 @@ function Overlay({ children, tone }) {
       alignItems: "center", justifyContent: "center", textAlign: "center",
       fontSize: 13.5, lineHeight: 1.7,
       color: tone === "error" ? "#ef4444" : C.muted,
-      background: "rgba(247,246,243,0.82)",
+      background: "rgba(249,249,249,0.82)",
     }}>
       <div>{children}</div>
     </div>
@@ -973,7 +958,7 @@ function DetailPanel({ selection, onClose }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <div style={{
           padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700,
-          background: `${s.color}22`, border: `1px solid ${s.color}66`, color: s.color,
+          background: `${tint(s.color, 13)}`, border: `1px solid ${tint(s.color, 40)}`, color: s.color,
         }}>{s.label}</div>
         <button onClick={onClose} aria-label="선택 해제" style={{
           marginLeft: "auto", border: "none", background: "transparent", color: C.faint, cursor: "pointer", fontSize: 14,
@@ -1041,7 +1026,7 @@ function Note({ color, strong, children }) {
   return (
     <div style={{
       padding: "9px 11px", borderRadius: 7, fontSize: 12, lineHeight: 1.6, marginBottom: 10,
-      background: `${color}14`, border: `1px solid ${color}55`, color, fontWeight: strong ? 600 : 400,
+      background: `${tint(color, 8)}`, border: `1px solid ${tint(color, 33)}`, color, fontWeight: strong ? 600 : 400,
     }}>{children}</div>
   );
 }
@@ -1058,8 +1043,8 @@ function PullRequestDetail({ meta }) {
       <div style={{
         display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
         padding: "9px 11px", borderRadius: 7, fontSize: 12,
-        background: warnings > 0 ? `${IMPACT_COLOR}14` : C.soft,
-        border: `1px solid ${warnings > 0 ? `${IMPACT_COLOR}55` : C.border}`,
+        background: warnings > 0 ? `${tint(IMPACT_COLOR, 8)}` : C.soft,
+        border: `1px solid ${warnings > 0 ? `${tint(IMPACT_COLOR, 33)}` : C.border}`,
         color: warnings > 0 ? IMPACT_COLOR : C.muted,
       }}>
         <b style={{ fontVariantNumeric: "tabular-nums" }}>정합성 {meta.score}/100</b>

@@ -82,7 +82,7 @@ export function WorkspaceInviteDialog({
             padding: 16,
             borderRadius: 16,
             border: "1px solid rgba(0,0,0,0.08)",
-            background: "rgba(26,25,22,0.04)",
+            background: "color-mix(in srgb, var(--text-1) 4%, transparent)",
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: 10 }}>
               초대 코드
@@ -165,7 +165,7 @@ export function WorkspaceInviteDialog({
                     fontWeight: 700,
                     padding: "3px 8px",
                     borderRadius: 999,
-                    background: member.teamRole === "OWNER" ? "rgba(26,25,22,0.1)" : member.teamRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)",
+                    background: member.teamRole === "OWNER" ? "color-mix(in srgb, var(--text-1) 10%, transparent)" : member.teamRole === "GUEST" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)",
                     color: member.teamRole === "OWNER" ? "var(--text-1)" : member.teamRole === "GUEST" ? "#B45309" : "#2563EB",
                     whiteSpace: "nowrap",
                   }}>
@@ -185,7 +185,7 @@ export function WorkspaceInviteDialog({
             padding: 16,
             borderRadius: 16,
             border: "1px solid rgba(0,0,0,0.08)",
-            background: "rgba(26,25,22,0.03)",
+            background: "color-mix(in srgb, var(--text-1) 3%, transparent)",
           }}>
             <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.7 }}>
               워크스페이스 이름과 설명 수정, 소유자 이전, 멤버 권한 정리는 관리 탭에서 할 수 있어요.

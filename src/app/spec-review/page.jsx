@@ -33,8 +33,8 @@ export default function SpecReviewPage() {
     }).catch(() => { if (active) setRole(null); });
     return () => { active = false; };
   }, [isLoading, user, router]);
-  if (process.env.NEXT_PUBLIC_INTEGRATION_ENABLED !== "true") return <main style={{ minHeight: "100vh", background: "#f7f6f3" }}><p style={note}>연결 기능을 사용할 수 없습니다.</p></main>;
-  return <main style={{ minHeight: "100vh", background: "#f7f6f3" }}>
+  if (process.env.NEXT_PUBLIC_INTEGRATION_ENABLED !== "true") return <main style={{ minHeight: "100vh", background: "var(--bg)" }}><p style={note}>연결 기능을 사용할 수 없습니다.</p></main>;
+  return <main style={{ minHeight: "100vh", background: "var(--bg)" }}>
     {error && <p role="alert" style={{ ...note, color: "#b4413f" }}>{error}</p>}
     {target && <SpecChangeReview {...target} canApprove={role === "PM"}
       onProposalChanged={onProposalChanged}

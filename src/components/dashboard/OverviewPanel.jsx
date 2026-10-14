@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useCounter } from "@/hooks";
 
 /* ── Stat Card ── */
-function StatCard({ icon, label, value, unit="", sub, color="#6b6960", delay=0 }) {
+function StatCard({ icon, label, value, unit="", sub, color="var(--text-2)", delay=0 }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => { const t = setTimeout(() => setVisible(true), delay); return () => clearTimeout(t); }, [delay]);
 
@@ -18,9 +18,9 @@ function StatCard({ icon, label, value, unit="", sub, color="#6b6960", delay=0 }
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
         <div style={{
           width:42, height:42, borderRadius:10,
-          background:`rgba(${color === "#6b6960" ? "167,139,250" : color === "#10B981" ? "16,185,129" : color === "#3B82F6" ? "59,130,246" : "245,158,11"},.15)`,
+          background:`rgba(${color === "var(--text-2)" ? "167,139,250" : color === "#10B981" ? "16,185,129" : color === "#3B82F6" ? "59,130,246" : "245,158,11"},.15)`,
           display:"flex", alignItems:"center", justifyContent:"center", fontSize:20,
-          boxShadow:`0 0 14px rgba(${color === "#6b6960" ? "167,139,250" : "139,92,246"},.2)`,
+          boxShadow:`0 0 14px rgba(${color === "var(--text-2)" ? "167,139,250" : "139,92,246"},.2)`,
         }}>{icon}</div>
         <span style={{ fontSize:11, color:"var(--text-3)", background:"var(--border)", padding:"3px 8px", borderRadius:100 }}>24h</span>
       </div>
@@ -54,7 +54,7 @@ function ScoreRing({ score=72 }) {
           />
           <defs>
             <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#6b6960"/>
+              <stop offset="0%" stopColor="var(--text-2)"/>
               <stop offset="100%" stopColor="var(--text-1)"/>
             </linearGradient>
             <filter id="glow">
@@ -75,7 +75,7 @@ function ScoreRing({ score=72 }) {
         <div style={{ fontSize:15, fontWeight:700, marginBottom:4 }}>정합성 스코어</div>
         <div style={{ fontSize:12, color:"var(--text-3)", marginBottom:16 }}>현재 이커머스 리뉴얼 프로젝트</div>
         {[
-          { label:"API 명세", pct:88, color:"#6b6960" },
+          { label:"API 명세", pct:88, color:"var(--text-2)" },
           { label:"DB 스키마", pct:72, color:"#3B82F6" },
           { label:"QA 커버리지", pct:65, color:"#10B981" },
         ].map((item) => (
@@ -112,7 +112,7 @@ function ActivityFeed() {
       <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
         {ACTIVITIES.map((a, i) => {
           const colors = { green:"var(--text-2)", orange:"var(--text-3)", purple:"var(--db-purple-300)", blue:"var(--text-1)" };
-          const bgs    = { green:"var(--border)", orange:"var(--bg)", purple:"rgba(26,25,22,.12)", blue:"var(--border-2)" };
+          const bgs    = { green:"var(--border)", orange:"var(--bg)", purple:"color-mix(in srgb, var(--text-1) 12%, transparent)", blue:"var(--border-2)" };
           return (
             <div key={i} style={{
               display:"flex", gap:12, padding:"10px 12px",
@@ -192,7 +192,7 @@ function AgentStatus() {
 /* ── OverviewPanel (exported) ── */
 export function OverviewPanel() {
   const stats = [
-    { icon:"📁", label:"활성 프로젝트", value:3,  unit:"개", sub:"↑ 1 이번 주 신규", color:"#6b6960", delay:0   },
+    { icon:"📁", label:"활성 프로젝트", value:3,  unit:"개", sub:"↑ 1 이번 주 신규", color:"var(--text-2)", delay:0   },
     { icon:"⚡", label:"실행 중 파이프라인", value:2, unit:"개", sub:"평균 소요: 4분 23초", color:"#3B82F6", delay:80  },
     { icon:"📄", label:"생성된 명세서", value:47, unit:"건", sub:"Swagger 18 · Mermaid 29", color:"#10B981", delay:160 },
     { icon:"🔍", label:"탐지된 정합성 이슈", value:3, unit:"건", sub:"⚠️ 2 경고 · ❌ 1 오류", color:"#F59E0B", delay:240 },

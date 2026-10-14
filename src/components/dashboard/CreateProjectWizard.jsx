@@ -65,8 +65,8 @@ const PROBLEM_QS = [
 ];
 
 const MOSCOW_OPTIONS = [
-  { key: "Must",   color: "var(--text-1)", bg: "rgba(26,25,22,0.18)"  },
-  { key: "Should", color: "#3B82F6", bg: "rgba(107,105,96,0.18)"  },
+  { key: "Must",   color: "var(--text-1)", bg: "color-mix(in srgb, var(--text-1) 18%, transparent)"  },
+  { key: "Should", color: "#3B82F6", bg: "color-mix(in srgb, var(--text-2) 18%, transparent)"  },
   { key: "Could",  color: "#10B981", bg: "rgba(16,185,129,0.18)"  },
   { key: "Won't",  color: "#475569", bg: "rgba(71,85,105,0.18)"   },
 ];
@@ -354,7 +354,7 @@ function Step1({ data, onChange, aiTechStack, aiTechStackLoading }) {
                   padding: "10px 20px", borderRadius: 8, cursor: "pointer",
                   fontSize: 14, fontWeight: active ? 600 : 400,
                   border: active ? "1.5px solid var(--db-purple-400)" : "1.5px solid var(--border)",
-                  background: active ? "rgba(26,25,22,0.12)" : "var(--surface)",
+                  background: active ? "color-mix(in srgb, var(--text-1) 12%, transparent)" : "var(--surface)",
                   color: active ? "var(--db-purple-300)" : "var(--text-2)",
                   transition: "all 0.15s",
                 }}
@@ -381,7 +381,7 @@ function Step1({ data, onChange, aiTechStack, aiTechStackLoading }) {
               <span key={tag} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "4px 10px", borderRadius: 20,
-                background: "rgba(26,25,22,0.15)", border: "1px solid var(--db-border-mid)",
+                background: "color-mix(in srgb, var(--text-1) 15%, transparent)", border: "1px solid var(--db-border-mid)",
                 fontSize: 12, color: "var(--db-purple-300)",
               }}>
                 {tag}
@@ -569,7 +569,7 @@ function Step3({ data, onChange }) {
         style={{
           border: `2px dashed ${isDragging ? "var(--db-purple-400)" : "var(--db-border-mid)"}`,
           borderRadius: 12,
-          background: isDragging ? "rgba(26,25,22,0.08)" : "var(--surface)",
+          background: isDragging ? "color-mix(in srgb, var(--text-1) 8%, transparent)" : "var(--surface)",
           padding: "48px 24px",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
@@ -810,7 +810,7 @@ function Step5({ data, onChange }) {
                 <div key={feat.id} style={{
                   border: "1px solid var(--border)",
                   borderRadius: 10, padding: "14px 16px",
-                  background: state.checked ? "rgba(26,25,22,0.06)" : "transparent",
+                  background: state.checked ? "color-mix(in srgb, var(--text-1) 6%, transparent)" : "transparent",
                   transition: "background 0.15s",
                 }}>
                   <div

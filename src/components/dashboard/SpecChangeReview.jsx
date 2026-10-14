@@ -148,18 +148,18 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       {ready && !canApprove && <p>PM의 검토와 승인을 기다립니다.</p>}
     </footer>
     <style jsx>{`
-      .review-backdrop { position:fixed; inset:0; z-index:1000; background:rgba(26,25,22,.38); display:flex; align-items:center; justify-content:center; padding:24px; }
-      .review-dialog { width:min(1100px,100%); max-height:90vh; background:#f7f6f3; color:#1a1916; border:1px solid #dedcd5; border-radius:16px; display:flex; flex-direction:column; box-shadow:0 24px 80px #0002; outline:none; }
-      header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; } header { justify-content:space-between; border-bottom:1px solid #dedcd5; } footer { border-top:1px solid #dedcd5; }
-      h2 { font-size:22px; margin:4px 0; } h3 { font-size:17px; margin:24px 0 8px; } h4 { font-size:12px; color:#6b6960; } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:#6b6960; }
+      .review-backdrop { position:fixed; inset:0; z-index:1000; background:color-mix(in srgb, var(--text-1) 38%, transparent); display:flex; align-items:center; justify-content:center; padding:24px; }
+      .review-dialog { width:min(1100px,100%); max-height:90vh; background:var(--bg); color:var(--text-1); border:1px solid var(--border); border-radius:16px; display:flex; flex-direction:column; box-shadow:0 24px 80px #0002; outline:none; }
+      header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; } header { justify-content:space-between; border-bottom:1px solid var(--border); } footer { border-top:1px solid var(--border); }
+      h2 { font-size:22px; margin:4px 0; } h3 { font-size:17px; margin:24px 0 8px; } h4 { font-size:12px; color:var(--text-2); } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:var(--text-2); }
       .review-body { overflow:auto; padding:16px 24px; } .review-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .review-columns>div { min-width:0; }
-      pre { border:1px solid #dedcd5; border-radius:8px; padding:16px; background:white; overflow:auto; max-height:430px; font-size:12px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
-      button { padding:10px 15px; border:1px solid #ccc9bf; border-radius:8px; color:#1a1916; background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
-      .review-primary { background:#1a1916; color:white; border-color:#1a1916; } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
+      pre { border:1px solid var(--border); border-radius:8px; padding:16px; background:white; overflow:auto; max-height:430px; font-size:12px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
+      button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
+      .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
-      .review-pass { color:#0f7a53; } .review-note { color:#6b6960; } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
-      fieldset { border:1px solid #dedcd5; border-radius:8px; } legend { font-size:13px; }
-      .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid #ccc9bf; border-radius:8px; }
+      .review-pass { color:#0f7a53; } .review-note { color:var(--text-2); } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
+      fieldset { border:1px solid var(--border); border-radius:8px; } legend { font-size:13px; }
+      .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid var(--border-2); border-radius:8px; }
       @media(max-width:700px) { .review-backdrop { padding:8px; } .review-columns { grid-template-columns:1fr; } header,footer,.review-body { padding:16px; } h2 { font-size:19px; } }
     `}</style>
   </section></div>;

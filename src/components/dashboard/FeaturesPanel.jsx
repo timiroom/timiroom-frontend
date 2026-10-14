@@ -11,6 +11,9 @@
  *   3순위: 빈 상태 안내
  */
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, Icon, PanelTitle } from "@/components/ui";
+import { tint } from "@/lib/color";
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
@@ -35,14 +38,14 @@ import {
 
 const C = {
   bg:        "var(--surface)",
-  surface:   "#f7f6f3",
+  surface:   "var(--bg)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   sub:       "var(--text-3)",
-  accent:    "#6b6960",
-  accentBg:  "rgba(107,105,96,0.1)",
-  accentBdr: "rgba(107,105,96,0.25)",
+  accent:    "var(--text-2)",
+  accentBg:  "color-mix(in srgb, var(--text-2) 10%, transparent)",
+  accentBdr: "color-mix(in srgb, var(--text-2) 25%, transparent)",
   card:      "var(--surface)",
 };
 
@@ -183,8 +186,8 @@ const PRIORITY_META = {
 
 function PriorityBadge({ priority }) {
   const meta = PRIORITY_META[priority] || {
-    label: priority || "—", bg: "rgba(107,105,96,0.1)",
-    border: "rgba(107,105,96,0.3)", text: "#6b6960",
+    label: priority || "—", bg: "color-mix(in srgb, var(--text-2) 10%, transparent)",
+    border: "color-mix(in srgb, var(--text-2) 30%, transparent)", text: "var(--text-2)",
   };
   return (
     <span style={{
@@ -225,10 +228,10 @@ function FeatureCard({ feature, index, onUpdate }) {
           onChange={e => update(field, e.target.value)}
           onBlur={() => setEditing(null)}
           style={{
-            width: "100%", resize: "vertical", border: `1px solid rgba(107,105,96,0.3)`,
+            width: "100%", resize: "vertical", border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`,
             borderRadius: 5, padding: "6px 8px", fontSize: style?.fontSize || 13,
             fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
-            background: "rgba(107,105,96,0.04)", outline: "none", color: C.text,
+            background: "color-mix(in srgb, var(--text-2) 4%, transparent)", outline: "none", color: C.text,
           }}
           rows={3}
         />
@@ -242,10 +245,10 @@ function FeatureCard({ feature, index, onUpdate }) {
         onBlur={() => setEditing(null)}
         onKeyDown={e => e.key === "Enter" && setEditing(null)}
         style={{
-          border: `1px solid rgba(107,105,96,0.3)`,
+          border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`,
           borderRadius: 5, padding: "4px 8px",
           fontSize: style?.fontSize || 14, fontWeight: style?.fontWeight || 600,
-          fontFamily: "inherit", background: "rgba(107,105,96,0.04)",
+          fontFamily: "inherit", background: "color-mix(in srgb, var(--text-2) 4%, transparent)",
           outline: "none", color: C.text, width: "100%",
         }}
       />
@@ -255,7 +258,7 @@ function FeatureCard({ feature, index, onUpdate }) {
   return (
     <div style={{
       borderRadius: 10,
-      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
+      border: `1px solid ${open ? "color-mix(in srgb, var(--text-2) 20%, transparent)" : C.border}`,
       background: open ? C.surface : C.card,
       marginBottom: 8, overflow: "hidden", transition: "all 0.15s",
     }}>
@@ -270,7 +273,7 @@ function FeatureCard({ feature, index, onUpdate }) {
       >
         <span style={{
           width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-          background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.2)",
+          background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 700, color: C.accent,
         }}>
@@ -385,7 +388,7 @@ function SimpleFeatureRow({ name, index, onUpdate }) {
     }}>
       <span style={{
         width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-        background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.2)",
+        background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 11, fontWeight: 700, color: C.accent,
       }}>
@@ -399,9 +402,9 @@ function SimpleFeatureRow({ name, index, onUpdate }) {
           onBlur={() => { setEditing(false); onUpdate(index, draft); }}
           onKeyDown={e => { if (e.key === "Enter") { setEditing(false); onUpdate(index, draft); } }}
           style={{
-            flex: 1, border: `1px solid rgba(107,105,96,0.3)`, borderRadius: 5,
+            flex: 1, border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`, borderRadius: 5,
             padding: "3px 8px", fontSize: 14, fontFamily: "inherit",
-            background: "rgba(107,105,96,0.04)", outline: "none", color: C.text,
+            background: "color-mix(in srgb, var(--text-2) 4%, transparent)", outline: "none", color: C.text,
           }}
         />
       ) : (
@@ -658,7 +661,7 @@ function FeaturePlanningCard({
     }}>
       <div className="feature-card-header" style={{
         display: "flex", alignItems: "center", gap: 14, padding: "18px 20px",
-        borderBottom: `1px solid ${C.border}`, background: "linear-gradient(135deg, #fbfcfe 0%, #f7f6f3 100%)",
+        borderBottom: `1px solid ${C.border}`, background: "linear-gradient(135deg, #fbfcfe 0%, var(--bg) 100%)",
       }}>
         <div style={{
           width: 42, height: 42, borderRadius: 12, flexShrink: 0,
@@ -1217,7 +1220,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       onDocumentSaved?.({ sourceType: "FEATURE_LIST", document: editedFeatures });
       markSaved();
     } catch (e) {
-      alert("저장 실패: " + e.message);
+      toast.error("저장 실패: " + e.message);
     } finally {
       setSaving(false);
     }
@@ -1457,26 +1460,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
           justifyContent: "space-between", background: C.surface,
         }}>
           <div className="features-panel-title" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            {project && (
-              <>
-                <div style={{
-                  width: 22, height: 22, borderRadius: 6,
-                  background: `${project.color || "var(--text-1)"}22`,
-                  border: `1px solid ${project.color || "var(--text-1)"}44`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-                }}>
-                  {(project.name || "P").charAt(0).toUpperCase()}
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-                <span style={{ fontSize: 13, color: C.sub }}>›</span>
-              </>
-            )}
-            <span style={{
-              fontSize: 13, fontWeight: 500, color: "#a78bfa",
-              padding: "2px 8px", borderRadius: 6,
-              background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)",
-            }}>기능 명세서</span>
+            <PanelTitle project={project} label="기능 명세서" />
             {total > 0 && (
               <span style={{
                 fontSize: 11, color: C.muted, padding: "2px 8px", borderRadius: 10,
@@ -1486,37 +1470,13 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
           </div>
 
           <div className="features-panel-actions" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {saved && (
-              <span style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 5,
-                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
-                color: "#34d399", fontWeight: 600,
-              }}>✓ 저장됨</span>
-            )}
+            {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
 
             {/* 저장 버튼 */}
             {total > 0 && (
-              <button
-                onClick={handleSave}
-                disabled={saving || !canSave}
-                title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                  background: canSave ? "rgba(96,165,250,0.12)" : "rgba(0,0,0,0.04)",
-                  border: `1px solid ${canSave ? "rgba(96,165,250,0.35)" : "rgba(0,0,0,0.08)"}`,
-                  color: canSave ? "#60a5fa" : "#9ca3af",
-                  cursor: saving || !canSave ? "not-allowed" : "pointer",
-                  opacity: saving ? 0.7 : 1, transition: "all 0.15s",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/>
-                  <polyline points="7 3 7 8 15 8"/>
-                </svg>
-                {saving ? "저장 중..." : "저장"}
-              </button>
+              <ActionButton variant="primary" onClick={handleSave} disabled={saving || !canSave} title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}>
+                <Icon name="save" size={12} /> {saving ? "저장 중..." : "저장"}
+              </ActionButton>
             )}
 
             {/* 검색 */}
@@ -1676,9 +1636,9 @@ function EmptyState() {
         width: 56, height: 56, borderRadius: 16,
         background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)",
         display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-      }}>⚡</div>
+      }}><Icon name="list" size={26} strokeWidth={1.6} /></div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1916", marginBottom: 6 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>
           기능 명세가 없습니다
         </div>
         <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.6 }}>
