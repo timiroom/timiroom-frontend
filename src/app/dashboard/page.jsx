@@ -23,7 +23,7 @@ import { ErdPanel } from "@/components/dashboard/ErdPanel";
 import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
-import { WorkspaceManagementView } from "@/components/dashboard/workspace/WorkspaceManagementView";
+import { CommitHistoryView } from "@/components/dashboard/CommitHistoryView";
 import { GithubIssuesPanel } from "@/components/dashboard/GithubIssuesPanel";
 import { GithubPullRequestsPanel } from "@/components/dashboard/GithubPullRequestsPanel";
 import { GithubWorkspacePanel } from "@/components/dashboard/GithubWorkspacePanel";
@@ -80,6 +80,7 @@ const DOC_LABELS = {
   github: "GitHub 작업",
   issues: "Issues 전체",
   pulls: "PRs 전체",
+  commits: "커밋 기록",
   graph: "지식 그래프",
   qa: "QA",
 };
@@ -372,7 +373,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
-  const [activeMode, setActiveMode] = useState("projects");
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedView, setSelectedView] = useState(null);
@@ -388,7 +388,6 @@ export default function DashboardPage() {
   const [workspaceDetail, setWorkspaceDetail] = useState(null);
   const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
   const [isLoadingWorkspaceDetail, setIsLoadingWorkspaceDetail] = useState(false);
-  const [workspaceManagementFocus, setWorkspaceManagementFocus] = useState("overview");
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -406,7 +405,6 @@ export default function DashboardPage() {
   const [specStatusTick, setSpecStatusTick] = useState(0);
   const integrationEnabled = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
   const incomingProjectHandled = useRef(false);
-  const incomingWorkspaceHandled = useRef(false);
   const selectedProjectIdRef = useRef(null);
   const runningPipelineRef = useRef(null);
   const documentSyncRequestRef = useRef(0);
@@ -476,18 +474,6 @@ export default function DashboardPage() {
     const timeoutId = window.setTimeout(() => setDocumentSync(null), 7000);
     return () => window.clearTimeout(timeoutId);
   }, [documentSync]);
-
-  function handleModeChange(nextMode) {
-    setActiveMode(nextMode);
-    if (nextMode === "workspace") {
-      setWorkspaceManagementFocus((current) => current || "overview");
-    }
-  }
-
-  function openWorkspaceManager(section = "overview") {
-    setWorkspaceManagementFocus(section);
-    setActiveMode("workspace");
-  }
 
   function applyActiveWorkspaceId(teamId) {
     persistActiveTeamId(teamId);
@@ -688,22 +674,6 @@ export default function DashboardPage() {
     }).catch(() => { /* Existing project loaders display access and loading state. */ });
   }, [authLoading, user, isLoadingWorkspaces, activeWorkspaceId]);
 
-  // 마이페이지의 "대시보드에서 관리하기"는 /dashboard?workspace={teamId}로 온다.
-  // 내가 속한 워크스페이스면 그 워크스페이스로 바꾸고 관리 화면을 연다.
-  useEffect(() => {
-    if (authLoading || !user || isLoadingWorkspaces || incomingWorkspaceHandled.current) return;
-    incomingWorkspaceHandled.current = true;
-    const query = new URLSearchParams(window.location.search);
-    const requested = query.get("workspace");
-    if (!requested) return;
-    query.delete("workspace");
-    window.history.replaceState(null, "", `/dashboard${query.toString() ? `?${query}` : ""}`);
-    const target = workspaces.find((workspace) => String(workspace.teamId ?? workspace.id) === requested);
-    if (!target) return;
-    applyActiveWorkspaceId(target.teamId ?? target.id);
-    openWorkspaceManager("overview");
-  }, [authLoading, user, isLoadingWorkspaces, workspaces]);
-
   if (authLoading) {
     return (
       <div style={{
@@ -727,7 +697,7 @@ export default function DashboardPage() {
   }
 
   /* 프로젝트 삭제는 워크스페이스 OWNER만 가능하다 (서버: ProjectService.delete → requireOwner).
-     WorkspaceManagementView와 같은 기준으로 판정해 두 화면이 어긋나지 않게 한다. */
+     설정 > 워크스페이스와 같은 기준으로 판정해 두 화면이 어긋나지 않게 한다. */
   const viewerRole = workspaceDetail?.viewerRole ?? workspaceDetail?.team?.viewerRole ?? "";
   const isWorkspaceOwner = viewerRole === "OWNER";
 
@@ -775,7 +745,6 @@ export default function DashboardPage() {
 
   function activateTab(tab) {
     setActiveTabId(tab.id);
-    setActiveMode("projects");
     setShowWizard(false);
     const project = projects.find((p) => String(p.id) === String(tab.projectId)) ?? null;
     setSelectedProject(project);
@@ -1005,7 +974,6 @@ export default function DashboardPage() {
     }
 
     applyActiveWorkspaceId(nextWorkspaceId);
-    setActiveMode("projects");
     setShowWizard(false);
     setSelectedView(null);
     setOpenTabs([]);
@@ -1164,20 +1132,8 @@ export default function DashboardPage() {
         background: "var(--surface)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
-        <ActivityBar
-          activeMode={activeMode}
-          onModeChange={handleModeChange}
-          workspaces={workspaces}
-          activeWorkspaceId={activeWorkspaceId}
-          workspacesLoading={isLoadingWorkspaces}
-          onSelectWorkspace={handleSelectWorkspace}
-          onCreateWorkspace={() => {
-            setComposerError("");
-            setComposerOpen(true);
-          }}
-        />
+        <ActivityBar />
         <ContextPanel
-          mode={activeMode}
           projects={projects}
           selectedProject={selectedProject}
           onSelectProject={handleSelectProject}
@@ -1189,35 +1145,18 @@ export default function DashboardPage() {
             setComposerError("");
             setComposerOpen(true);
           }}
-          onOpenWorkspaceManage={() => openWorkspaceManager("overview")}
-          onOpenWorkspaceMembers={() => openWorkspaceManager("members")}
           onDeleteProject={isWorkspaceOwner ? handleDeleteProject : undefined}
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          workspacesLoading={isLoadingWorkspaces}
+          onSelectWorkspace={handleSelectWorkspace}
           workspace={workspaceDetail?.team ?? activeWorkspace}
-          workspaceMembers={workspaceDetail?.members ?? []}
-          workspaceLoading={isLoadingWorkspaceDetail}
-          onOpenWorkspaceInvite={() => openWorkspaceManager("invite")}
           documentSync={documentSync}
           editingDocumentType={editingDocumentType}
           collapsed={contextPanelCollapsed}
         />
 
-        {activeMode === "workspace" ? (
-          <WorkspaceManagementView
-            activeWorkspaceId={activeWorkspaceId}
-            workspaceDetail={workspaceDetail}
-            workspaceLoading={isLoadingWorkspaceDetail}
-            currentUserId={user?.id ?? null}
-            onOpenComposer={() => {
-              setComposerError("");
-              setComposerOpen(true);
-            }}
-            focusedSection={workspaceManagementFocus}
-            onReloadWorkspace={loadWorkspaceDetail}
-            onReloadWorkspaces={loadWorkspaces}
-            onBack={() => setActiveMode("projects")}
-            onToggleSidebar={() => setContextPanelCollapsed((v) => !v)}
-          />
-        ) : showWizard ? (
+        {showWizard ? (
           activeWorkspaceId ? (
             <div style={{ flex: 1, overflow: "hidden" }}>
               <ProjectChatWizard
@@ -1301,6 +1240,8 @@ export default function DashboardPage() {
                 <GithubIssuesPanel project={selectedProject} canManage={myProjectRole === "PM"} />
               ) : selectedView === "pulls" ? (
                 <GithubPullRequestsPanel project={selectedProject} canManage={myProjectRole === "PM"} />
+              ) : selectedView === "commits" ? (
+                <CommitHistoryView project={selectedProject} />
               ) : (
                 <AgentPanel project={selectedProject} view={selectedView} />
               )}
