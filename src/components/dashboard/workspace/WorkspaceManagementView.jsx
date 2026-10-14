@@ -34,7 +34,7 @@ const C = {
 const STATUS_META = {
   active:    { label: "진행 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
   running:   { label: "생성 중", color: "#6b55dc", bg: "rgba(107,85,220,0.1)" },
-  draft:     { label: "초안",    color: "#a8a69f", bg: "rgba(168,166,159,0.12)" },
+  draft:     { label: "기획 중", color: "#a8a69f", bg: "rgba(168,166,159,0.12)" },
   completed: { label: "완료",    color: "#10B981", bg: "rgba(16,185,129,0.1)"  },
   paused:    { label: "정지",    color: "#f59e0b", bg: "rgba(245,158,11,0.1)"  },
   archived:  { label: "보관",    color: "#6b7280", bg: "rgba(107,114,128,0.1)" },

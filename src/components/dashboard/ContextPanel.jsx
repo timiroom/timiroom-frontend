@@ -50,8 +50,8 @@ function IconGear() {
 
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
-  active:    { label: "진행중", color: "#a8a69f" },
-  draft:     { label: "초안",   color: "#6b7280" },
+  active:    { label: "진행 중", color: "#a8a69f" },
+  draft:     { label: "기획 중", color: "#6b7280" },
   completed: { label: "완료",   color: "#6b6960" },
   archived:  { label: "보관",   color: "#4b5563" },
   running:   { label: "생성 중", color: "#6b55dc" },

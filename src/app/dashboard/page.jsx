@@ -400,6 +400,8 @@ export default function DashboardPage() {
   const [myProjectRole, setMyProjectRole] = useState(null);
   const [specReview, setSpecReview] = useState(null);
   const [publishing, setPublishing] = useState(false);
+  const [specStatus, setSpecStatus] = useState(null); // null(모름) | { state: "none"|"match"|"differ", revision }
+  const [specStatusTick, setSpecStatusTick] = useState(0);
   const integrationEnabled = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
   const incomingProjectHandled = useRef(false);
   const selectedProjectIdRef = useRef(null);
@@ -447,6 +449,20 @@ export default function DashboardPage() {
       })
       .catch(() => setMyProjectRole(null));
   }, [selectedProject?.id, user?.id]);
+
+  /* 발행 기준과 화면의 문서를 대조해 안내 바가 보여 줄 상태를 정한다. */
+  useEffect(() => {
+    if (!integrationEnabled || !selectedProject?.id) { setSpecStatus(null); return undefined; }
+    let active = true;
+    latestSnapshot(selectedProject.id)
+      .then(async (snapshot) => {
+        const checks = await Promise.all(snapshot.documents.map((doc) => sourceMatchesSnapshot(selectedProject, doc.type, doc)));
+        if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision });
+      })
+      .catch((error) => { if (active) setSpecStatus(error.code === "SPEC_NOT_PUBLISHED" ? { state: "none" } : null); });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 문서 원본이 바뀔 때만 다시 대조한다
+  }, [integrationEnabled, selectedProject?.id, selectedProject?.artifactSources, specStatusTick]);
 
   useEffect(() => {
     runningPipelineRef.current = runningPipeline;
@@ -929,7 +945,7 @@ export default function DashboardPage() {
 
   async function handlePublishSnapshot() {
     setPublishing(true);
-    try { const snapshot = await publishSnapshot(selectedProject.id); showToast("success", `명세 기준 revision ${snapshot.revision}을 발행했습니다.`); }
+    try { const snapshot = await publishSnapshot(selectedProject.id); showToast("success", `명세 기준 revision ${snapshot.revision}을 발행했습니다.`); setSpecStatusTick((n) => n + 1); }
     catch (error) { showToast("error", error.message); }
     finally { setPublishing(false); }
   }
@@ -1099,7 +1115,7 @@ export default function DashboardPage() {
       {integrationEnabled && specReview && <SpecChangeReview
         project={specReview.project} draft={specReview.draft} proposalId={specReview.proposalId}
         canApprove={myProjectRole === "PM"} allowedTargets={ROLE_DOCUMENT_PERMISSIONS[myProjectRole] || []}
-        onClose={() => setSpecReview(null)} onApproved={() => loadArtifacts(specReview.project)}
+        onClose={() => setSpecReview(null)} onApproved={async () => { await loadArtifacts(specReview.project); setSpecStatusTick((n) => n + 1); }}
       />}
       <style>{`
         @keyframes dash-panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
@@ -1218,6 +1234,7 @@ export default function DashboardPage() {
               {integrationEnabled && (
                 <SpecChangeBar
                   projectId={selectedProject.id}
+                  status={specStatus}
                   canPublish={myProjectRole === "PM"}
                   publishing={publishing}
                   onReload={() => loadArtifacts(selectedProject)}
