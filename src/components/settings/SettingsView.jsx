@@ -5,27 +5,28 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { rememberAuthReturnTo } from "@/lib/authConfig";
 import { getActiveTeamId, getMyTeams, getPreferredTeam, getTeamWorkspace, setActiveTeamId } from "@/lib/teamApi";
-import { fetchProjects, fetchProjectsByTeam } from "@/lib/projectApi";
-import { ActionButton, SettingsHeader, SettingsLayout, SettingsNav } from "@/components/ui";
+import { fetchProjects } from "@/lib/projectApi";
+import { buildDashboardUrl } from "@/lib/dashboardUrl";
+import { ActionButton, Avatar, SettingsHeader, SettingsLayout, SettingsNav } from "@/components/ui";
 import { Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import { AiToolConnectionsPanel } from "@/components/dashboard/mypage/AiToolConnectionsPanel";
 import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { ProfileSettings } from "./ProfileSettings";
 import { WorkspaceSettings, WORKSPACE_PAGES } from "./WorkspaceSettings";
-import { ProjectSettings, PROJECT_PAGES } from "./ProjectSettings";
 
 const INTEGRATION_ENABLED = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
+const WORKSPACE_ICONS = { general: "wrench", members: "users", github: "box", manage: "warning" };
 
 function teamIdOf(team) {
   return team?.teamId ?? team?.id ?? null;
 }
 
 /**
- * /settings 전체. 주소가 곧 페이지다.
+ * /settings — 내 계정과 워크스페이스 설정. 주소가 곧 페이지다.
  *   /settings/profile, /settings/connections
  *   /settings/workspace/{general|members|github|manage}
- *   /settings/project/{id}/{general|repositories|members|delete}
- * 워크스페이스·프로젝트 설정은 대시보드에서 고른 현재 워크스페이스 기준이다.
+ * 프로젝트 설정은 범위가 다르므로 여기 두지 않고 대시보드의 프로젝트 안(설정 탭)에 둔다.
+ * 예전 주소 /settings/project/{id}/{tab}은 그 탭으로 넘긴다.
  */
 export function SettingsView({ section = [] }) {
   const router = useRouter();
@@ -37,7 +38,6 @@ export function SettingsView({ section = [] }) {
   const [activeTeamId, setActiveTeamIdState] = useState(null);
   const [workspaceDetail, setWorkspaceDetail] = useState(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
-  const [projects, setProjects] = useState([]);
   const [allProjects, setAllProjects] = useState([]);
 
   // 잘못된 주소나 /settings 자체는 프로필로 보낸다.
@@ -47,12 +47,14 @@ export function SettingsView({ section = [] }) {
       const page = WORKSPACE_PAGES[first] ? first : "general";
       return { key: `workspace:${page}`, page };
     }
-    if (area === "project" && /^[1-9][0-9]*$/.test(first ?? "")) {
-      const page = PROJECT_PAGES[second] ? second : "general";
-      return { key: `project:${first}:${page}`, projectId: first, page };
-    }
     return { key: "profile" };
-  }, [area, first, second]);
+  }, [area, first]);
+
+  useEffect(() => {
+    if (area === "project" && /^[1-9][0-9]*$/.test(first ?? "")) {
+      router.replace(buildDashboardUrl({ projectId: first, view: "settings", tab: second || "general" }));
+    }
+  }, [area, first, second, router]);
 
   useEffect(() => {
     if (authLoading || user) return;
@@ -78,7 +80,7 @@ export function SettingsView({ section = [] }) {
     }
   }, []);
 
-  const loadWorkspace = useCallback(async (teamId = activeTeamId) => {
+  const loadWorkspace = useCallback(async (teamId) => {
     if (teamId == null) { setWorkspaceDetail(null); return; }
     setWorkspaceLoading(true);
     try {
@@ -88,24 +90,12 @@ export function SettingsView({ section = [] }) {
     } finally {
       setWorkspaceLoading(false);
     }
-  }, [activeTeamId]);
-
-  const loadProjects = useCallback(async (teamId = activeTeamId) => {
-    if (teamId == null) { setProjects([]); return; }
-    try {
-      const list = await fetchProjectsByTeam(teamId);
-      setProjects(Array.isArray(list) ? list : []);
-    } catch {
-      setProjects([]);
-    }
-  }, [activeTeamId]);
+  }, []);
 
   useEffect(() => { if (user) loadTeams(); }, [user, loadTeams]);
   useEffect(() => {
-    if (!user || activeTeamId == null) return;
-    loadWorkspace(activeTeamId);
-    loadProjects(activeTeamId);
-  }, [user, activeTeamId, loadWorkspace, loadProjects]);
+    if (user && activeTeamId != null) loadWorkspace(activeTeamId);
+  }, [user, activeTeamId, loadWorkspace]);
   useEffect(() => {
     if (!user || route.key !== "connections") return;
     fetchProjects().then(setAllProjects).catch(() => setAllProjects([]));
@@ -114,56 +104,64 @@ export function SettingsView({ section = [] }) {
   function handleSelectWorkspace(teamId) {
     setActiveTeamId(teamId);
     setActiveTeamIdState(teamId);
-    // 다른 워크스페이스의 프로젝트 설정을 보고 있었다면 워크스페이스 설정으로 옮긴다.
-    if (route.projectId) router.push("/settings/workspace/general");
   }
 
   const backToDashboard = useCallback(() => router.push("/dashboard"), [router]);
 
-  if (authLoading || !user) {
+  if (authLoading || !user || area === "project") {
     return <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><Spinner /></div>;
   }
 
-  const workspaceItems = Object.entries(WORKSPACE_PAGES).map(([page, label]) => ({
-    key: `workspace:${page}`,
-    label: page === "manage" && workspaceDetail?.viewerRole && workspaceDetail.viewerRole !== "OWNER" ? "나가기" : label,
-    href: `/settings/workspace/${page}`,
-    danger: page === "manage",
-  }));
-  const projectItems = projects.flatMap((project) => {
-    const open = String(project.id) === String(route.projectId);
-    const item = { key: `project:${project.id}`, label: project.name, href: `/settings/project/${project.id}/general` };
-    if (!open) return [item];
-    return [item, ...Object.entries(PROJECT_PAGES).map(([page, label]) => ({
-      key: `project:${project.id}:${page}`, label, href: `/settings/project/${project.id}/${page}`, depth: 1, danger: page === "delete",
-    }))];
-  });
+  const isOwner = workspaceDetail?.viewerRole === "OWNER";
+  const userName = user?.name || user?.email || "사용자";
 
   const nav = (
     <SettingsNav
       active={route.key}
       groups={[
         {
-          label: "내 계정",
+          // 내 계정: 그룹 제목 대신 내 사진·이름 카드를 둔다.
+          top: (
+            <div className="ui-set-nav__me">
+              <Avatar name={userName} src={user?.avatarUrl} size={32} />
+              <div style={{ minWidth: 0 }}>
+                <strong>{userName}</strong>
+                {user?.email && <span>{user.email}</span>}
+              </div>
+            </div>
+          ),
           items: [
-            { key: "profile", label: "프로필", href: "/settings/profile" },
-            ...(INTEGRATION_ENABLED ? [{ key: "connections", label: "연결된 도구", href: "/settings/connections" }] : []),
+            { key: "profile", label: "프로필", href: "/settings/profile", icon: "users" },
+            ...(INTEGRATION_ENABLED ? [{ key: "connections", label: "연결된 도구", href: "/settings/connections", icon: "link" }] : []),
           ],
         },
         {
+          // 워크스페이스: 그룹 제목 아래 전환 드롭다운, 그 아래 현재 워크스페이스의 설정 메뉴
           label: "워크스페이스",
           top: <div className="ui-set-nav__switch"><WorkspaceSwitcher workspaces={teams} activeId={activeTeamId} onSelect={handleSelectWorkspace} loading={teamsLoading} /></div>,
-          items: teams.length ? workspaceItems : [],
+          items: teams.length ? Object.entries(WORKSPACE_PAGES).map(([page, label]) => ({
+            key: `workspace:${page}`,
+            label: page === "manage" && workspaceDetail && !isOwner ? "나가기" : label,
+            href: `/settings/workspace/${page}`,
+            icon: WORKSPACE_ICONS[page],
+            danger: page === "manage",
+          })) : [],
         },
-        ...(projectItems.length ? [{ label: "프로젝트", items: projectItems }] : []),
       ]}
     />
   );
 
   let content;
-  if (route.key === "profile") content = <ProfileSettings />;
-  else if (route.key === "connections") content = <><SettingsHeader title="연결된 도구" meta={<span>Codex·Claude Code 같은 AI 도구와 Slack을 연결합니다.</span>} /><AiToolConnectionsPanel projects={allProjects} /></>;
-  else if (route.page && route.key.startsWith("workspace:")) {
+  if (route.key === "profile") {
+    content = <ProfileSettings />;
+  } else if (route.key === "connections") {
+    content = (
+      <>
+        <SettingsHeader eyebrow="내 계정" title="연결된 도구" meta={<span>Codex·Claude Code 같은 AI 도구와 Slack을 연결합니다.</span>} />
+        <AiToolConnectionsPanel projects={allProjects} />
+      </>
+    );
+  } else {
     content = (
       <WorkspaceSettings
         page={route.page}
@@ -174,16 +172,6 @@ export function SettingsView({ section = [] }) {
         onReloadWorkspace={() => loadWorkspace(activeTeamId)}
         onReloadWorkspaces={loadTeams}
         onWorkspaceGone={backToDashboard}
-      />
-    );
-  } else {
-    content = (
-      <ProjectSettings
-        key={route.projectId}
-        projectId={route.projectId}
-        page={route.page}
-        onProjectGone={backToDashboard}
-        onProjectChanged={() => loadProjects(activeTeamId)}
       />
     );
   }

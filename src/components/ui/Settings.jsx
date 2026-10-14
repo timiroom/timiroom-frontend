@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "./Icon";
 
 /**
  * 설정 화면(/settings) 공통 틀. 내 계정·워크스페이스·프로젝트 설정이 모두 이 틀을 쓴다.
@@ -28,8 +29,8 @@ export function SettingsLayout({ nav, children }) {
 
 /**
  * 왼쪽 섹션 목록. 섹션마다 따로 페이지이므로 항목은 링크다.
- *   groups: [{ label?, top?, items: [{ key, label, href, danger?, depth? }] }]
- *   top에는 그룹 제목 아래에 둘 요소(워크스페이스 선택 등)를 넣는다.
+ *   groups: [{ label?, top?, items: [{ key, label, href, icon?, danger? }] }]
+ *   top에는 그룹 맨 위에 둘 요소(내 계정 카드, 워크스페이스 선택)를 넣는다. 그룹 사이에는 구분선이 들어간다.
  */
 export function SettingsNav({ groups, active, label = "설정 메뉴" }) {
   return (
@@ -42,10 +43,11 @@ export function SettingsNav({ groups, active, label = "설정 메뉴" }) {
             <Link
               key={item.key}
               href={item.href}
-              className={`ui-set-nav__item${active === item.key ? " is-active" : ""}${item.danger ? " is-danger" : ""}${item.depth ? " is-nested" : ""}`}
+              className={`ui-set-nav__item${active === item.key ? " is-active" : ""}${item.danger ? " is-danger" : ""}`}
               aria-current={active === item.key ? "page" : undefined}
             >
-              {item.label}
+              {item.icon && <Icon name={item.icon} size={15} strokeWidth={1.8} />}
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -54,12 +56,13 @@ export function SettingsNav({ groups, active, label = "설정 메뉴" }) {
   );
 }
 
-/** 설정 화면 맨 위의 제목 줄. leading에는 아이콘·아바타, meta에는 배지 같은 보조 정보를 둔다. */
-export function SettingsHeader({ leading, title, meta, description, actions }) {
+/** 설정 화면 맨 위의 제목 줄. eyebrow는 지금 어느 범위(내 계정, 워크스페이스 이름)인지 알려 주는 작은 글씨다. */
+export function SettingsHeader({ eyebrow, leading, title, meta, description, actions }) {
   return (
     <header className="ui-set-header">
       {leading}
       <div className="ui-set-header__text">
+        {eyebrow && <div className="ui-set-header__eyebrow">{eyebrow}</div>}
         <h1 className="ui-set-header__title">{title}</h1>
         {meta && <div className="ui-set-header__meta">{meta}</div>}
         {description && <p className="ui-set-header__desc">{description}</p>}
@@ -131,6 +134,8 @@ export function Avatar({ name, src, size = 32, square = false }) {
   const style = { width: size, height: size, fontSize: Math.round(size * 0.4) };
   return (
     <span className={`ui-avatar${square ? " ui-avatar--square" : ""}`} style={style} aria-hidden="true">
+      {/* 사진은 사용자가 올린 외부 주소라 next/image 허용 도메인 설정 없이 그대로 그린다. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       {src ? <img src={src} alt="" /> : (name || "?").trim().charAt(0).toUpperCase()}
     </span>
   );

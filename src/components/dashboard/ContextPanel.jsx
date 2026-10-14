@@ -11,7 +11,6 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { ActionButton, Badge, Icon, SearchInput } from "@/components/ui";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarAccount } from "./SidebarAccount";
@@ -40,6 +39,9 @@ const PROJECT_DOCS = [
   { id: "commits",   label: "커밋 기록",   icon: "list" },
   { id: "qa",        label: "QA",          icon: "chat" },
 ];
+
+/* 문서 목록 맨 아래에 따로 두는 프로젝트 설정. 본문에 가로 탭 화면(ProjectSettingsView)으로 열린다. */
+const SETTINGS_DOC = { id: "settings", label: "프로젝트 설정", icon: "wrench" };
 
 const SYNC_DOCUMENT_TYPES = {
   prd: "PRD",
@@ -176,10 +178,12 @@ function ProjectsPanel({
                         onClick={e => handleDocClick(project, doc.id, e)}
                       />
                     ))}
-                    <Link href={`/settings/project/${project.id}/general`} className="ctx-doc ctx-doc--muted">
-                      <Icon name="wrench" size={14} strokeWidth={1.8} />
-                      <span className="ctx-doc__label">프로젝트 설정</span>
-                    </Link>
+                    <DocItem
+                      doc={SETTINGS_DOC}
+                      muted
+                      isActive={isSelected && selectedView === SETTINGS_DOC.id}
+                      onClick={e => handleDocClick(project, SETTINGS_DOC.id, e)}
+                    />
                   </div>
                 )}
               </div>
@@ -219,9 +223,9 @@ function ProjectRow({ project, status, isSelected, isOpen, onClick, onDelete }) 
 }
 
 /* ── 서브 문서 아이템 ── */
-function DocItem({ doc, isActive, syncStatus, onClick }) {
+function DocItem({ doc, isActive, syncStatus, onClick, muted = false }) {
   return (
-    <button type="button" className={`ctx-doc${isActive ? " is-active" : ""}`} onClick={onClick} aria-current={isActive ? "page" : undefined}>
+    <button type="button" className={`ctx-doc${isActive ? " is-active" : ""}${muted ? " ctx-doc--muted" : ""}`} onClick={onClick} aria-current={isActive ? "page" : undefined}>
       <Icon name={doc.icon} size={14} strokeWidth={1.8} />
       <span className="ctx-doc__label">{doc.label}</span>
       {syncStatus && (

@@ -30,7 +30,7 @@ import {
 } from "@/lib/repoRouting";
 import {
   ActionButton, Avatar, Badge,
-  SettingsEmpty, SettingsHeader, SettingsItem, SettingsRow, SettingsSection,
+  SettingsEmpty, SettingsItem, SettingsRow, SettingsSection,
 } from "@/components/ui";
 import { Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 
@@ -88,7 +88,8 @@ export const PROJECT_PAGES = {
 };
 
 /**
- * 설정 > 프로젝트의 한 페이지(page: general | repositories | members | delete).
+ * 프로젝트 설정의 한 페이지(page: general | repositories | members | delete).
+ * 대시보드의 ProjectSettingsView가 가로 탭과 함께 띄운다.
  * 프로젝트를 지우면 onProjectGone으로 알려 대시보드로 돌아가게 한다.
  * 이름·상태를 저장하면 onProjectChanged로 알려 설정 메뉴의 프로젝트 이름도 바꾼다.
  */
@@ -100,7 +101,6 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
   const [project,        setProject]        = useState(null);
   const [projectMembers, setProjectMembers] = useState([]);
   const [teamMembers,    setTeamMembers]    = useState([]);
-  const [teamName,       setTeamName]       = useState("");
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
 
@@ -154,7 +154,6 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
 
       setProjectMembers(Array.isArray(members) ? members : []);
       setTeamMembers(workspace?.members ?? []);
-      setTeamName(workspace?.team?.teamName ?? workspace?.team?.name ?? "");
       setLinkedRepos(repos);
     } catch {
       setError("데이터를 불러오지 못했습니다.");
@@ -397,28 +396,13 @@ export function ProjectSettings({ projectId, page, onProjectGone, onProjectChang
     descDraft.trim()   !== (project.description ?? "") ||
     statusDraft        !== rawStatus(project.status)
   );
-  const statusMeta = STATUS_OPTIONS.find((o) => o.value === rawStatus(project?.status)) ?? STATUS_OPTIONS[0];
 
   /* ── 렌더 ── */
   if (loading) return <Spinner />;
   if (error || !project) return <SettingsEmpty>{error ?? "프로젝트를 찾을 수 없습니다."}</SettingsEmpty>;
 
-  const header = (
-    <SettingsHeader
-      leading={<Avatar name={project.name} size={40} square />}
-      title={PROJECT_PAGES[page] ?? PROJECT_PAGES.general}
-      meta={<>
-        <span>{project.name}</span>
-        {teamName && <><span aria-hidden="true">·</span><span>{teamName}</span></>}
-        {myProjectRole && <Badge>{roleLabel(myProjectRole)}</Badge>}
-        <Badge tone={statusMeta.tone}>{statusMeta.label}</Badge>
-      </>}
-    />
-  );
-
   return (
     <>
-      {header}
 
       {page === "general" && (
         <SettingsSection

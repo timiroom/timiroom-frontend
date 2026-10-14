@@ -65,7 +65,7 @@ export function ProfileSettings() {
 
   return (
     <>
-      <SettingsHeader title="프로필" meta={<span>다른 멤버에게 보이는 이름과 사진입니다.</span>} />
+      <SettingsHeader eyebrow="내 계정" title="프로필" meta={<span>다른 멤버에게 보이는 이름과 사진입니다.</span>} />
 
       <SettingsSection
         footer={<>

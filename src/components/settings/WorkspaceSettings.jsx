@@ -249,13 +249,9 @@ export function WorkspaceSettings({
 
   const header = (
     <SettingsHeader
-      leading={<Avatar name={workspaceName} src={iconUrl} size={40} square />}
+      eyebrow={`워크스페이스 · ${workspaceName}`}
       title={page === "manage" && !isOwner ? "나가기" : WORKSPACE_PAGES[page]}
-      meta={<>
-        <span>{workspaceName}</span>
-        <span aria-hidden="true">·</span>
-        <span>내 역할 {ROLE_LABEL[viewerRole] ?? "멤버"}</span>
-      </>}
+      meta={<span>내 역할: {ROLE_LABEL[viewerRole] ?? "멤버"}</span>}
     />
   );
 

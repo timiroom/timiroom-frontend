@@ -24,6 +24,8 @@ import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/Projec
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { Icon } from "@/components/ui";
 import { CommitHistoryView } from "@/components/dashboard/CommitHistoryView";
+import { ProjectSettingsView } from "@/components/dashboard/ProjectSettingsView";
+import { readDashboardUrl, writeDashboardUrl } from "@/lib/dashboardUrl";
 import { GithubIssuesPanel } from "@/components/dashboard/GithubIssuesPanel";
 import { GithubPullRequestsPanel } from "@/components/dashboard/GithubPullRequestsPanel";
 import { GithubWorkspacePanel } from "@/components/dashboard/GithubWorkspacePanel";
@@ -81,6 +83,7 @@ const DOC_LABELS = {
   issues: "Issues 전체",
   pulls: "PRs 전체",
   commits: "커밋 기록",
+  settings: "프로젝트 설정",
   graph: "지식 그래프",
   qa: "QA",
 };
@@ -406,6 +409,9 @@ export default function DashboardPage() {
   const integrationEnabled = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
   const incomingProjectHandled = useRef(false);
   const selectedProjectIdRef = useRef(null);
+  const projectsRef = useRef([]);
+  const openDocumentRef = useRef(null);
+  const [projectSettingsTab, setProjectSettingsTab] = useState("general");
   const runningPipelineRef = useRef(null);
   const documentSyncRequestRef = useRef(0);
   const documentSyncAbortRef = useRef(null);
@@ -556,8 +562,11 @@ export default function DashboardPage() {
         setOpenTabs([]);
         setActiveTabId(null);
       } else {
-        const resolvedView = runningProjectId && nextSelected.id === runningProjectId ? null : "prd";
-        setSelectedView((current) => current ?? resolvedView);
+        const fromUrl = readDashboardUrl();
+        const urlView = String(nextSelected.id) === fromUrl.projectId && DOC_LABELS[fromUrl.view] ? fromUrl.view : null;
+        const resolvedView = runningProjectId && nextSelected.id === runningProjectId ? null : (urlView ?? "prd");
+        if (urlView === "settings" && fromUrl.tab) setProjectSettingsTab(fromUrl.tab);
+        setSelectedView((current) => urlView ?? current ?? resolvedView);
         setOpenTabs([buildDocumentTab(nextSelected, resolvedView)]);
         setActiveTabId(documentTabId(nextSelected.id, resolvedView));
       }
@@ -674,6 +683,38 @@ export default function DashboardPage() {
     }).catch(() => { /* Existing project loaders display access and loading state. */ });
   }, [authLoading, user, isLoadingWorkspaces, activeWorkspaceId]);
 
+  projectsRef.current = projects;
+
+  // 화면 상태를 주소에 옮겨 둔다. 브라우저 뒤로·앞으로와 새로고침이 같은 문서를 연다.
+  // 처음 주소에 프로젝트가 없으면(그냥 /dashboard) 기록을 늘리지 않고 바꿔 쓴다.
+  useEffect(() => {
+    if (!selectedProject?.id) return;
+    const current = readDashboardUrl();
+    writeDashboardUrl(
+      { projectId: selectedProject.id, view: selectedView, tab: selectedView === "settings" ? projectSettingsTab : null },
+      { replace: !current.projectId || (current.projectId === String(selectedProject.id) && !current.view) },
+    );
+  }, [selectedProject?.id, selectedView, projectSettingsTab]);
+
+  // 뒤로·앞으로(또는 navigateDashboard)로 주소가 바뀌면 그 주소의 문서를 연다.
+  useEffect(() => {
+    function onPopState() {
+      const { projectId, view, tab } = readDashboardUrl();
+      if (!projectId) return;
+      const project = projectsRef.current.find((item) => String(item.id) === projectId);
+      if (project) {
+        openDocumentRef.current?.(project, DOC_LABELS[view] ? view : "prd", view === "settings" ? tab || "general" : undefined);
+        return;
+      }
+      // 다른 워크스페이스의 프로젝트면 그 워크스페이스로 바꾼다. 목록을 다시 불러올 때 주소의 문서를 연다.
+      fetchProject(projectId).then((found) => {
+        if (found?.teamId != null) applyActiveWorkspaceId(found.teamId);
+      }).catch(() => { /* 접근할 수 없는 프로젝트면 지금 화면을 그대로 둔다. */ });
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   if (authLoading) {
     return (
       <div style={{
@@ -706,28 +747,47 @@ export default function DashboardPage() {
 
     try {
       await deleteProject(project.id);
-
-      const remainingProjects = projects.filter((current) => current.id !== project.id);
-      setProjects(remainingProjects);
-      setOpenTabs((prev) => prev.filter((t) => t.projectId !== project.id));
-
-      if (selectedProject?.id === project.id) {
-        const nextSelected = remainingProjects[0] ?? null;
-        setSelectedProject(nextSelected);
-        setSelectedView(nextSelected ? "prd" : null);
-        setShowWizard(remainingProjects.length === 0);
-        if (nextSelected) {
-          loadArtifacts(nextSelected);
-          openTab(buildDocumentTab(nextSelected, "prd"));
-        } else {
-          setActiveTabId(null);
-        }
-      }
-
+      removeProjectFromScreen(project.id);
       showToast("success", "프로젝트를 삭제했어요.");
     } catch (error) {
       console.error("프로젝트 삭제 실패:", error);
       showToast("error", "프로젝트 삭제에 실패했습니다.");
+    }
+  }
+
+  /** 삭제된 프로젝트를 목록과 탭에서 빼고, 보고 있던 프로젝트였다면 다음 프로젝트를 연다. */
+  function removeProjectFromScreen(projectId) {
+    const remainingProjects = projects.filter((current) => String(current.id) !== String(projectId));
+    setProjects(remainingProjects);
+    setOpenTabs((prev) => prev.filter((t) => String(t.projectId) !== String(projectId)));
+
+    if (String(selectedProject?.id) === String(projectId)) {
+      const nextSelected = remainingProjects[0] ?? null;
+      setSelectedProject(nextSelected);
+      setSelectedView(nextSelected ? "prd" : null);
+      setShowWizard(remainingProjects.length === 0);
+      if (nextSelected) {
+        loadArtifacts(nextSelected);
+        openTab(buildDocumentTab(nextSelected, "prd"));
+      } else {
+        setActiveTabId(null);
+      }
+    }
+  }
+
+  /** 프로젝트 설정에서 이름·설명·상태를 바꾸면 목록과 열린 화면의 표시만 새 값으로 맞춘다. */
+  async function refreshProjectSummaries() {
+    if (activeWorkspaceId == null) return;
+    try {
+      const list = await fetchProjectsByTeam(activeWorkspaceId);
+      const merge = (project) => {
+        const fresh = list.find((item) => String(item.id) === String(project?.id));
+        return fresh ? { ...project, name: fresh.name, description: fresh.description, status: fresh.status } : project;
+      };
+      setProjects((prev) => prev.map(merge));
+      setSelectedProject((current) => (current ? merge(current) : current));
+    } catch (error) {
+      console.error("프로젝트 목록 갱신 실패:", error);
     }
   }
 
@@ -783,7 +843,12 @@ export default function DashboardPage() {
     }
   }
 
-  function handleOpenDocument(project, view) {
+  /** tab은 프로젝트 설정의 탭. 주소에서 열 때만 넘기고, 사이드바에서 열면 일반 탭부터 연다. */
+  function handleOpenDocument(project, view, tab) {
+    if (view === "settings") {
+      const sameSettings = selectedView === "settings" && String(selectedProject?.id) === String(project.id);
+      setProjectSettingsTab(tab ?? (sameSettings ? projectSettingsTab : "general"));
+    }
     setSelectedProject(project);
     setSelectedView(view);
     setShowWizard(false);
@@ -792,6 +857,7 @@ export default function DashboardPage() {
       loadArtifacts(project);
     }
   }
+  openDocumentRef.current = handleOpenDocument;
 
   /* AI 어시스턴트가 PRD 섹션을 수정하면 저장은 PrdPanel이 이미 마쳤다.
      여기서는 화면 상태만 새 문서로 맞춘다 — 선택된 프로젝트와 목록 양쪽 모두. */
@@ -1241,6 +1307,14 @@ export default function DashboardPage() {
                 <GithubPullRequestsPanel project={selectedProject} canManage={myProjectRole === "PM"} />
               ) : selectedView === "commits" ? (
                 <CommitHistoryView project={selectedProject} />
+              ) : selectedView === "settings" ? (
+                <ProjectSettingsView
+                  project={selectedProject}
+                  page={projectSettingsTab}
+                  onChangePage={setProjectSettingsTab}
+                  onProjectGone={() => removeProjectFromScreen(selectedProject.id)}
+                  onProjectChanged={refreshProjectSummaries}
+                />
               ) : (
                 <AgentPanel project={selectedProject} view={selectedView} />
               )}
