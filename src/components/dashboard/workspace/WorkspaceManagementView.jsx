@@ -20,6 +20,7 @@ import {
 import { fetchProjectsByTeam } from "@/lib/projectApi";
 import { fetchTeamGithubInstallations } from "@/lib/githubApi";
 import { useToast } from "@/context/ToastContext";
+import { confirmDialog } from "@/lib/feedback";
 
 const C = {
   bg: "var(--bg)",
@@ -178,6 +179,7 @@ export function WorkspaceManagementView({
   const inviteRef = useRef(null);
   const settingsRef = useRef(null);
   const membersRef = useRef(null);
+  const dangerRef = useRef(null);
   const highlightTimeoutRef = useRef(null);
   const iconFileRef = useRef(null);
 
@@ -235,8 +237,10 @@ export function WorkspaceManagementView({
       projects: projectsRef,
       github: githubRef,
       invite: inviteRef,
-      settings: settingsRef,
+      // 멤버에게는 기본 정보 칸이 없으므로 나가기가 있는 위험 구역으로 보낸다.
+      settings: isOwner ? settingsRef : dangerRef,
       members: membersRef,
+      danger: dangerRef,
     };
     const targetRef = sectionMap[sectionKey];
     if (!targetRef?.current) return;
@@ -320,6 +324,8 @@ export function WorkspaceManagementView({
 
   async function handleRegenerateInviteCode() {
     if (!activeWorkspaceId || !isOwner) return;
+    const ok = await confirmDialog("초대 코드를 새로 발급할까요? 지금까지 보낸 초대 코드와 링크는 더 이상 쓸 수 없습니다.", { confirmLabel: "재발급" });
+    if (!ok) return;
 
     setRegenerating(true);
     try {
@@ -340,6 +346,12 @@ export function WorkspaceManagementView({
       showToast("error", "소유자 권한을 넘길 멤버를 선택해 주세요.");
       return;
     }
+    const target = teamMembers.find((member) => String(member.memberId) === String(transferTargetId));
+    const ok = await confirmDialog(
+      `${target?.memberName || target?.email || "선택한 멤버"}에게 소유자 권한을 넘길까요? 넘긴 뒤에는 나는 멤버가 되어 이름 변경, 멤버 관리, 워크스페이스 삭제를 할 수 없습니다.`,
+      { confirmLabel: "소유자 이전", danger: true },
+    );
+    if (!ok) return;
 
     setTransferring(true);
     try {
@@ -356,6 +368,12 @@ export function WorkspaceManagementView({
 
   async function handleRemoveMember(memberId) {
     if (!activeWorkspaceId || !isOwner) return;
+    const target = teamMembers.find((member) => member.memberId === memberId);
+    const ok = await confirmDialog(
+      `${target?.memberName || target?.email || "이 멤버"}을(를) 워크스페이스에서 내보낼까요? 다시 참여하려면 초대 코드가 필요합니다.`,
+      { confirmLabel: "내보내기", danger: true },
+    );
+    if (!ok) return;
 
     setRemovingMemberId(memberId);
     try {
@@ -388,6 +406,8 @@ export function WorkspaceManagementView({
 
   async function handleLeaveTeam() {
     if (!activeWorkspaceId) return;
+    const ok = await confirmDialog("이 워크스페이스에서 나갈까요? 다시 참여하려면 초대 코드가 필요합니다.", { confirmLabel: "나가기", danger: true });
+    if (!ok) return;
 
     setLeaving(true);
     try {
@@ -476,7 +496,7 @@ export function WorkspaceManagementView({
             textAlign: "center",
           }}>
             <EmptyState
-              icon="👥"
+              icon="users"
               title="관리할 워크스페이스가 없습니다"
               desc="새 워크스페이스를 만들거나 초대 코드로 참여하면 여기에서 이름, 설명, 초대 코드, 멤버 권한을 관리할 수 있어요."
             />
@@ -566,13 +586,14 @@ export function WorkspaceManagementView({
         { key: "invite", label: "초대 코드" },
         { key: "settings", label: "기본 정보" },
         { key: "members", label: "권한·멤버" },
+        { key: "danger", label: "위험 구역" },
       ]
     : [
         { key: "projects", label: "프로젝트" },
         { key: "github", label: "GitHub 연동" },
         { key: "invite", label: "초대 코드" },
-        { key: "settings", label: "내 워크스페이스" },
         { key: "members", label: "멤버" },
+        { key: "danger", label: "나가기" },
       ];
 
   return (
@@ -624,23 +645,6 @@ export function WorkspaceManagementView({
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => focusSection("invite")}
-          style={{
-            padding: "7px 12px",
-            borderRadius: 8,
-            border: `1px solid ${C.border}`,
-            background: "var(--surface)",
-            color: C.subtle,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          초대 코드
-        </button>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 32px" }}>
@@ -748,6 +752,24 @@ export function WorkspaceManagementView({
           </div>
           <style>{`@keyframes ws-icon-spin { to { transform: rotate(360deg); } }`}</style>
 
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            marginBottom: 20,
+          }}>
+            {sectionLinks.map((section) => (
+              <QuickJumpButton
+                key={section.key}
+                active={activeSection === section.key}
+                onClick={() => focusSection(section.key)}
+              >
+                {section.label}
+              </QuickJumpButton>
+            ))}
+          </div>
+
           {/* 워크스페이스 프로젝트 목록 */}
           <div
             ref={projectsRef}
@@ -794,23 +816,6 @@ export function WorkspaceManagementView({
             onInstallationsChange={setGithubInstallations}
           />
 
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            marginBottom: 16,
-          }}>
-            {sectionLinks.map((section) => (
-              <QuickJumpButton
-                key={section.key}
-                active={activeSection === section.key}
-                onClick={() => focusSection(section.key)}
-              >
-                {section.label}
-              </QuickJumpButton>
-            ))}
-          </div>
 
           <div style={{
             marginBottom: 16,
@@ -870,6 +875,7 @@ export function WorkspaceManagementView({
                 invite: inviteRef,
                 settings: settingsRef,
                 members: membersRef,
+                danger: dangerRef,
               }}
               highlightSection={highlightedSection}
               onTeamNameChange={setTeamNameDraft}

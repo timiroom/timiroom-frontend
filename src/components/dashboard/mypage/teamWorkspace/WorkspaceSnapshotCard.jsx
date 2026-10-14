@@ -21,14 +21,14 @@ export function WorkspaceSnapshotCard({
 
   if (workspaceError) {
     return (
-      <EmptyState icon="⚠️" title="불러오지 못했습니다" desc={workspaceError} />
+      <EmptyState icon="warning" title="불러오지 못했습니다" desc={workspaceError} />
     );
   }
 
   if (!workspaceSummary) {
     return (
       <EmptyState
-        icon="👆"
+        icon="list"
         title="워크스페이스를 선택하세요"
         desc="왼쪽 목록에서 워크스페이스를 클릭하면 요약 정보를 볼 수 있어요."
       />
@@ -164,7 +164,7 @@ export function WorkspaceSnapshotCard({
       {/* 액션 */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <a
-          href="/dashboard"
+          href={`/dashboard?workspace=${teamId}`}
           style={{
             fontSize: 12,
             fontWeight: 700,

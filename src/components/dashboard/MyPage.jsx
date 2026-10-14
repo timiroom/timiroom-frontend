@@ -8,6 +8,7 @@ import { fetchProjects } from "@/lib/projectApi";
 import { getMyTeams, uploadUserAvatar, updateMemberGithubLogin, updateMemberName } from "@/lib/teamApi";
 import { TeamWorkspacePanel } from "@/components/dashboard/mypage/TeamWorkspacePanel";
 import { AiToolConnectionsPanel } from "@/components/dashboard/mypage/AiToolConnectionsPanel";
+import { StatGrid } from "@/components/ui";
 
 /* ── 공통 카드 ── */
 function Card({ children, style }) {
@@ -352,7 +353,7 @@ export function MyPage() {
                 fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100,
                 background: "var(--border)", color: "var(--text-2)", border: "1px solid var(--border-2)",
               }}>
-                {provider === "Google" ? "🔵" : "⚫"} {provider}으로 로그인
+                {provider}으로 로그인
               </span>
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
@@ -519,31 +520,18 @@ export function MyPage() {
         {/* ── 3. 활동 요약 ── */}
         <Card style={{ marginBottom: 16 }}>
           <SectionTitle>활동 요약</SectionTitle>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-            {[
-              { label: "내 프로젝트",   value: loadingP ? "—" : projects.length, icon: "📁" },
-              { label: "생성된 명세서",  value: loadingP ? "—" : projects.reduce((a, p) => a + (p.specCount || 0), 0), icon: "📄" },
-              { label: "소속 팀",        value: loadingT ? "—" : teams.length, icon: "👥" },
-            ].map(stat => (
-              <div key={stat.label} style={{
-                background: "var(--bg)", border: "1px solid var(--border)",
-                borderRadius: "var(--db-radius)", padding: "18px 20px", textAlign: "center",
-              }}>
-                <div style={{ fontSize: 22, marginBottom: 8 }}>{stat.icon}</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: "var(--text-1)", letterSpacing: "-.03em" }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
+          {/* 생성된 명세서 수는 백엔드가 주지 않아 진행 중인 프로젝트 수로 바꿨다. */}
+          <StatGrid items={[
+            { label: "내 프로젝트", value: loadingP ? "—" : projects.length },
+            { label: "진행 중 프로젝트", value: loadingP ? "—" : projects.filter((p) => p.status === "active").length },
+            { label: "소속 팀", value: loadingT ? "—" : teams.length },
+          ]} />
         </Card>
 
         {/* ── 4. 워크스페이스 / 초대코드 ── */}
         <TeamWorkspacePanel
           teams={teams}
           loading={loadingT}
-          onTeamsChanged={refreshTeams}
         />
 
         {process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true" && <AiToolConnectionsPanel projects={projects} />}

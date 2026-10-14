@@ -188,14 +188,9 @@ function OwnerSettingsCard({
   teamNameDraft,
   teamDescriptionDraft,
   savingTeam,
-  deleting,
-  confirmDelete,
   onTeamNameChange,
   onTeamDescriptionChange,
   onSaveTeam,
-  onConfirmDelete,
-  onCancelDelete,
-  onDeleteTeam,
 }) {
   const cardBackground = "var(--surface)";
   const fieldBackground = "transparent";
@@ -254,66 +249,71 @@ function OwnerSettingsCard({
           </ActionButton>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div style={{
-        padding: 14,
-        borderRadius: "var(--db-radius)",
-        border: "1px solid rgba(239,68,68,0.2)",
-        background: "var(--surface)",
-        display: "grid",
-        gap: 10,
-      }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", marginBottom: 4 }}>
-            워크스페이스 삭제
+/** 워크스페이스 삭제. 화면 맨 아래 위험 구역에 둔다. */
+function OwnerDangerCard({ deleting, confirmDelete, onConfirmDelete, onCancelDelete, onDeleteTeam }) {
+  return (
+    <div style={{
+      padding: 14,
+      borderRadius: "var(--db-radius)",
+      border: "1px solid rgba(239,68,68,0.2)",
+      background: "var(--surface)",
+      display: "grid",
+      gap: 10,
+    }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", marginBottom: 4 }}>
+          워크스페이스 삭제
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+          팀, 멤버 연결, 이 워크스페이스에 속한 프로젝트 데이터까지 함께 정리됩니다.
+        </div>
+      </div>
+
+      {!confirmDelete ? (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={onConfirmDelete}
+            style={{
+              padding: "9px 14px",
+              borderRadius: "var(--db-radius-sm)",
+              border: "1px solid rgba(239,68,68,0.24)",
+              background: "rgba(239,68,68,0.08)",
+              color: "#dc2626",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            삭제하기
+          </button>
+        </div>
+      ) : (
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 10,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}>
+          <div style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 600 }}>
+            정말 이 워크스페이스를 삭제할까요?
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-            팀, 멤버 연결, 이 워크스페이스에 속한 프로젝트 데이터까지 함께 정리됩니다.
+          <div style={{ display: "flex", gap: 8 }}>
+            <ActionButton onClick={onCancelDelete} disabled={deleting} outlined>
+              취소
+            </ActionButton>
+            <ActionButton onClick={onDeleteTeam} disabled={deleting} danger>
+              {deleting ? "삭제 중" : "정말 삭제"}
+            </ActionButton>
           </div>
         </div>
-
-        {!confirmDelete ? (
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              onClick={onConfirmDelete}
-              style={{
-                padding: "9px 14px",
-                borderRadius: "var(--db-radius-sm)",
-                border: "1px solid rgba(239,68,68,0.24)",
-                background: "rgba(239,68,68,0.08)",
-                color: "#dc2626",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              삭제하기
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}>
-            <div style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 600 }}>
-              정말 이 워크스페이스를 삭제할까요?
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <ActionButton onClick={onCancelDelete} disabled={deleting} outlined>
-                취소
-              </ActionButton>
-              <ActionButton onClick={onDeleteTeam} disabled={deleting} danger>
-                {deleting ? "삭제 중" : "정말 삭제"}
-              </ActionButton>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -502,7 +502,7 @@ export function WorkspaceDetailPanel({
   if (workspaceError) {
     return (
       <EmptyState
-        icon="⚠️"
+        icon="warning"
         title="워크스페이스 정보를 불러오지 못했습니다"
         desc={workspaceError}
       />
@@ -512,7 +512,7 @@ export function WorkspaceDetailPanel({
   if (!workspaceSummary) {
     return (
       <EmptyState
-        icon="👆"
+        icon="list"
         title="워크스페이스를 선택해 주세요"
         desc="왼쪽 목록에서 팀을 클릭하면 해당 워크스페이스의 초대 코드와 멤버를 관리할 수 있어요."
       />
@@ -566,33 +566,22 @@ export function WorkspaceDetailPanel({
           />
         </div>
 
-        <div
-          ref={sectionRefs?.settings}
-          style={sectionWrapperStyle(highlightSection === "settings")}
-        >
-          {isOwner ? (
+        {isOwner && (
+          <div
+            ref={sectionRefs?.settings}
+            style={sectionWrapperStyle(highlightSection === "settings")}
+          >
             <OwnerSettingsCard
               teamNameDraft={teamNameDraft}
               teamDescriptionDraft={teamDescriptionDraft}
               savingTeam={savingTeam}
-              deleting={deleting}
-              confirmDelete={confirmDelete}
               onTeamNameChange={onTeamNameChange}
               onTeamDescriptionChange={onTeamDescriptionChange}
               onSaveTeam={onSaveTeam}
-              onConfirmDelete={onConfirmDelete}
-              onCancelDelete={onCancelDelete}
-              onDeleteTeam={onDeleteTeam}
               variant={variant}
             />
-          ) : (
-            <MemberActionsCard
-              leaving={leaving}
-              onLeaveTeam={onLeaveTeam}
-              variant={variant}
-            />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div
@@ -613,6 +602,23 @@ export function WorkspaceDetailPanel({
           onRoleChange={onRoleChange}
           variant={variant}
         />
+      </div>
+
+      <div
+        ref={sectionRefs?.danger}
+        style={sectionWrapperStyle(highlightSection === "danger" || (!isOwner && highlightSection === "settings"))}
+      >
+        {isOwner ? (
+          <OwnerDangerCard
+            deleting={deleting}
+            confirmDelete={confirmDelete}
+            onConfirmDelete={onConfirmDelete}
+            onCancelDelete={onCancelDelete}
+            onDeleteTeam={onDeleteTeam}
+          />
+        ) : (
+          <MemberActionsCard leaving={leaving} onLeaveTeam={onLeaveTeam} variant={variant} />
+        )}
       </div>
 
       {!hideSetActiveWorkspace && (

@@ -16,6 +16,7 @@ import {
   addProjectMember,
 } from "@/lib/projectApi";
 import { getTeamWorkspace } from "@/lib/teamApi";
+import { confirmDialog } from "@/lib/feedback";
 import {
   fetchTeamGithubInstallations,
   fetchInstallationRepositories,
@@ -104,7 +105,7 @@ function SectionBox({ title, sRef, highlighted, children }) {
       {title && (
         <div style={{
           fontSize: 11, fontWeight: 800, color: C.text3,
-          letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 16,
+          marginBottom: 16,
         }}>
           {title}
         </div>
@@ -329,6 +330,8 @@ export function ProjectManagementView({ projectId }) {
 
   /* ── 멤버 제거 ── */
   async function handleRemoveMember(targetMemberId) {
+    const ok = await confirmDialog("이 멤버를 프로젝트에서 뺄까요? 맡은 역할의 문서 편집 권한도 함께 사라집니다.", { confirmLabel: "빼기", danger: true });
+    if (!ok) return;
     try {
       setRemovingId(targetMemberId);
       await removeProjectMember(projectId, targetMemberId);
@@ -448,6 +451,8 @@ export function ProjectManagementView({ projectId }) {
   }
 
   async function handleUnlinkRepository(repo) {
+    const ok = await confirmDialog(`${repo.fullName} 연결을 해제할까요? 이 레포의 이슈·PR과 정합성 검사가 프로젝트에서 빠집니다.`, { confirmLabel: "연결 해제", danger: true });
+    if (!ok) return;
     setUnlinkingRepoId(repo.id);
     try {
       await unlinkProjectRepository(projectId, repo.id);
@@ -590,8 +595,8 @@ export function ProjectManagementView({ projectId }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24 }}>
               {[
                 { key: "settings", label: "기본 정보" },
-                { key: "members",  label: "멤버"     },
                 { key: "repositories", label: "레포 연결" },
+                { key: "members",  label: "멤버"     },
                 { key: "danger",   label: "위험 구역" },
               ].map(({ key, label }) => (
                 <QuickJumpBtn key={key} active={activeSection === key} onClick={() => focusSection(key)}>

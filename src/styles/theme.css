@@ -231,7 +231,8 @@
 .ui-panel-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 .ui-confirm {
-  width: min(420px, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--border);
+  /* 전역 리셋의 margin: 0이 <dialog> 기본 가운데 정렬을 지우므로 다시 auto로 둔다. */
+  margin: auto; width: min(420px, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--border);
   border-radius: var(--db-radius-lg); background: var(--surface); color: var(--text-1);
   box-shadow: var(--db-glow-lg);
 }

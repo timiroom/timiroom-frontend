@@ -1,46 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
-  deleteTeam,
   getActiveTeamId,
   getPreferredTeam,
   getTeamWorkspace,
-  leaveTeam,
-  regenerateTeamInviteCode,
-  removeTeamMember,
   setActiveTeamId as persistActiveTeamId,
-  transferTeamOwnership,
-  updateTeam,
 } from "@/lib/teamApi";
 import { Card, SectionTitle } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import { WorkspaceSnapshotCard } from "@/components/dashboard/mypage/teamWorkspace/WorkspaceSnapshotCard";
 import { TeamListCard } from "@/components/dashboard/mypage/teamWorkspace/TeamListCard";
 import { EmptyState, Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
-import { getDefaultTransferTarget, getTeamId } from "@/components/dashboard/mypage/teamWorkspace/helpers";
+import { getTeamId } from "@/components/dashboard/mypage/teamWorkspace/helpers";
 import { useToast } from "@/context/ToastContext";
 
-
-export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged }) {
-  const { user } = useAuth();
+/**
+ * 마이페이지의 "내 워크스페이스": 속한 워크스페이스 목록과 고른 워크스페이스의 요약만 보여 준다.
+ * 이름 변경, 멤버 관리, 삭제 같은 관리는 대시보드의 워크스페이스 관리 화면 한 곳에서 한다.
+ */
+export function TeamWorkspacePanel({ teams = [], loading = false }) {
   const { showToast } = useToast();
   const [selectedTeamId, setSelectedTeamId] = useState(() => getActiveTeamId());
   const [activeTeamId, setActiveTeamIdState] = useState(() => getActiveTeamId());
   const [workspace, setWorkspace] = useState(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
-  const [savingTeam, setSavingTeam] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [transferring, setTransferring] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [removingMemberId, setRemovingMemberId] = useState(null);
-  const [teamNameDraft, setTeamNameDraft] = useState("");
-  const [teamDescriptionDraft, setTeamDescriptionDraft] = useState("");
-  const [transferTargetId, setTransferTargetId] = useState("");
   const [copiedTeamId, setCopiedTeamId] = useState(null);
   const [workspaceError, setWorkspaceError] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const selectedTeam = useMemo(
     () => teams.find((team) => getTeamId(team) === selectedTeamId) ?? null,
@@ -53,10 +38,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
   }
 
   useEffect(() => {
-    if (leaving || deleting) {
-      return;
-    }
-
     if (!teams.length) {
       setSelectedTeamId(null);
       setWorkspace(null);
@@ -78,7 +59,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     if (!currentExists && preferredId != null && preferredId !== selectedTeamId) {
       setSelectedTeamId(preferredId);
     }
-  }, [teams, selectedTeamId, activeTeamId, leaving, deleting]);
+  }, [teams, selectedTeamId, activeTeamId]);
 
   useEffect(() => {
     if (selectedTeamId == null) {
@@ -88,67 +69,26 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
     }
 
     let cancelled = false;
-
-    async function loadWorkspace() {
-      setWorkspaceLoading(true);
-      setWorkspaceError("");
-      try {
-        const data = await getTeamWorkspace(selectedTeamId);
+    setWorkspaceLoading(true);
+    setWorkspaceError("");
+    getTeamWorkspace(selectedTeamId)
+      .then((data) => { if (!cancelled) setWorkspace(data); })
+      .catch((error) => {
         if (cancelled) return;
-        setWorkspace(data);
-        setTeamNameDraft(data?.team?.teamName ?? "");
-        setTeamDescriptionDraft(data?.team?.description ?? "");
-        setTransferTargetId(getDefaultTransferTarget(data?.members ?? []));
-      } catch (error) {
-        if (!cancelled) {
-          setWorkspace(null);
-          setWorkspaceError(error instanceof Error ? error.message : "워크스페이스 정보를 불러오지 못했습니다.");
-        }
-      } finally {
-        if (!cancelled) {
-          setWorkspaceLoading(false);
-        }
-      }
-    }
-
-    loadWorkspace();
+        setWorkspace(null);
+        setWorkspaceError(error instanceof Error ? error.message : "워크스페이스 정보를 불러오지 못했습니다.");
+      })
+      .finally(() => { if (!cancelled) setWorkspaceLoading(false); });
 
     return () => {
       cancelled = true;
     };
   }, [selectedTeamId]);
 
-  useEffect(() => {
-    setConfirmDelete(false);
-  }, [selectedTeamId]);
-
   const viewerRole = workspace?.viewerRole ?? selectedTeam?.viewerRole ?? "";
   const isOwner = viewerRole === "OWNER";
-  const selfId = user?.id;
   const workspaceSummary = workspace?.team ?? selectedTeam;
   const teamMembers = workspace?.members ?? [];
-
-  async function refreshTeams() {
-    return await onTeamsChanged?.();
-  }
-
-  async function reloadWorkspace(teamId = selectedTeamId) {
-    if (teamId == null) return;
-
-    setWorkspaceLoading(true);
-    setWorkspaceError("");
-    try {
-      const data = await getTeamWorkspace(teamId);
-      setWorkspace(data);
-      setTeamNameDraft(data?.team?.teamName ?? "");
-      setTeamDescriptionDraft(data?.team?.description ?? "");
-      setTransferTargetId(getDefaultTransferTarget(data?.members ?? []));
-    } catch (error) {
-      setWorkspaceError(error instanceof Error ? error.message : "워크스페이스 정보를 불러오지 못했습니다.");
-    } finally {
-      setWorkspaceLoading(false);
-    }
-  }
 
   async function handleCopy(inviteCode, teamId) {
     try {
@@ -159,118 +99,6 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
       }, 1200);
     } catch {
       showToast("error", "초대 코드를 복사하지 못했습니다.");
-    }
-  }
-
-  async function handleSaveTeam() {
-    if (!selectedTeamId || !isOwner) return;
-
-    setSavingTeam(true);
-    try {
-      await updateTeam(selectedTeamId, {
-        teamName: teamNameDraft,
-        description: teamDescriptionDraft,
-      });
-      showToast("success", "워크스페이스 정보를 저장했어요.");
-      await refreshTeams();
-      await reloadWorkspace(selectedTeamId);
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "워크스페이스 저장 실패");
-    } finally {
-      setSavingTeam(false);
-    }
-  }
-
-  async function handleRegenerateInviteCode() {
-    if (!selectedTeamId || !isOwner) return;
-
-    setRegenerating(true);
-    try {
-      await regenerateTeamInviteCode(selectedTeamId);
-      showToast("success", "초대 코드를 새로 발급했어요.");
-      await refreshTeams();
-      await reloadWorkspace(selectedTeamId);
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "초대 코드 재발급 실패");
-    } finally {
-      setRegenerating(false);
-    }
-  }
-
-  async function handleTransferOwnership() {
-    if (!selectedTeamId || !isOwner) return;
-    if (!transferTargetId) {
-      showToast("error", "권한을 넘길 멤버를 선택해 주세요.");
-      return;
-    }
-
-    setTransferring(true);
-    try {
-      await transferTeamOwnership(selectedTeamId, Number(transferTargetId));
-      showToast("success", "소유자 권한을 이전했어요.");
-      await refreshTeams();
-      await reloadWorkspace(selectedTeamId);
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "소유자 권한 이전 실패");
-    } finally {
-      setTransferring(false);
-    }
-  }
-
-  async function handleRemoveMember(memberId) {
-    if (!selectedTeamId || !isOwner) return;
-
-    setRemovingMemberId(memberId);
-    try {
-      await removeTeamMember(selectedTeamId, memberId);
-      showToast("success", "멤버를 제거했어요.");
-      await refreshTeams();
-      await reloadWorkspace(selectedTeamId);
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "멤버 제거 실패");
-    } finally {
-      setRemovingMemberId(null);
-    }
-  }
-
-  async function handleLeaveTeam() {
-    if (!selectedTeamId) return;
-
-    setLeaving(true);
-    try {
-      await leaveTeam(selectedTeamId);
-      showToast("success", "워크스페이스에서 나왔어요.");
-      const nextTeams = (await refreshTeams()) ?? [];
-      const nextTeam = getPreferredTeam(nextTeams);
-      const nextTeamId = getTeamId(nextTeam);
-      applyActiveTeamId(nextTeamId);
-      setSelectedTeamId(nextTeamId);
-      setWorkspace(null);
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "워크스페이스 나가기 실패");
-    } finally {
-      setLeaving(false);
-    }
-  }
-
-  async function handleDeleteTeam() {
-    if (!selectedTeamId || !isOwner) return;
-
-    setDeleting(true);
-    try {
-      await deleteTeam(selectedTeamId);
-      const nextTeams = (await refreshTeams()) ?? [];
-      const nextTeam = getPreferredTeam(nextTeams);
-      const nextTeamId = getTeamId(nextTeam);
-      applyActiveTeamId(nextTeamId);
-      setSelectedTeamId(nextTeamId);
-      setWorkspace(null);
-      setConfirmDelete(false);
-      showToast("success", "워크스페이스를 삭제했어요.");
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "워크스페이스 삭제 실패");
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -290,7 +118,7 @@ export function TeamWorkspacePanel({ teams = [], loading = false, onTeamsChanged
           <Spinner />
         ) : teams.length === 0 ? (
           <EmptyState
-            icon="👥"
+            icon="users"
             title="아직 속한 워크스페이스가 없습니다"
             desc="새 워크스페이스를 만들거나 초대 코드를 입력해 참여해 보세요."
           />
