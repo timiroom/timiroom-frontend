@@ -10,7 +10,7 @@ import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
   bg:      "var(--surface)",
-  surface: "var(--surface)",
+  surface: "var(--bg)",
   border:  "rgba(0,0,0,0.07)",
   text:    "var(--text-1)",
   muted:   "var(--text-3)",

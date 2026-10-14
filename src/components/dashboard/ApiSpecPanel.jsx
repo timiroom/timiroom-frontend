@@ -19,7 +19,7 @@ import { parseSpecBodyInput, endpointContractFields, mergeEditedEndpoint } from 
 
 const C = {
   bg:       "var(--surface)",
-  surface:  "var(--surface)",
+  surface:  "var(--bg)",
   card:     "var(--surface)",
   cardOpen: "var(--bg)",
   border:   "rgba(0,0,0,0.07)",

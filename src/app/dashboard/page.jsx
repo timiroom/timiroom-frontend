@@ -113,7 +113,7 @@ function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSideba
   return (
     <div style={{
       display: "flex", alignItems: "center", height: 36,
-      background: "var(--surface)", borderBottom: "1px solid var(--border)",
+      background: "var(--bg)", borderBottom: "1px solid var(--border)",
       overflowX: "auto", overflowY: "hidden", flexShrink: 0,
     }}>
       <button
