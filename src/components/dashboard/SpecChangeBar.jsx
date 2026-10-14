@@ -11,11 +11,6 @@
 export function SpecChangeBar({ projectId, status, canPublish, publishing, onReload, onPublish }) {
   if (!status) return null;
   const { state, revision } = status;
-  const publishButton = canPublish && (
-    <button type="button" className="spec-bar-primary" disabled={publishing} onClick={onPublish}>
-      {publishing ? "발행 중…" : "현재 명세 기준 발행"}
-    </button>
-  );
   return (
     <div className="spec-bar">
       <p className={`spec-bar-note${state === "differ" ? " spec-bar-note-strong" : ""}`}>
@@ -29,7 +24,12 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
       <div className="spec-bar-actions">
         {state === "differ" && <button type="button" onClick={onReload}>문서 다시 불러오기</button>}
         {state !== "none" && <a className="spec-bar-link" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</a>}
-        {state !== "match" && publishButton}
+        {/* styled-jsx는 <style jsx>와 같은 JSX 트리 안의 요소에만 범위 클래스를 붙인다. 버튼을 바깥 변수로 빼면 스타일이 빠진다. */}
+        {state !== "match" && canPublish && (
+          <button type="button" className="spec-bar-primary" disabled={publishing} onClick={onPublish}>
+            {publishing ? "발행 중…" : "현재 명세 기준 발행"}
+          </button>
+        )}
       </div>
       <style jsx>{`
         .spec-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; flex-shrink:0; padding:6px 20px; background:var(--bg); border-bottom:1px solid var(--border); font-size:12px; color:var(--text-2); }
