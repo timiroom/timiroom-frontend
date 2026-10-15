@@ -221,7 +221,10 @@
   flex-shrink: 0; min-height: 52px; padding: 0 24px;
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
-.ui-panel-header__crumb { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text-1); }
+.ui-panel-header__crumb { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: min(220px, 100%); font-size: 14px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+/* 버튼이 많은 화면에서도 프로젝트 이름이 두 줄로 꺾이지 않게 줄이고 말줄임한다 */
+.ui-panel-header__crumb > span:not(.ui-panel-header__avatar):not(.ui-panel-header__sep) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ui-panel-header__crumb > .ui-badge, .ui-panel-header__avatar, .ui-panel-header__sep, .ui-panel-header__version { flex-shrink: 0; }
 .ui-panel-header__avatar {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 22px; height: 22px; border-radius: 6px;
@@ -230,7 +233,7 @@
 }
 .ui-panel-header__sep { font-size: 13px; font-weight: 400; color: var(--text-3); }
 .ui-panel-header__version { font-size: 12px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.ui-panel-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ui-panel-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
 
 .ui-confirm {
   /* 전역 리셋의 margin: 0이 <dialog> 기본 가운데 정렬을 지우므로 다시 auto로 둔다. */

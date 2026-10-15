@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { fetchProjectMembers } from "@/lib/projectApi";
+import { fetchProject, fetchProjectMembers } from "@/lib/projectApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { rememberAuthReturnTo } from "@/lib/authConfig";
 
@@ -27,7 +27,11 @@ export default function SpecReviewPage() {
     const project = query.get("projectId"), proposal = query.get("proposalId");
     if (!/^[1-9][0-9]*$/.test(project || "") || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(proposal || "")) { setError("변경안 링크를 확인해 주세요."); return; }
     let active = true;
-    setTarget({ project: { id: project, name: "티미룸" }, proposalId: proposal });
+    setTarget({ project: { id: project, name: "" }, proposalId: proposal });
+    // 머리글에 실제 프로젝트 이름을 보여 준다.
+    fetchProject(project).then((found) => {
+      if (active && found?.name) setTarget((current) => (current ? { ...current, project: { ...current.project, name: found.name } } : current));
+    }).catch(() => {});
     fetchProjectMembers(project).then((members) => {
       if (active) setRole(members.find((item) => String(item.memberId) === String(user.memberId ?? user.id))?.projectRole ?? null);
     }).catch(() => { if (active) setRole(null); });

@@ -407,7 +407,11 @@ export default function DashboardPage() {
   const [specStatusTick, setSpecStatusTick] = useState(0);
   const integrationEnabled = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
   const incomingProjectHandled = useRef(false);
+  // 처음 들어온 주소({ projectId, view, tab }). 화면 상태가 주소를 바꾸기 전에 한 번만 읽어 두고,
+  // 그 프로젝트를 실제로 열거나 열 수 없다고 판정하면 비운다(다른 워크스페이스로 바뀌는 동안에도 유지).
+  const incomingUrlRef = useRef(typeof window === "undefined" ? {} : readDashboardUrl());
   const selectedProjectIdRef = useRef(null);
+  const selectedViewRef = useRef(null);
   const projectsRef = useRef([]);
   const openDocumentRef = useRef(null);
   const [projectSettingsTab, setProjectSettingsTab] = useState("general");
@@ -431,7 +435,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     selectedProjectIdRef.current = selectedProject?.id ?? null;
-  }, [selectedProject?.id]);
+    selectedViewRef.current = selectedView;
+  }, [selectedProject?.id, selectedView]);
 
   useEffect(() => {
     documentSyncAbortRef.current?.abort();
@@ -545,7 +550,7 @@ export default function DashboardPage() {
         : null;
 
       const nextSelected = (
-        mergedList.find((project) => String(project.id) === new URLSearchParams(window.location.search).get("projectId"))
+        mergedList.find((project) => String(project.id) === (incomingUrlRef.current.projectId ?? readDashboardUrl().projectId))
         ?? mergedList.find((project) => String(project.id) === String(selectedProjectIdRef.current))
         ?? (runningProjectId ? mergedList.find((project) => String(project.id) === runningProjectId) : null)
         ?? mergedList[0]
@@ -561,7 +566,8 @@ export default function DashboardPage() {
         setOpenTabs([]);
         setActiveTabId(null);
       } else {
-        const fromUrl = readDashboardUrl();
+        const fromUrl = incomingUrlRef.current.projectId ? incomingUrlRef.current : readDashboardUrl();
+        if (String(nextSelected.id) === incomingUrlRef.current.projectId) incomingUrlRef.current = {};
         const urlView = String(nextSelected.id) === fromUrl.projectId && DOC_LABELS[fromUrl.view] ? fromUrl.view : null;
         const resolvedView = runningProjectId && nextSelected.id === runningProjectId ? null : (urlView ?? "prd");
         if (urlView === "settings" && fromUrl.tab) setProjectSettingsTab(fromUrl.tab);
@@ -673,13 +679,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading || !user || isLoadingWorkspaces || incomingProjectHandled.current) return;
-    const requested = new URLSearchParams(window.location.search).get("projectId");
+    const requested = incomingUrlRef.current.projectId;
     if (!/^[1-9][0-9]*$/.test(requested || "")) { incomingProjectHandled.current = true; return; }
     incomingProjectHandled.current = true;
     fetchProject(requested).then((project) => {
-      if (!project) return;
+      if (!project) { rejectUnreachableProjectRef.current(); return; }
       if (project.teamId != null && String(project.teamId) !== String(activeWorkspaceId)) applyActiveWorkspaceId(project.teamId);
-    }).catch(() => { /* Existing project loaders display access and loading state. */ });
+    }).catch(() => rejectUnreachableProjectRef.current());
   }, [authLoading, user, isLoadingWorkspaces, activeWorkspaceId]);
 
   projectsRef.current = projects;
@@ -695,6 +701,16 @@ export default function DashboardPage() {
     );
   }, [selectedProject?.id, selectedView, projectSettingsTab]);
 
+  /** 주소의 프로젝트를 열 수 없으면 알리고, 주소를 지금 보고 있는 화면으로 되돌린다. */
+  function rejectUnreachableProject() {
+    incomingUrlRef.current = {};
+    toast.error("이 프로젝트를 열 수 없습니다. 권한이 없거나 삭제된 프로젝트입니다.");
+    const current = selectedProjectIdRef.current;
+    writeDashboardUrl(current ? { projectId: current, view: selectedViewRef.current } : {}, { replace: true });
+  }
+  const rejectUnreachableProjectRef = useRef(rejectUnreachableProject);
+  rejectUnreachableProjectRef.current = rejectUnreachableProject;
+
   // 뒤로·앞으로(또는 navigateDashboard)로 주소가 바뀌면 그 주소의 문서를 연다.
   useEffect(() => {
     function onPopState() {
@@ -708,7 +724,8 @@ export default function DashboardPage() {
       // 다른 워크스페이스의 프로젝트면 그 워크스페이스로 바꾼다. 목록을 다시 불러올 때 주소의 문서를 연다.
       fetchProject(projectId).then((found) => {
         if (found?.teamId != null) applyActiveWorkspaceId(found.teamId);
-      }).catch(() => { /* 접근할 수 없는 프로젝트면 지금 화면을 그대로 둔다. */ });
+        else rejectUnreachableProjectRef.current();
+      }).catch(() => rejectUnreachableProjectRef.current());
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);

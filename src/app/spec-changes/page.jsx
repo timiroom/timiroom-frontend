@@ -12,6 +12,16 @@ const stateTone = { READY: "warning", APPROVED: "success", COMPLETED: "success",
 const kinds = { SPEC_CHANGE: "변경안 생성", ARTIFACT_REVIEW: "문서 교차검증", PR_REVIEW: "PR 정합성 검사" };
 const severityTone = { WARNING: "warning", INCONCLUSIVE: "info", PASS: "success" };
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+// 서버 작업 실패 코드(IntegrationJobWorker) → 사람이 읽을 설명
+const jobErrors = {
+  JOB_FAILED: "작업 중 알 수 없는 오류가 났습니다. 잠시 후 다시 요청해 주세요.",
+  JOB_TIMEOUT: "작업이 제한 시간 안에 끝나지 않았습니다.",
+  PR_CHANGED: "검사하는 동안 PR이 바뀌었습니다. 최신 커밋으로 다시 검사해 주세요.",
+  SPEC_CONFLICT: "검사하는 동안 명세 기준이 바뀌었습니다. 최신 기준으로 다시 요청해 주세요.",
+  NO_SPEC_CHANGES: "바뀐 문서 내용이 없어 변경안을 만들지 않았습니다.",
+  CONSISTENCY_PROVIDER_FAILED: "정합성 검사 AI가 응답하지 않았습니다. 잠시 후 다시 요청해 주세요.",
+  ACCESS_DENIED: "이 작업을 실행할 권한이 없습니다.",
+};
 
 // 서버는 페이지 객체({ content, totalPages })를 준다. 배열로 와도 같은 모양으로 다룬다.
 const rows = (pageData) => (Array.isArray(pageData) ? pageData : pageData?.content) ?? null;
@@ -85,7 +95,7 @@ export default function SpecChangesPage() {
       <SettingsSection title={`${kinds[job.kind] ?? "작업"} 결과`} description="검사 당시의 기준에 묶인 기록입니다. 이후 문서나 PR이 바뀌었다면 다시 검사해 주세요.">
         <div className="detail">
           <div className="detail__row"><StatusBadge status={job.status} />{typeof result?.passed === "boolean" && <Badge tone={result.passed ? "success" : "warning"}>{result.passed ? "검사 당시 통과" : "검토 필요"}</Badge>}</div>
-          {job.error && <p role="alert" className="detail__error">작업을 완료하지 못했습니다. ({job.error})</p>}
+          {job.error && <p role="alert" className="detail__error">{jobErrors[job.error] ?? `작업을 완료하지 못했습니다. (${job.error})`}</p>}
           {result?.summary && <p>{result.summary}</p>}
           <p className="detail__meta">
             작업 ID {job.jobId}

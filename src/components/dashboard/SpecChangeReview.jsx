@@ -1,10 +1,48 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { specChange, proposeManualChange, reviewChange, integrationJob, approveChange, rejectChange } from "@/lib/integrationApi";
+import { Badge } from "@/components/ui";
 
 const labels = { PRD: "PRD", API_SPEC: "API 명세", DB_SCHEMA: "DB 스키마", FEATURE_LIST: "기능 명세" };
 const terminal = new Set(["COMPLETED", "FAILED"]);
 function pretty(value) { if (typeof value === "string") { try { value = JSON.parse(value); } catch {} } return JSON.stringify(value, null, 2); }
+const statusLabels = { GENERATING: "생성 중", READY: "검토 대기", APPROVED: "승인됨", REJECTED: "거절됨", STALE: "기준 변경", FAILED: "실패" };
+const statusTones = { READY: "warning", APPROVED: "success", REJECTED: "neutral", STALE: "warning", FAILED: "danger", GENERATING: "info" };
+const jobLabels = { QUEUED: "접수됨", RUNNING: "진행 중", COMPLETED: "완료", FAILED: "실패" };
+const severityTones = { WARNING: "warning", INCONCLUSIVE: "info", PASS: "success" };
+
+// 문서는 JSON 문자열로 온다. 맨 위 항목 단위로 비교해 바뀐 항목만 보여 주고, 글은 줄바꿈을 살려 그대로 보여 준다.
+function parseDocument(value) { if (typeof value === "string") { try { return JSON.parse(value); } catch { return value; } } return value; }
+// PRD 본문처럼 HTML로 저장된 글은 태그를 걷어 내고 문단만 줄바꿈으로 남긴다(화면에 그리지 않고 글로만 보여 준다).
+function htmlToText(html) {
+  return html
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr|blockquote)\s*>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "· ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+function readable(value) {
+  if (value == null || value === "") return "(비어 있음)";
+  if (typeof value !== "string") return JSON.stringify(value, null, 2);
+  return /<\/?[a-z][^>]*>/i.test(value) ? htmlToText(value) : value;
+}
+function changedFields(before, after) {
+  const prev = parseDocument(before), next = parseDocument(after);
+  const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
+  if (!isObject(prev) || !isObject(next)) {
+    return { changed: JSON.stringify(prev) === JSON.stringify(next) ? [] : [{ key: null, before: readable(prev), after: readable(next) }], unchanged: [] };
+  }
+  const keys = [...new Set([...Object.keys(prev), ...Object.keys(next)])];
+  const changed = [], unchanged = [];
+  keys.forEach((key) => {
+    if (JSON.stringify(prev[key]) === JSON.stringify(next[key])) unchanged.push(key);
+    else changed.push({ key, before: readable(prev[key]), after: readable(next[key]) });
+  });
+  return { changed, unchanged };
+}
 
 export function SpecChangeReview({ project, proposalId, draft, canApprove, allowedTargets = [], onClose, onApproved, onProposalChanged }) {
   const [proposal, setProposal] = useState(null);
@@ -85,15 +123,15 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         <p>기준 revision {draft.snapshot.revision} · {draft.snapshot.snapshotId}</p>
       </>}
       {proposal && <>
-        <p className="review-state">{proposal.status} · 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base?.revision ?? "-"}</p>
+        <p className="review-state"><Badge tone={statusTones[proposal.status] ?? "neutral"}>{statusLabels[proposal.status] ?? proposal.status}</Badge> 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base?.revision ?? "-"}</p>
         {proposal.stale && <p role="status" className="review-error">명세 기준이 변경되었습니다. 최신 명세를 확인하고 새 변경안을 요청해 주세요. 아래 검사는 이전 기준의 기록입니다.</p>}
         <p><a href={`/spec-changes?projectId=${project.id}`}>변경안·검사 기록에서 다시 찾기</a></p>
-        <p className={proposal.artifactReviewPassed ? "review-pass" : "review-note"}>문서 교차검증: {proposal.artifactReviewPassed ? "PASS" : "통과 전"} · 코드의 PR 검증은 별도로 요청해야 합니다.</p>
+        <p className={proposal.artifactReviewPassed ? "review-pass" : "review-note"}>문서 교차검증: {proposal.artifactReviewPassed ? "통과" : "통과 전"} · 코드의 PR 검증은 별도로 요청해야 합니다.</p>
         {proposal.artifactReview && <section aria-label="문서 교차검증 결과">
-          <h3>문서 교차검증 결과 · {proposal.artifactReview.passed ? "PASS" : "검토 필요"}</h3>
+          <h3>문서 교차검증 결과 · {proposal.artifactReview.passed ? "통과" : "검토 필요"}</h3>
           <p>{proposal.artifactReview.summary}</p>
           {(proposal.artifactReview.findings || []).map((finding, index) => <article key={index}>
-            <h4>{finding.severity} · {finding.area}</h4><p>{finding.message}</p>
+            <h4><Badge tone={severityTones[finding.severity] ?? "neutral"}>{finding.severity}</Badge> {finding.area}</h4><p>{finding.message}</p>
             {finding.evidence?.length > 0 && <ul>{finding.evidence.map((item, i) => <li key={i}>{item}</li>)}</ul>}
             {finding.recommendation && <p>{finding.recommendation}</p>}
           </article>)}
@@ -107,12 +145,25 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       </section>}
       {documentTypes.map((type) => {
         const original = (proposal?.base || draft?.snapshot)?.documents.find((doc) => doc.type === type);
-        return <article key={type}><h3>{labels[type] || type}</h3><div className="review-columns">
-          <div><h4>변경 전</h4><pre tabIndex={0}>{pretty(original?.content)}</pre></div>
-          <div><h4>변경 후</h4><pre tabIndex={0}>{pretty(proposal ? proposal.documents[type] : draft.document)}</pre></div>
-        </div></article>;
+        const afterValue = proposal ? proposal.documents[type] : draft.document;
+        const { changed, unchanged } = changedFields(original?.content, afterValue);
+        return <article key={type}><h3>{labels[type] || type} <span className="review-count">바뀐 항목 {changed.length}개</span></h3>
+          {changed.length === 0 && <p className="review-note">바뀐 내용이 없습니다.</p>}
+          {changed.map((field) => <div key={field.key ?? "document"} className="review-field">
+            {field.key && <h4 className="review-key">{field.key}</h4>}
+            <div className="review-columns">
+              <div><h4>변경 전</h4><pre tabIndex={0} className="review-before">{field.before}</pre></div>
+              <div><h4>변경 후</h4><pre tabIndex={0} className="review-after">{field.after}</pre></div>
+            </div>
+          </div>)}
+          {unchanged.length > 0 && <p className="review-note">바뀌지 않은 항목 {unchanged.length}개: {unchanged.join(", ")}</p>}
+          <details className="review-full"><summary>문서 전체 보기</summary><div className="review-columns">
+            <div><h4>변경 전</h4><pre tabIndex={0}>{pretty(original?.content)}</pre></div>
+            <div><h4>변경 후</h4><pre tabIndex={0}>{pretty(afterValue)}</pre></div>
+          </div></details>
+        </article>;
       })}
-      {running && <p role="status">{job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} · {job.status} · 화면을 닫아도 작업은 계속됩니다.</p>}
+      {running && <p role="status">{job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} · {jobLabels[job.status] ?? job.status} · 화면을 닫아도 작업은 계속됩니다.</p>}
       {!draft && !proposal && !error && <p role="status">변경안을 불러오고 있습니다.</p>}
       <p role="alert" className="review-error">{error}</p>
     </div>
@@ -157,6 +208,12 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
       .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
+      .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+      .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }
+      .review-field { margin:12px 0 18px; } .review-key { margin:0 0 6px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--text-1); }
+      .review-before { background:color-mix(in srgb, var(--db-red) 4%, white); } .review-after { background:color-mix(in srgb, var(--db-green) 5%, white); }
+      .review-before, .review-after { font-family:inherit; font-size:13px; }
+      .review-full { margin-top:10px; font-size:13px; } .review-full summary { cursor:pointer; color:var(--text-2); }
       .review-pass { color:#0f7a53; } .review-note { color:var(--text-2); } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
       fieldset { border:1px solid var(--border); border-radius:8px; } legend { font-size:13px; }
       .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid var(--border-2); border-radius:8px; }
