@@ -1,10 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { specChange, proposeManualChange, reviewChange, integrationJob, approveChange, rejectChange } from "@/lib/integrationApi";
+import { SpecDocumentView } from "./SpecDocumentView";
 
 const labels = { PRD: "PRD", API_SPEC: "API 명세", DB_SCHEMA: "DB 스키마", FEATURE_LIST: "기능 명세" };
 const terminal = new Set(["COMPLETED", "FAILED"]);
-function pretty(value) { if (typeof value === "string") { try { value = JSON.parse(value); } catch {} } return JSON.stringify(value, null, 2); }
+function prettyJson(value) { if (typeof value === "string") { try { value = JSON.parse(value); } catch {} } return JSON.stringify(value, null, 2); }
 
 export function SpecChangeReview({ project, proposalId, draft, canApprove, allowedTargets = [], onClose, onApproved, onProposalChanged }) {
   const [proposal, setProposal] = useState(null);
@@ -107,9 +108,10 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       </section>}
       {documentTypes.map((type) => {
         const original = (proposal?.base || draft?.snapshot)?.documents.find((doc) => doc.type === type);
+        const changed = proposal ? proposal.documents[type] : draft.document;
         return <article key={type}><h3>{labels[type] || type}</h3><div className="review-columns">
-          <div><h4>변경 전</h4><pre tabIndex={0}>{pretty(original?.content)}</pre></div>
-          <div><h4>변경 후</h4><pre tabIndex={0}>{pretty(proposal ? proposal.documents[type] : draft.document)}</pre></div>
+          <div><h4>변경 전</h4><div className="review-preview" tabIndex={0}><SpecDocumentView value={original?.content} compareValue={changed} /></div></div>
+          <div><h4>변경 후</h4><div className="review-preview" tabIndex={0}><SpecDocumentView value={changed} compareValue={original?.content} /></div></div>
         </div></article>;
       })}
       {running && <p role="status">{job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} · {job.status} · 화면을 닫아도 작업은 계속됩니다.</p>}
@@ -117,7 +119,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       <p role="alert" className="review-error">{error}</p>
     </div>
     <footer>
-      {ready && canRevise && !corrections && <button disabled={busy || running} onClick={() => setCorrections(Object.fromEntries(Object.entries(proposal.documents).map(([type, value]) => [type, pretty(value)])))}>이 변경안 보완하기</button>}
+      {ready && canRevise && !corrections && <button disabled={busy || running} onClick={() => setCorrections(Object.fromEntries(Object.entries(proposal.documents).map(([type, value]) => [type, prettyJson(value)])))}>이 변경안 보완하기</button>}
       {ready && corrections && <><button disabled={busy || running} onClick={() => setCorrections(null)}>보완 취소</button><button disabled={busy || running} onClick={() => run(async () => {
         let documents; try { documents = Object.fromEntries(Object.entries(corrections).map(([type, value]) => [type, JSON.parse(value)])); }
         catch { throw new Error("보완 내용의 JSON 형식을 확인해 주세요."); }
@@ -153,9 +155,9 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; } header { justify-content:space-between; border-bottom:1px solid #dedcd5; } footer { border-top:1px solid #dedcd5; }
       h2 { font-size:22px; margin:4px 0; } h3 { font-size:17px; margin:24px 0 8px; } h4 { font-size:12px; color:#6b6960; } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:#6b6960; }
       .review-body { overflow:auto; padding:16px 24px; } .review-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .review-columns>div { min-width:0; }
-      pre { border:1px solid #dedcd5; border-radius:8px; padding:16px; background:white; overflow:auto; max-height:430px; font-size:12px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
+      .review-preview { border:1px solid #dedcd5; border-radius:8px; padding:12px; background:white; overflow:auto; max-height:520px; }
       button { padding:10px 15px; border:1px solid #ccc9bf; border-radius:8px; color:#1a1916; background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
-      .review-primary { background:#1a1916; color:white; border-color:#1a1916; } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
+      .review-primary { background:#1a1916; color:white; border-color:#1a1916; } button:focus-visible,input:focus-visible,.review-preview:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
       .review-pass { color:#0f7a53; } .review-note { color:#6b6960; } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
       fieldset { border:1px solid #dedcd5; border-radius:8px; } legend { font-size:13px; }

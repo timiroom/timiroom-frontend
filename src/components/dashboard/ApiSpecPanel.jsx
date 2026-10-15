@@ -1211,10 +1211,11 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
   const specTitle = project?.name ? `${project.name} API` : "API 명세서";
 
   /* ── 저장 공통 헬퍼 ── */
-  async function persistSpec(newSpec) {
+  async function persistSpec(newSpec, { deferReview = false } = {}) {
     const artifactId = project?.artifactIds?.API_SPEC;
     if (!artifactId) return;
-    if (await onProposeDocument?.({ sourceType: "API_SPEC", document: newSpec })) return { pendingApproval: true };
+    const review = await onProposeDocument?.({ sourceType: "API_SPEC", document: newSpec, deferReview });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
     await updateArtifact(artifactId, JSON.stringify(newSpec));
     setLocalApiSpec(newSpec);
     onDocumentSaved?.({ sourceType: "API_SPEC", document: newSpec });
@@ -1233,7 +1234,7 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
     }
     const nextSpec = { ...(rawApiSpec || { endpoints: [] }) };
     edits.forEach(e => { nextSpec[e.section] = e.after; });
-    return persistSpec(nextSpec);
+    return persistSpec(nextSpec, { deferReview: true });
   }
 
   /* ── 추가 ── */

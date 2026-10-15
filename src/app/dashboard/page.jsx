@@ -927,7 +927,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleProposeDocument({ sourceType, document }) {
+  async function handleProposeDocument({ sourceType, document, deferReview = false }) {
     if (!integrationEnabled) return false;
     if (!canEditDocType(myProjectRole, sourceType)) throw new Error("이 문서를 수정할 권한이 없습니다.");
     try {
@@ -935,7 +935,14 @@ export default function DashboardPage() {
       const source = snapshot.documents.find((item) => item.type === sourceType);
       if (!source) throw new Error("발행 기준에 대상 문서가 없습니다. PM이 기준을 다시 발행해야 합니다.");
       if (!await sourceMatchesSnapshot(selectedProject, sourceType, source)) throw new Error("화면의 문서와 발행 기준이 다릅니다. 문서를 다시 불러온 뒤 수정해 주세요.");
-      setSpecReview({ project: selectedProject, draft: { sourceType, document, snapshot } });
+      const review = { project: selectedProject, draft: { sourceType, document, snapshot } };
+      if (deferReview) {
+        return {
+          pendingApproval: true,
+          openReview: () => setSpecReview(review),
+        };
+      }
+      setSpecReview(review);
       return true;
     } catch (error) {
       if (error.code === "SPEC_NOT_PUBLISHED") return false;

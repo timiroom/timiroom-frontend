@@ -3,7 +3,7 @@
 /**
  * AiChatDock.jsx
  * --------------
- * 화면 오른쪽 아래 아이콘으로 여닫는 플로팅 AI 어시스턴트. 모델은 EXAONE 고정.
+ * 화면 오른쪽 아래 아이콘으로 여닫는 명세 분석·수정 어시스턴트.
  *
  * 예전에는 320px 사이드바로 항상 붙어 있었는데, ERD·API처럼 가로가 아쉬운 문서에서
  * 자리를 계속 차지했다. 지금은 필요할 때만 띄운다.
@@ -15,7 +15,7 @@
  *
  *   ① 편집 모드 — document + onApplyEdits가 모두 주어졌을 때
  *      /api/v1/document/{docType}/edit 를 호출해 섹션/항목 단위 수정안을 받고,
- *      제안문 → 동의 → diff → 최종 승인 2단계를 거쳐야 문서에 반영합니다.
+ *      분석 결과와 diff를 한 번에 보여주고, 사용자가 명시적으로 승인해야 반영합니다.
  *
  *   ② 상담 모드 — 그 외 (qa 등, 또는 읽기 전용일 때)
  *      스트리밍 대화만 합니다. 문서를 바꾸지 않습니다.
@@ -31,6 +31,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { sendMessageStream, requestDocumentEdit } from "@/lib/agentApi";
+import { normalizeChatText } from "@/lib/specPresentation.mjs";
+import { SpecDocumentView } from "./SpecDocumentView";
 
 const C = {
   bg:       "#f7f6f3",
@@ -40,7 +42,11 @@ const C = {
   accent:   "#6b6960",
   inputBg:  "var(--bg)",
   inputBdr: "rgba(0,0,0,0.10)",
-  aiColor:  "#7d4cfc",
+  aiColor:  "#2563eb",
+  analysisBg: "#f8fafc",
+  analysisBorder: "#cbd5e1",
+  warningBg: "#fff7ed",
+  warningText: "#9a3412",
   addBg:    "rgba(52,211,153,0.12)",
   addText:  "#0f7a53",
   delBg:    "rgba(248,113,113,0.12)",
@@ -138,8 +144,8 @@ function IconBtn({ onClick, title, children }) {
 
 const AiAvatar = ({ size = 24 }) => (
   <div style={{
-    width: size, height: size, borderRadius: size / 4, flexShrink: 0, marginTop: 2,
-    background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+    width: size, height: size, borderRadius: 6, flexShrink: 0, marginTop: 2,
+    background: C.text,
     display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: size / 2.2, color: "white", fontWeight: 800,
   }}>A</div>
@@ -148,59 +154,40 @@ const AiAvatar = ({ size = 24 }) => (
 /* ══════════════════════════════════════
    섹션 diff 뷰
 ══════════════════════════════════════ */
-const DIFF_COLLAPSE_AT = 14;   // 이 줄 수를 넘으면 접어서 보여준다
-
 function SectionDiff({ edit }) {
-  const [expanded, setExpanded] = useState(false);
   const lines = edit.diff || [];
-  const changed = lines.filter(l => l.type !== "same").length;
-  const visible = expanded ? lines : lines.slice(0, DIFF_COLLAPSE_AT);
-
   const added   = lines.filter(l => l.type === "add").length;
   const removed = lines.filter(l => l.type === "del").length;
 
   return (
-    <div style={{ marginBottom: 8, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", background: "var(--bg)" }}>
+    <section style={{ borderTop: `1px solid ${C.border}`, padding: "10px 0 2px" }}>
       <div style={{
-        padding: "6px 9px", background: "rgba(0,0,0,0.03)",
-        borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center", gap: 6,
+        padding: "0 0 7px", display: "flex", alignItems: "center", gap: 7,
       }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{edit.label}</span>
-        <span style={{ fontSize: 10, color: C.addText }}>+{added}</span>
-        <span style={{ fontSize: 10, color: C.delText }}>−{removed}</span>
+        <span style={{ fontSize: 12, fontWeight: 750, color: C.text }}>{edit.label}</span>
+        <span style={{ fontSize: 10.5, color: C.addText, fontWeight: 650 }}>추가 {added}</span>
+        <span style={{ fontSize: 10.5, color: C.delText, fontWeight: 650 }}>삭제 {removed}</span>
       </div>
 
-      <div style={{ maxHeight: expanded ? 320 : "none", overflowY: expanded ? "auto" : "visible" }}>
-        {visible.map((line, i) => (
-          <div key={i} style={{
-            padding: "2px 8px",
-            fontSize: 11, lineHeight: 1.55,
-            fontFamily: line.type === "same" ? "inherit" : "inherit",
-            whiteSpace: "pre-wrap", wordBreak: "break-word",
-            background: line.type === "add" ? C.addBg : line.type === "del" ? C.delBg : "transparent",
-            color:      line.type === "add" ? C.addText : line.type === "del" ? C.delText : C.muted,
-            textDecoration: line.type === "del" ? "line-through" : "none",
-            opacity: line.type === "same" ? 0.55 : 1,
-          }}>
-            <span style={{ opacity: 0.6, marginRight: 4 }}>
-              {line.type === "add" ? "+" : line.type === "del" ? "−" : " "}
-            </span>
-            {line.text}
+      <div style={{ display: "grid", gap: 8 }}>
+        <details style={{ border: `1px solid ${C.border}`, background: "#fff" }}>
+          <summary style={{ padding: "8px 10px", cursor: "pointer", fontSize: 11, fontWeight: 750, color: C.muted }}>
+            변경 전 내용 보기
+          </summary>
+          <div style={{ maxHeight: 250, overflow: "auto", padding: 8, borderTop: `1px solid ${C.border}` }}>
+            <SpecDocumentView value={edit.before} compareValue={edit.after} />
           </div>
-        ))}
+        </details>
+        <div style={{ border: `1px solid ${C.analysisBorder}`, background: "#fff" }}>
+          <div style={{ padding: "8px 10px", fontSize: 11, fontWeight: 800, color: C.aiColor, borderBottom: `1px solid ${C.border}` }}>
+            수정 후
+          </div>
+          <div style={{ maxHeight: 300, overflow: "auto", padding: 8 }}>
+            <SpecDocumentView value={edit.after} compareValue={edit.before} />
+          </div>
+        </div>
       </div>
-
-      {lines.length > DIFF_COLLAPSE_AT && (
-        <button onClick={() => setExpanded(v => !v)} style={{
-          width: "100%", padding: "5px 0", border: "none",
-          borderTop: `1px solid ${C.border}`, background: "rgba(0,0,0,0.02)",
-          color: C.muted, fontSize: 10.5, cursor: "pointer",
-        }}>
-          {expanded ? "접기" : `${lines.length - DIFF_COLLAPSE_AT}줄 더 보기 (변경 ${changed}줄)`}
-        </button>
-      )}
-    </div>
+    </section>
   );
 }
 
@@ -212,7 +199,7 @@ const CardBtn = ({ onClick, disabled, primary, children }) => (
     onClick={onClick}
     disabled={disabled}
     style={{
-      padding: primary ? "6px 16px" : "6px 14px", borderRadius: 7,
+      minHeight: 34, padding: primary ? "7px 16px" : "7px 14px", borderRadius: 6,
       border: primary ? "none" : `1px solid ${C.border}`,
       background: primary ? C.aiColor : "transparent",
       color: primary ? "white" : C.muted,
@@ -233,20 +220,28 @@ const CheckIcon = () => (
 );
 
 /**
- * 2단계 승인 카드.
- *
- *   stage "proposal" — 무엇을 어떤 값으로 바꿀지 문장으로 먼저 설명하고 동의를 받는다
- *   stage "diff"     — 동의한 뒤 실제 변경 줄을 보여주고 최종 승인을 받는다
- *
- * 재작성은 서버에서 이미 끝나 있으므로 제안문과 diff는 같은 결과를 가리킨다.
+ * 요구사항 분석과 실제 diff를 함께 보여주는 단일 승인 카드.
  */
-function EditProposal({ msg, onAccept, onApply, onDismiss, applying }) {
+function EditProposal({ msg, onApply, onDismiss, applying }) {
+  const [showChanges, setShowChanges] = useState(false);
+
   if (msg.resolved) {
     return (
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <AiAvatar />
-        <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 5, paddingTop: 4 }}>
-          {msg.pendingApproval ? <>변경안 검토 화면을 열었습니다. 문서는 PM 승인 후 적용됩니다.</> : msg.applied
+        <div style={{
+          flex: 1, minWidth: 0, padding: msg.pendingApproval ? "10px 12px" : "4px 0",
+          border: msg.pendingApproval ? `1px solid ${C.analysisBorder}` : "none",
+          background: msg.pendingApproval ? C.analysisBg : "transparent",
+          fontSize: 12, color: C.muted,
+        }}>
+          {msg.pendingApproval ? <>
+            <div style={{ color: C.text, fontWeight: 750, marginBottom: 3 }}>변경안이 준비되었습니다.</div>
+            <div style={{ lineHeight: 1.55 }}>아직 원본에는 반영되지 않았습니다. PM 검토가 필요할 때 아래 버튼으로 여세요.</div>
+            {msg.openReview && <div style={{ marginTop: 9 }}>
+              <CardBtn primary onClick={msg.openReview}>PM 검토 열기</CardBtn>
+            </div>}
+          </> : msg.applied
             ? <><span style={{ color: "#34d399", fontWeight: 700 }}>✓</span> 문서에 적용했습니다.</>
             : <><span>✗</span> 적용하지 않았습니다.</>}
         </div>
@@ -254,53 +249,72 @@ function EditProposal({ msg, onAccept, onApply, onDismiss, applying }) {
     );
   }
 
-  const isProposal = msg.stage === "proposal";
+  const analysis = msg.analysis || {};
+  const affected = analysis.affectedSections || msg.edits.map(edit => edit.label);
 
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <AiAvatar />
       <div style={{
-        flex: 1, minWidth: 0, padding: "12px 12px 11px",
-        background: `${C.aiColor}0c`, border: `1px solid ${C.aiColor}2a`,
-        borderRadius: "6px 14px 14px 14px",
+        flex: 1, minWidth: 0, padding: "14px",
+        background: C.analysisBg, border: `1px solid ${C.analysisBorder}`,
+        borderRadius: 8,
       }}>
-        {msg.reply && (
-          <div style={{
-            fontSize: 12.5, color: C.text, lineHeight: 1.65,
-            marginBottom: 10, whiteSpace: "pre-wrap",
-            // diff 단계에서는 제안문이 맥락으로 물러나고 변경 내용이 주인공이 된다
-            opacity: isProposal ? 1 : 0.7,
-          }}>
-            {renderInlineMarkdown(msg.reply)}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>요구사항 분석 완료</div>
+          <span style={{ fontSize: 10.5, color: C.aiColor, fontWeight: 700 }}>
+            {msg.edits.length}개 영역 변경
+          </span>
+        </div>
+
+        {msg.requirement && (
+          <div style={{ padding: "8px 10px", background: "#eff6ff", borderLeft: `3px solid ${C.aiColor}`, marginBottom: 11 }}>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>요청한 내용</div>
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>{msg.requirement}</div>
           </div>
         )}
 
-        {isProposal ? (
-          <>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
-              동의하시면 바꿀 내용을 먼저 보여드릴게요.
-            </div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <CardBtn primary onClick={() => onAccept(msg.id)}>
-                <CheckIcon /> 예, 진행해주세요
-              </CardBtn>
-              <CardBtn onClick={() => onDismiss(msg.id)}>아니요</CardBtn>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.text, marginBottom: 7 }}>
-              변경 내용
-            </div>
-            {msg.edits.map(edit => <SectionDiff key={edit.section} edit={edit} />)}
-            <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
-              <CardBtn primary disabled={applying} onClick={() => onApply(msg.id, msg.edits)}>
-                {applying ? "적용 중..." : <><CheckIcon /> 이대로 수정</>}
-              </CardBtn>
-              <CardBtn disabled={applying} onClick={() => onDismiss(msg.id)}>취소</CardBtn>
-            </div>
-          </>
+        <div style={{ marginBottom: 9 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 750, color: C.muted, marginBottom: 3 }}>분석 결과</div>
+          <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+            {analysis.summary || msg.reply}
+          </div>
+        </div>
+        {analysis.reason && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 750, color: C.muted, marginBottom: 3 }}>수정 이유</div>
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>{analysis.reason}</div>
+          </div>
         )}
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 11 }}>
+          {affected.map(label => <span key={label} style={{
+            padding: "3px 7px", border: `1px solid ${C.analysisBorder}`,
+            background: "white", color: C.muted, fontSize: 10.5, fontWeight: 650,
+          }}>{label}</span>)}
+        </div>
+
+        <button type="button" onClick={() => setShowChanges(value => !value)} style={{
+          width: "100%", minHeight: 36, padding: "8px 10px", marginBottom: showChanges ? 5 : 0,
+          border: `1px solid ${C.analysisBorder}`, background: "#fff", color: C.text,
+          fontSize: 11.5, fontWeight: 750, cursor: "pointer", textAlign: "left",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        }}>
+          <span>{showChanges ? "변경사항 접기" : "변경사항 보기"}</span>
+          <span aria-hidden="true" style={{ color: C.muted }}>{showChanges ? "▲" : "▼"}</span>
+        </button>
+        {showChanges && <div>
+          {msg.edits.map(edit => <SectionDiff key={edit.section} edit={edit} />)}
+        </div>}
+
+        <div style={{ padding: "8px 10px", background: C.warningBg, color: C.warningText, fontSize: 10.5, lineHeight: 1.5, marginTop: 9 }}>
+          적용 후 저장되며, 발행된 명세는 변경안 검토와 PM 승인을 거칩니다.
+        </div>
+        <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
+          <CardBtn primary disabled={applying} onClick={() => onApply(msg.id, msg.edits)}>
+            {applying ? "적용 중..." : <><CheckIcon /> 수정 적용</>}
+          </CardBtn>
+          <CardBtn disabled={applying} onClick={() => onDismiss(msg.id)}>취소</CardBtn>
+        </div>
 
         <div style={{ marginTop: 8, fontSize: 10, color: C.muted }}>
           채팅창에 <strong>네</strong> 또는 <strong>아니요</strong>를 입력해도 됩니다.
@@ -315,6 +329,7 @@ function EditProposal({ msg, onAccept, onApply, onDismiss, applying }) {
 ══════════════════════════════════════ */
 function MessageBubble({ msg, isStreaming }) {
   const [copied, setCopied] = useState(false);
+  const displayContent = normalizeChatText(msg.content);
 
   function handleCopy() {
     navigator.clipboard.writeText(msg.content).then(() => {
@@ -331,6 +346,7 @@ function MessageBubble({ msg, isStreaming }) {
           background: "var(--bg)", border: `1px solid ${C.border}`,
           borderRadius: "14px 14px 4px 14px",
           fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap",
+          wordBreak: "keep-all", overflowWrap: "anywhere",
         }}>
           {msg.content}
         </div>
@@ -344,9 +360,9 @@ function MessageBubble({ msg, isStreaming }) {
       <div style={{ maxWidth: "88%", flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: 13, color: C.text, lineHeight: 1.7,
-          whiteSpace: "pre-wrap", wordBreak: "break-word",
+          whiteSpace: "pre-wrap", wordBreak: "keep-all", overflowWrap: "anywhere",
         }}>
-          {renderInlineMarkdown(msg.content)}
+          {renderInlineMarkdown(displayContent)}
           {isStreaming && <span style={{
             display: "inline-block", width: 2, height: 14,
             background: C.aiColor, marginLeft: 2,
@@ -379,8 +395,8 @@ const NO_ANSWERS  = new Set(["아니요", "아니", "no", "ㄴ", "ㄴㄴ", "싫�
 
 /* 창 크기 — 기본 / 확대 */
 const DOCK_SIZE = {
-  normal: { width: 380, height: "min(620px, calc(100vh - 150px))" },
-  wide:   { width: 560, height: "calc(100vh - 120px)" },
+  normal: { width: 440, height: "min(680px, calc(100vh - 132px))" },
+  wide:   { width: 640, height: "calc(100vh - 96px)" },
 };
 
 export function AiChatDock({
@@ -411,14 +427,14 @@ export function AiChatDock({
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
   const abortRef    = useRef(null);
-  const pendingRef  = useRef(null);   // 답변 대기 중인 수정 제안 { id, edits }
+  const pendingRef  = useRef(null);   // 적용 확인 대기 중인 수정 제안 { id, edits }
 
   /* 프로젝트가 바뀌면 대화를 초기화 — 다른 프로젝트의 맥락이 섞이면 안 된다 */
   useEffect(() => {
     setMessages([{
       id: "init", role: "assistant",
       content: editMode
-        ? `안녕하세요! ${meta.subtitle}입니다.\n\n${project?.name ? `**${project.name}** 프로젝트의 ` : ""}${meta.docLabel}에서 고치고 싶은 부분을 말씀해 주세요. 어떻게 바꿀지 먼저 제안드린 뒤 반영할게요.`
+        ? `${project?.name ? `**${project.name}** 프로젝트의 ` : ""}${meta.docLabel}를 검토하고 있습니다.\n\n요구사항이나 바꾸고 싶은 내용을 입력하면 현재 명세와 비교해 수정 근거와 변경 내용을 먼저 보여드리겠습니다.`
         : `안녕하세요! ${meta.subtitle}입니다.\n\n${project?.name ? `**${project.name}** 프로젝트에 대해 ` : ""}궁금한 점을 물어보세요.`,
     }]);
     pendingRef.current = null;
@@ -452,23 +468,19 @@ export function AiChatDock({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, busy]);
 
-  /* ── 제안 동의 → diff 단계로 ── */
-  const acceptProposal = useCallback((msgId) => {
-    setMessages(prev => prev.map(m =>
-      m.id === msgId ? { ...m, stage: "diff" } : m
-    ));
-    if (pendingRef.current?.id === msgId) {
-      pendingRef.current = { ...pendingRef.current, stage: "diff" };
-    }
-  }, []);
-
   /* ── 수정안 적용 ── */
   const applyEdits = useCallback(async (msgId, edits) => {
     setApplying(true);
     try {
       const result = await onApplyEdits(edits);
       setMessages(prev => prev.map(m =>
-        m.id === msgId ? { ...m, resolved: true, applied: !result?.pendingApproval, pendingApproval: Boolean(result?.pendingApproval) } : m
+        m.id === msgId ? {
+          ...m,
+          resolved: true,
+          applied: !result?.pendingApproval,
+          pendingApproval: Boolean(result?.pendingApproval),
+          openReview: typeof result?.openReview === "function" ? result.openReview : null,
+        } : m
       ));
       pendingRef.current = null;
     } catch (e) {
@@ -492,7 +504,11 @@ export function AiChatDock({
   /* ── 대화 히스토리 (서버 전송용) ── */
   function buildHistory(extra) {
     return messages
-      .filter(m => m.id !== "init" && m.type !== "edit" && m.content)
+      .filter(m => m.id !== "init")
+      .map(m => m.type === "edit"
+        ? { role: "assistant", content: m.analysis?.summary || m.reply || "수정안을 분석했습니다." }
+        : m)
+      .filter(m => m.content)
       .concat(extra ? [extra] : [])
       .map(m => ({ role: m.role, content: m.content }));
   }
@@ -514,11 +530,11 @@ export function AiChatDock({
         const id = `edit_${Date.now()}`;
         setMessages(prev => [...prev, {
           id, role: "assistant", type: "edit",
-          reply: result.reply, edits: result.edits,
-          stage: "proposal",
+          reply: result.reply, analysis: result.analysis, edits: result.edits,
+          requirement: userMsg.content,
           resolved: false, applied: false,
         }]);
-        pendingRef.current = { id, edits: result.edits, stage: "proposal" };
+        pendingRef.current = { id, edits: result.edits };
       } else {
         setMessages(prev => [...prev, {
           id: Date.now() + 1, role: "assistant",
@@ -577,9 +593,7 @@ export function AiChatDock({
     const text = input.trim();
     if (!text || busy || applying) return;
 
-    /* 대기 중인 수정 제안이 있으면 예/아니요를 먼저 해석한다.
-       "네"의 의미는 단계마다 다르다 — 제안 단계에서는 '변경 내용 보여줘',
-       diff 단계에서는 '문서에 반영해줘'. */
+    /* 대기 중인 수정 제안이 있으면 예/아니요를 먼저 해석한다. */
     const pending = pendingRef.current;
     if (pending) {
       const lower = text.toLowerCase();
@@ -589,8 +603,7 @@ export function AiChatDock({
         setMessages(prev => [...prev, userMsg]);
         setInput("");
         if (textareaRef.current) textareaRef.current.style.height = "auto";
-        if (pending.stage === "proposal") acceptProposal(pending.id);
-        else                              await applyEdits(pending.id, pending.edits);
+        await applyEdits(pending.id, pending.edits);
         return;
       }
       if (NO_ANSWERS.has(lower)) {
@@ -631,16 +644,17 @@ export function AiChatDock({
     <>
       {/* ── 실행 아이콘 (오른쪽 아래 고정) ── */}
       <button
+        className="ai-chat-launcher"
         onClick={() => setOpen(v => !v)}
         title={open ? "AI 어시스턴트 닫기" : "AI 어시스턴트 열기"}
         aria-label={open ? "AI 어시스턴트 닫기" : "AI 어시스턴트 열기"}
         style={{
           position: "fixed", right: 24, bottom: 24, zIndex: 60,
-          width: 52, height: 52, borderRadius: "50%", border: "none",
-          background: `linear-gradient(135deg,${C.aiColor},#9b6dff)`,
+          width: 48, height: 48, borderRadius: 10, border: "1px solid rgba(255,255,255,0.18)",
+          background: C.text,
           color: "white", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 6px 20px rgba(125,76,252,0.38)",
+          boxShadow: "0 8px 24px rgba(26,25,22,0.24)",
           transition: "transform 0.15s, box-shadow 0.15s",
         }}
         onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.06)"; }}
@@ -668,14 +682,14 @@ export function AiChatDock({
       </button>
 
       {/* ── 채팅 창 ── */}
-      <div style={{
+      <div className="ai-chat-window" style={{
         position: "fixed", right: 24, bottom: 88, zIndex: 59,
         width: size.width, height: size.height,
         maxWidth: "calc(100vw - 48px)",
         background: C.bg,
         border: `1px solid ${C.border}`,
-        borderRadius: 16,
-        boxShadow: "0 18px 50px rgba(0,0,0,0.22)",
+        borderRadius: 8,
+        boxShadow: "0 18px 48px rgba(0,0,0,0.18)",
         display: open ? "flex" : "none",
         flexDirection: "column",
         overflow: "hidden",
@@ -683,20 +697,22 @@ export function AiChatDock({
       }}>
         {/* 헤더 */}
         <div style={{
-          padding: "11px 12px 11px 14px", borderBottom: `1px solid ${C.border}`,
+          padding: "13px 12px 12px 14px", borderBottom: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+          background: "var(--bg)",
         }}>
           <AiAvatar size={26} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Align-it AI</div>
-            <div style={{ fontSize: 10, color: C.muted }}>{meta.subtitle}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>명세 분석 및 수정</div>
+            <div style={{ fontSize: 10.5, color: C.muted }}>{meta.docLabel} · 요구사항 기반 검토</div>
           </div>
           <span style={{
-            fontSize: 10, padding: "2px 7px", borderRadius: 10,
-            background: `${C.aiColor}14`, border: `1px solid ${C.aiColor}30`,
-            color: C.aiColor, fontWeight: 600,
+            fontSize: 10, padding: "3px 7px", borderRadius: 4,
+            background: editMode ? "#ecfdf5" : "#f1f5f9",
+            border: `1px solid ${editMode ? "#a7f3d0" : "#cbd5e1"}`,
+            color: editMode ? "#047857" : C.muted, fontWeight: 700,
           }}>
-            EXAONE
+            {editMode ? "수정 가능" : "질문 모드"}
           </span>
           <IconBtn
             onClick={() => setWide(v => !v)}
@@ -720,13 +736,12 @@ export function AiChatDock({
         </div>
 
       {/* 메시지 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 6px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 8px", background: "#fff" }}>
         {messages.map(msg =>
           msg.type === "edit" ? (
             <EditProposal
               key={msg.id}
               msg={msg}
-              onAccept={acceptProposal}
               onApply={applyEdits}
               onDismiss={dismissEdits}
               applying={applying}
@@ -741,7 +756,8 @@ export function AiChatDock({
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <AiAvatar />
             <div style={{ fontSize: 12.5, color: C.muted, paddingTop: 3 }}>
-              문서를 읽고 수정안을 만드는 중...
+              <strong style={{ display: "block", color: C.text, marginBottom: 2 }}>명세를 분석하고 있습니다</strong>
+              요구사항과 현재 문서를 비교해 변경 범위를 계산하는 중입니다.
             </div>
           </div>
         )}
@@ -749,15 +765,20 @@ export function AiChatDock({
       </div>
 
       {/* 입력창 */}
-      <div style={{ padding: "10px 12px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+      <div style={{ padding: "10px 12px 11px", borderTop: `1px solid ${C.border}`, flexShrink: 0, background: "var(--bg)" }}>
+        <label htmlFor={`ai-chat-input-${contextType}`} style={{ display: "block", fontSize: 10.5, fontWeight: 750, color: C.muted, margin: "0 0 6px 2px" }}>
+          {editMode ? "요구사항 또는 수정 요청" : "문서에 대한 질문"}
+        </label>
         <div style={{
           display: "flex", gap: 8, alignItems: "center",
-          background: C.inputBg, borderRadius: 12,
-          border: `1px solid ${C.inputBdr}`, padding: "8px 10px",
+          background: "#fff", borderRadius: 6,
+          border: `1px solid ${C.inputBdr}`, padding: "8px 9px",
         }}>
           <textarea
+            id={`ai-chat-input-${contextType}`}
             ref={textareaRef}
             value={input}
+            disabled={applying}
             onChange={e => { setInput(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
             placeholder={meta.placeholder}
@@ -773,7 +794,7 @@ export function AiChatDock({
             onClick={busy ? () => abortRef.current?.abort() : handleSend}
             disabled={!busy && !input.trim()}
             style={{
-              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+              width: 30, height: 30, borderRadius: 6, flexShrink: 0,
               background: busy ? "#f87171" : (input.trim() ? C.aiColor : "rgba(26,25,22,0.2)"),
               border: "none",
               cursor: busy || input.trim() ? "pointer" : "not-allowed",
@@ -793,6 +814,7 @@ export function AiChatDock({
             )}
           </button>
         </div>
+        <div style={{ margin: "5px 2px 0", fontSize: 9.5, color: C.muted }}>Enter 전송 · Shift+Enter 줄바꿈</div>
       </div>
 
       </div>
@@ -805,6 +827,16 @@ export function AiChatDock({
           to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
         .chat-textarea::-webkit-scrollbar { display: none; }
+        @media (max-width: 640px) {
+          .ai-chat-window {
+            right: 8px !important;
+            bottom: 68px !important;
+            width: calc(100vw - 16px) !important;
+            height: calc(100vh - 84px) !important;
+            max-width: none !important;
+          }
+          .ai-chat-launcher { right: 10px !important; bottom: 10px !important; }
+        }
       `}</style>
     </>
   );
