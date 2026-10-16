@@ -316,6 +316,7 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap; transition: border-color .2s, color .2s;
 }
 .al-tech-chip:hover { border-color: var(--accent2); color: var(--primary); }
+.al-tag--logo { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ── Agent Cards (TIMIROOM large card style) ── */
 .al-agents { background: white; padding: 120px 0; }

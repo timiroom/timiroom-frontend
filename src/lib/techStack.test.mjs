@@ -33,6 +33,11 @@ test("overlapping names prefer the longer match", () => {
   assert.deepEqual(names("Next.js와 React"), ["Next.js", "React"]);
 });
 
+test("OpenAPI is Swagger but OpenAI is not", () => {
+  assert.deepEqual(names("OpenAPI 명세와 OpenAI 모델"), ["Swagger", "OpenAI"]);
+  assert.deepEqual(names("NAS의 k3s에 배포"), ["k3s"]);
+});
+
 test("korean particles attached to names still match", () => {
   assert.deepEqual(names("MySQL을 쓰고 Redis로 캐싱"), ["MySQL", "Redis"]);
 });
