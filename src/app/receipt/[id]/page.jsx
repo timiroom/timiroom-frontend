@@ -65,7 +65,10 @@ export default function ReceiptPage() {
 
         <dl className="receipt__rows">
           <div><dt>결제 내용</dt><dd>{receipt.orderName}</dd></div>
-          <div><dt>이용 기간</dt><dd>{day(receipt.periodStart)} ~ {day(receipt.periodEnd ? new Date(new Date(receipt.periodEnd).getTime() - 1000).toISOString() : null)}</dd></div>
+          {receipt.kind !== "CREDIT" && (
+            // 기간 끝은 다음 결제 시각이라, 마지막 이용일은 그 전날이다(결제 내용 문구와 같게).
+            <div><dt>이용 기간</dt><dd>{day(receipt.periodStart)} ~ {day(receipt.periodEnd ? new Date(new Date(receipt.periodEnd).getTime() - 86400000).toISOString() : null)}</dd></div>
+          )}
           <div><dt>결제 일시</dt><dd>{dateTime(receipt.paidAt)}</dd></div>
           <div><dt>결제 수단</dt><dd>{receipt.cardSummary || "카드"}</dd></div>
           <div><dt>구매자</dt><dd>{[receipt.buyerName, receipt.buyerEmail].filter(Boolean).join(" · ") || "—"}</dd></div>
