@@ -137,7 +137,7 @@ function FlowNode({ step, status }) {
 /* ═══════════════════════════════════════════
    ProgressScreen
 ════════════════════════════════════════════ */
-export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel, onToggleSidebar }) {
+export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel, onLeave, onToggleSidebar }) {
   const [pipelineId,  setPipelineId]  = useState(initialPipelineId);
   const [percent,     setPercent]     = useState(5);
   const [phase,       setPhase]       = useState("running");
@@ -149,6 +149,9 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const [restarting,  setRestarting]  = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [eventLog, setEventLog] = useState([]);
+  // 연결이 잠깐 끊기면 자동으로 다시 붙는다. 생성은 서버에서 계속되므로 끊김을 실패로 보지 않는다.
+  const [reconnecting, setReconnecting] = useState(false);
+  const [connectKey, setConnectKey] = useState(0);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
@@ -171,72 +174,97 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
       setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
 
-    const es = new EventSource(
-      `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
-      { withCredentials: true }
-    );
-    es.addEventListener("progress", (e) => {
-      const d      = JSON.parse(e.data);
-      const newKey = SSE_TO_STEP[d.step];
-      setPercent(d.percent || 0);
-      setEventLog(prev => [
-        ...prev,
-        { step: d.step, message: d.message || "", percent: d.percent || 0 },
-      ].slice(-8));
-      if (newKey && newKey !== currentKeyRef.current) {
-        const prevKey = currentKeyRef.current;
-        currentKeyRef.current = newKey;
+    let source = null;
+    let attempt = 0;
+    let retryTimer = null;
+    let stopped = false;
+
+    const connect = () => {
+      const es = new EventSource(
+        `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
+        { withCredentials: true }
+      );
+      source = es;
+      // 다시 붙으면 서버가 처음부터 진행 이벤트를 다시 보내므로 기록을 비우고 받는다.
+      if (attempt > 0) setEventLog([]);
+      es.addEventListener("progress", (e) => {
+        attempt = 0;
+        setReconnecting(false);
+        const d      = JSON.parse(e.data);
+        const newKey = SSE_TO_STEP[d.step];
+        setPercent(d.percent || 0);
+        setEventLog(prev => [
+          ...prev,
+          { step: d.step, message: d.message || "", percent: d.percent || 0 },
+        ].slice(-8));
+        if (newKey && newKey !== currentKeyRef.current) {
+          const prevKey = currentKeyRef.current;
+          currentKeyRef.current = newKey;
+          setStatuses(prev => {
+            const next = { ...prev };
+            if (prevKey) next[prevKey] = "done";
+            next[newKey] = "running";
+            return next;
+          });
+        }
+      });
+      es.addEventListener("complete", (e) => {
+        doneRef.current = true;
+        setReconnecting(false);
+        const d = JSON.parse(e.data);
+        setPercent(100);
+        setPhase("done");
+        setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
+        es.close();
+        setTimeout(() => onComplete(d.result), 1500);
+      });
+      es.addEventListener("error", (e) => {
+        // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
+        // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
+        if (doneRef.current || !e.data) return;
+        doneRef.current = true;
+        setReconnecting(false);
         setStatuses(prev => {
           const next = { ...prev };
-          if (prevKey) next[prevKey] = "done";
-          next[newKey] = "running";
+          if (currentKeyRef.current) next[currentKeyRef.current] = "error";
           return next;
         });
-      }
-    });
-    es.addEventListener("complete", (e) => {
-      doneRef.current = true;
-      const d = JSON.parse(e.data);
-      setPercent(100);
-      setPhase("done");
-      setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
-      es.close();
-      setTimeout(() => onComplete(d.result), 1500);
-    });
-    es.addEventListener("error", (e) => {
-      // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
-      // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
-      if (doneRef.current || !e.data) return;
-      doneRef.current = true;
-      setStatuses(prev => {
-        const next = { ...prev };
-        if (currentKeyRef.current) next[currentKeyRef.current] = "error";
-        return next;
+        try {
+          const error = JSON.parse(e.data);
+          const details = [
+            ...(error.validationBlockers || []),
+            ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
+            ...Object.values(error.qa?.blockingIssues || {}).flat(),
+          ].filter(Boolean).map(String);
+          setErrMsg(error.message === "타임아웃" ? "생성이 중간에 멈췄습니다. 다시 시도해 주세요." : (error.message || "파이프라인 오류가 발생했습니다"));
+          setErrorDetails([...new Set(details)].slice(0, 12));
+        } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
+        setPhase("error");
+        es.close();
       });
-      try {
-        const error = JSON.parse(e.data);
-        const details = [
-          ...(error.validationBlockers || []),
-          ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
-          ...Object.values(error.qa?.blockingIssues || {}).flat(),
-        ].filter(Boolean).map(String);
-        setErrMsg(error.message || "파이프라인 오류가 발생했습니다");
-        setErrorDetails([...new Set(details)].slice(0, 12));
-      } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
-      setPhase("error");
-      es.close();
-    });
-    es.onerror = () => {
-      if (doneRef.current || es.readyState === EventSource.CLOSED) return;
-      setErrMsg("서버 연결이 끊어졌습니다.");
-      setPhase("error");
-      es.close();
+      es.onerror = () => {
+        if (doneRef.current || stopped) return;
+        es.close();
+        // 연결만 끊긴 경우: 생성은 서버에서 계속된다. 잠시 뒤 다시 붙는다(최대 6번, 점점 길게).
+        if (attempt < 6) {
+          attempt += 1;
+          setReconnecting(true);
+          retryTimer = window.setTimeout(connect, Math.min(15000, 1000 * 2 ** attempt));
+          return;
+        }
+        setReconnecting(false);
+        setPhase("disconnected");
+      };
     };
+    connect();
+
     return () => {
+      stopped = true;
       window.clearInterval(timer);
-      es.close();
+      window.clearTimeout(retryTimer);
+      source?.close();
     };
-  }, [pipelineId, onComplete]);
+  }, [pipelineId, onComplete, connectKey]);
 
   async function handleRestart() {
     setRestarting(true);
@@ -342,6 +370,28 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                     <span style={{ marginLeft: "auto", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{item.percent}%</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+          {reconnecting && phase === "running" && (
+            <div role="status" style={{ textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
+              연결이 잠시 끊겨 다시 연결하는 중입니다. 생성은 서버에서 계속됩니다.
+            </div>
+          )}
+          {phase === "disconnected" && (
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 14px", fontSize: 13, lineHeight: 1.6, color: "var(--text-2)" }}>
+                서버와 연결이 끊겼습니다. 생성은 서버에서 계속되며, 끝나면 알림으로 알려 드립니다.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button onClick={onLeave ?? onCancel}
+                  style={{ padding: "10px 24px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}>
+                  나중에 보기
+                </button>
+                <button onClick={() => { setPhase("running"); setConnectKey((k) => k + 1); }}
+                  style={{ padding: "10px 24px", borderRadius: 8, background: "var(--text-1)", border: "none", color: "var(--surface)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  다시 연결
+                </button>
               </div>
             </div>
           )}

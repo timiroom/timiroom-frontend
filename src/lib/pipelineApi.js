@@ -73,8 +73,22 @@ export async function restartPipeline(pipelineId) {
     `${API_BASE_URL}/api/v1/pipeline/restart/${pipelineId}`,
     { method: "POST" }
   );
-  if (!res || !res.ok) throw new Error(`파이프라인 재시작 실패 (HTTP ${res?.status})`);
+  if (!res || !res.ok) {
+    const body = await res?.json().catch(() => ({}));
+    throw new Error(body?.error || `다시 시작하지 못했습니다 (HTTP ${res?.status})`);
+  }
   return res.json(); // { pipelineId }
+}
+
+/**
+ * 내 진행 중인 생성. 새로고침하거나 다시 들어와도 진행 화면을 이어 보이게 한다.
+ * GET /api/v1/pipeline/active → { runs: [{ pipelineId, projectId, startedAt }] }
+ */
+export async function fetchActiveRuns() {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/pipeline/active`);
+  if (!res || !res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  return Array.isArray(body?.runs) ? body.runs : [];
 }
 
 export async function getArtifacts(executionId) {
