@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActionButton, Icon } from "@/components/ui";
 import { fetchNotifications, fetchUnreadCount, markAllNotificationsRead, markNotificationRead } from "@/lib/notificationApi";
+import { navigateDashboard } from "@/lib/dashboardUrl";
+
+// 알림을 누르면 열 프로젝트 화면. projectId가 없는 예전 알림은 읽음 처리만 한다.
+const TARGET_VIEW = { PR_CONSISTENCY_REVIEW: "pulls", PIPELINE_COMPLETE: "prd", PIPELINE_FAILED: "prd" };
 
 // 화면을 보고 있을 때만 안 읽은 개수를 주기적으로 확인한다.
 const POLL_MS = 60_000;
@@ -65,6 +69,13 @@ export function NotificationBell() {
     };
   }, [open]);
 
+  const openItem = (item) => {
+    markRead(item);
+    if (item.projectId == null) return;
+    setOpen(false);
+    navigateDashboard({ projectId: item.projectId, view: TARGET_VIEW[item.type] ?? "prd" });
+  };
+
   const markRead = async (item) => {
     if (item.read) return;
     setItems((list) => list.map((n) => (n.notificationId === item.notificationId ? { ...n, read: true } : n)));
@@ -98,7 +109,8 @@ export function NotificationBell() {
             {!error && items === null && <p className="notice-empty">불러오는 중…</p>}
             {!error && items?.length === 0 && <p className="notice-empty">받은 알림이 없습니다.</p>}
             {!error && items?.map((n) => (
-              <button type="button" key={n.notificationId} className={`notice-item${n.read ? "" : " is-unread"}`} onClick={() => markRead(n)}>
+              <button type="button" key={n.notificationId} className={`notice-item${n.read ? "" : " is-unread"}`} onClick={() => openItem(n)}
+                title={n.projectId != null ? "프로젝트 화면으로 이동" : undefined}>
                 <span className="notice-dot" aria-hidden="true" />
                 <span className="notice-body">
                   <span className="notice-meta">{TYPE_LABEL[n.type] ?? "알림"} · {timeAgo(n.createdAt)}</span>
