@@ -1,31 +1,20 @@
 "use client";
 
+// 실제로 갈 곳이 있는 링크만 둔다. 갈 곳이 없는 "#" 링크는 눌러도 맨 위로만 가서 뺐다.
 const COLS = [
   {
     title: "제품",
     links: [
-      { label: "기능 소개",   href: "#agents"   },
-      { label: "작동 방식",   href: "#how"      },
-      { label: "기술 스택",   href: "#tech"     },
-      { label: "로드맵",      href: "#"         },
+      { label: "핵심 기능", href: "#agents" },
+      { label: "작동 방식", href: "#how"    },
+      { label: "기술 스택", href: "#tech"   },
     ],
   },
   {
-    title: "리소스",
+    title: "바로가기",
     links: [
-      { label: "문서",           href: "#" },
-      { label: "API 레퍼런스",   href: "#" },
-      { label: "GitHub",         href: "https://github.com" },
-      { label: "블로그",         href: "#" },
-    ],
-  },
-  {
-    title: "팀",
-    links: [
-      { label: "프로젝트 소개", href: "#" },
-      { label: "팀 소개",       href: "#" },
-      { label: "Timiroom",      href: "https://www.iitp.kr" },
-      { label: "문의하기",      href: "#" },
+      { label: "시작하기", href: "/dashboard" },
+      { label: "GitHub",   href: "https://github.com/timiroom" },
     ],
   },
 ];

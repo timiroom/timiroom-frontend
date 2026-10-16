@@ -115,6 +115,15 @@ a { text-decoration: none; color: inherit; }
 }
 .al-nav-links a:hover { color: var(--primary); background: var(--bg-light); }
 .al-nav-cta { display: flex; align-items: center; gap: 10px; }
+/* 넓은 화면: 로고 | 메뉴 | 버튼 3칸, 양쪽 칸을 같은 폭으로 둬서 메뉴를 화면 정가운데에 둔다.
+   (space-between은 로고와 버튼 사이 빈 공간의 가운데라, 버튼 묶음이 넓은 만큼 메뉴가 왼쪽으로 밀렸다)
+   좁은 화면에서 양쪽을 같게 맞추면 버튼이 밖으로 밀려나므로 1024px 아래는 위의 flex 배치를 쓴다.
+   (로그아웃 상태 최소 819px 실측, 1024px이면 오른쪽 칸에 344px까지 들어가 로그인 상태 계정 버튼도 들어간다) */
+@media (min-width: 1024px) {
+  .al-nav { display: grid; grid-template-columns: 1fr auto 1fr; }
+  .al-nav-logo { justify-self: start; }
+  .al-nav-cta { justify-self: end; }
+}
 
 /* ── Buttons ── */
 .al-btn {
@@ -534,41 +543,39 @@ button.al-agent-card-link { font: inherit; cursor: pointer; }
 /* ── Footer ── */
 /* 바로 위 CTA(--grad-cta)가 끝나는 색으로 이어 간다. 보라 대신 모노크롬 토큰만 쓴다. */
 .al-footer {
-  background: var(--text-1); padding: 64px 0 40px;
+  background: var(--text-1); padding: 36px 0 22px;
   color: rgba(255,255,255,.55);
   position: relative; overflow: hidden;
   border-top: 1px solid rgba(255,255,255,.06);
 }
 /* 어두운 바탕에서 로고 타일이 묻히지 않게 밝은 타일로 뒤집는다 */
-.al-footer .al-logo-icon { background: var(--surface); color: var(--text-1); }
+.al-footer .al-logo-icon { background: var(--surface); color: var(--text-1); width: 28px; height: 28px; border-radius: 8px; font-size: 13px; }
 .al-footer::before {
   content: 'Align-it'; position: absolute;
-  font-size: clamp(80px, 12vw, 160px); font-weight: 900; letter-spacing: -.04em;
-  color: rgba(255,255,255,.04); bottom: 20px; right: 40px;
+  font-size: clamp(64px, 9vw, 120px); font-weight: 900; letter-spacing: -.04em;
+  color: rgba(255,255,255,.04); bottom: 12px; right: 40px;
   pointer-events: none; line-height: 1;
 }
 .al-footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
 .al-footer-top {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px;
+  display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; margin-bottom: 24px;
 }
 .al-footer-logo {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 20px; font-weight: 800; color: white; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 17px; font-weight: 800; color: white; margin-bottom: 8px;
 }
-.al-footer-brand p { font-size: 14px; line-height: 1.8; max-width: 280px; }
+.al-footer-brand p { font-size: 13px; line-height: 1.7; max-width: 280px; }
 .al-footer-col h5 {
-  font-size: 13px; font-weight: 700; color: white; margin-bottom: 16px;
+  font-size: 12px; font-weight: 700; color: white; margin-bottom: 10px;
   text-transform: uppercase; letter-spacing: .06em;
 }
-.al-footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.al-footer-col ul li a { font-size: 14px; transition: color .2s; }
+.al-footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.al-footer-col ul li a { font-size: 13px; transition: color .2s; }
 .al-footer-col ul li a:hover { color: white; }
 .al-footer-btm {
   display: flex; align-items: center; justify-content: space-between;
-  padding-top: 32px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px;
+  padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); font-size: 12px;
 }
-.al-footer-btm-r { display: flex; gap: 24px; }
-.al-footer-btm-r a:hover { color: white; }
 
 /* ── SectionHeader 호환 클래스 (TechStack 등에서 사용) ── */
 .al-eyebrow {
