@@ -7,7 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { confirmDialog } from "@/lib/feedback";
 import {
   adminRefund, adminSetPlan, fetchAdminInsights, fetchAdminMember, fetchAdminMembers, fetchAdminOverview, fetchAdminPayments,
-  fetchAdminSystem, fetchAdminUsage,
+  fetchAdminAi, fetchAdminSystem, fetchAdminUsage,
 } from "@/lib/adminApi";
 import { PAYMENT_STATUS } from "@/lib/billingApi";
 import { FEATURE_LABELS, formatKrw } from "@/lib/usageApi";
@@ -559,6 +559,7 @@ function Usage() {
   return (
     <>
       <SettingsHeader eyebrow="관리자" title="AI 사용" meta={<span>비용은 원가 기준이며, 회원이 등록한 AI 키로 호출한 건은 0원입니다.</span>} />
+      <AiOverview />
       <SettingsSection title="호출 기록"
         actions={(
           <div className="adm-filters">
@@ -588,6 +589,101 @@ function Usage() {
         )}
         <Pager page={page} hasNext={data?.hasNext} onChange={setPage} />
       </SettingsSection>
+    </>
+  );
+}
+
+const AI_CHARTS = {
+  cost: { label: "비용", series: [{ key: "costKrw", label: "AI 비용", tone: "primary" }], format: krw },
+  calls: { label: "호출", series: [{ key: "calls", label: "전체", tone: "primary" }, { key: "byokCalls", label: "내 AI 키", tone: "muted" }], format: (v) => `${num(v)}회` },
+  tokens: { label: "토큰", series: [{ key: "tokens", label: "토큰", tone: "primary" }], format: (v) => num(v) },
+  members: { label: "사용 회원", series: [{ key: "members", label: "회원", tone: "primary" }], format: (v) => `${num(v)}명` },
+};
+
+function AiOverview() {
+  const { showToast } = useToast();
+  const [data, setData] = useState(null);
+  const [chart, setChart] = useState("cost");
+  const [hourly, setHourly] = useState("calls");
+
+  useEffect(() => {
+    fetchAdminAi().then(setData).catch((e) => showToast("error", e.message));
+  }, [showToast]);
+
+  if (!data) return <LoadingState />;
+  const m = data.money;
+  const current = AI_CHARTS[chart];
+  const totalCost = data.features.reduce((sum, f) => sum + Number(f.costKrw || 0), 0);
+
+  return (
+    <>
+      <Kpis items={[
+        { label: "이번 달 AI 비용", value: krw(m.costMonthKrw), sub: `월말 예상 ${krw(m.projectedMonthKrw)}` },
+        { label: "매출 대비 원가율", value: m.costRatioPercent == null ? "—" : `${m.costRatioPercent}%`, sub: `이번 달 결제 ${krw(m.revenueMonthKrw)}` },
+        { label: "호출당 평균 비용", value: `${Number(m.avgCostPerCallKrw).toLocaleString("ko-KR")}원`, sub: `회원당 ${krw(m.avgCostPerMemberKrw)}` },
+        { label: "이번 달 호출", value: `${num(m.callsMonth)}회`, sub: `사용 회원 ${num(m.membersMonth)}명 · 내 키 ${num(m.byokCallsMonth)}회` },
+      ]} />
+
+      <SettingsSection title="최근 30일"
+        actions={(
+          <div className="adm-seg" role="tablist" aria-label="30일 그래프">
+            {Object.entries(AI_CHARTS).map(([key, c]) => (
+              <button key={key} type="button" role="tab" aria-selected={chart === key}
+                className={`adm-seg__item${chart === key ? " is-active" : ""}`} onClick={() => setChart(key)}>{c.label}</button>
+            ))}
+          </div>
+        )}>
+        <TrendChart data={data.daily} series={current.series} format={current.format} />
+      </SettingsSection>
+
+      <SettingsSection title="최근 24시간 트래픽"
+        actions={(
+          <div className="adm-seg" role="tablist" aria-label="24시간 그래프">
+            {[["calls", "호출"], ["costKrw", "비용"]].map(([key, label]) => (
+              <button key={key} type="button" role="tab" aria-selected={hourly === key}
+                className={`adm-seg__item${hourly === key ? " is-active" : ""}`} onClick={() => setHourly(key)}>{label}</button>
+            ))}
+          </div>
+        )}>
+        <TrendChart data={data.hourly} labelEvery={6} labelFormat={(d) => d.slice(6)}
+          series={[{ key: hourly, label: hourly === "calls" ? "시간당 호출" : "시간당 비용", tone: "primary" }]}
+          format={hourly === "calls" ? (v) => `${num(v)}회` : krw} />
+      </SettingsSection>
+
+      <div className="adm-grid">
+        <SettingsSection title="이번 달 기능별 비용">
+          {totalCost > 0 && (
+            <div className="adm-share" aria-hidden="true">
+              {data.features.filter((f) => Number(f.costKrw) > 0).map((f, i) => (
+                <span key={f.feature} className={`adm-share__part adm-share__part--${i % 5}`}
+                  style={{ width: `${(Number(f.costKrw) / totalCost) * 100}%` }} title={featureLabel(f.feature)} />
+              ))}
+            </div>
+          )}
+          <Table compact rows={data.features} rowKey={(r) => r.feature} columns={[
+            { key: "feature", label: "기능", render: (r) => (
+              <span className="adm-legend"><i className={`adm-share__part--${data.features.filter((f) => Number(f.costKrw) > 0).indexOf(r) % 5}`} />{featureLabel(r.feature)}</span>
+            ) },
+            { key: "calls", label: "호출", num: true, render: (r) => num(r.calls) },
+            { key: "share", label: "비중", num: true, render: (r) => (totalCost > 0 ? `${Math.round((Number(r.costKrw) / totalCost) * 100)}%` : "—") },
+            { key: "costKrw", label: "비용", num: true, render: (r) => krw(r.costKrw) },
+          ]} />
+        </SettingsSection>
+        <SettingsSection title="이번 달 비용 상위 회원">
+          <Table compact rows={data.topMembers} rowKey={(r) => r.memberId} columns={[
+            { key: "name", label: "회원", render: (r) => <Who name={r.name} email={r.email} id={r.memberId} /> },
+            { key: "calls", label: "호출", num: true, render: (r) => num(r.calls) },
+            { key: "costKrw", label: "비용", num: true, render: (r) => krw(r.costKrw) },
+          ]} />
+        </SettingsSection>
+      </div>
+
+      <Kpis small items={[
+        { label: "추가 사용량 판매 (이번 달)", value: krw(m.creditSoldKrw), sub: "환불 제외" },
+        { label: "추가 사용량 차감 (이번 달)", value: krw(m.creditDeductedKrw), sub: "회원 잔액에서 빠진 금액" },
+        { label: "이번 달 토큰", value: num(m.tokensMonth), sub: "입력 + 출력" },
+        { label: "이번 달 결제", value: krw(m.revenueMonthKrw), sub: "환불 제외" },
+      ]} />
     </>
   );
 }
@@ -629,6 +725,8 @@ function System() {
               ))}
             </div>
           </SettingsSection>
+
+          {data.server && <ServerMetrics server={data.server} />}
 
           <div className="adm-grid">
             <SettingsSection title="설정">
@@ -679,5 +777,55 @@ function System() {
         </>
       )}
     </>
+  );
+}
+
+function uptimeLabel(seconds) {
+  const s = Math.floor(Number(seconds) || 0);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return d > 0 ? `${d}일 ${h}시간` : h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+}
+
+function ServerMetrics({ server: s }) {
+  const heapPercent = s.heapMaxMb ? Math.round((s.heapUsedMb / s.heapMaxMb) * 100) : 0;
+  return (
+    <>
+      <SettingsSection title="백엔드 서버" description={`${s.instance} · 가동 ${uptimeLabel(s.uptimeSeconds)} · 서버가 여러 대면 응답한 한 대의 값입니다`}>
+        <div className="adm-gauges">
+          <Gauge label="CPU" value={s.processCpuPercent} sub={`시스템 ${s.systemCpuPercent}% · ${num(s.cpuCount)}코어`} />
+          <Gauge label="메모리" value={heapPercent} sub={`${num(s.heapUsedMb)} / ${num(s.heapMaxMb)}MB`} />
+          <Gauge label="DB 연결" value={s.dbMax ? Math.round((s.dbActive / s.dbMax) * 100) : 0} sub={`사용 ${num(s.dbActive)} · 대기 ${num(s.dbIdle)} · 최대 ${num(s.dbMax)}`} />
+          <Gauge label="스레드" value={null} raw={num(s.threads)} sub="실행 중" />
+        </div>
+      </SettingsSection>
+      <Kpis small items={[
+        { label: "요청 (가동 후)", value: num(s.requests), sub: `분당 ${s.requestsPerMinute}건` },
+        { label: "평균 응답", value: `${num(s.avgMs)}ms`, sub: `최근 최대 ${num(s.maxMs)}ms` },
+        { label: "서버 오류율", value: `${s.errorPercent}%`, sub: `5xx ${num(s.serverErrors)}건` },
+        { label: "클라이언트 오류", value: num(s.clientErrors), sub: "4xx (로그인 만료 등)" },
+      ]} />
+      <SettingsSection title="많이 호출된 API">
+        <Table rows={s.topEndpoints} rowKey={(r) => r.endpoint} empty="요청 기록이 없습니다" columns={[
+          { key: "endpoint", label: "API", className: "adm-mono" },
+          { key: "count", label: "요청", num: true, render: (r) => num(r.count) },
+          { key: "avgMs", label: "평균 응답", num: true, render: (r) => `${num(r.avgMs)}ms` },
+          { key: "errors", label: "5xx", num: true, render: (r) => (r.errors ? <Badge tone="danger">{num(r.errors)}</Badge> : "0") },
+        ]} />
+      </SettingsSection>
+    </>
+  );
+}
+
+function Gauge({ label, value, raw, sub }) {
+  const tone = value == null ? "" : value >= 85 ? " is-danger" : value >= 65 ? " is-warn" : "";
+  return (
+    <div className="adm-gauge">
+      <span className="adm-kpi__label">{label}</span>
+      <span className="adm-kpi__value">{raw ?? `${value}%`}</span>
+      {value != null && <span className={`adm-gauge__bar${tone}`}><span style={{ width: `${Math.min(100, value)}%` }} /></span>}
+      <span className="adm-kpi__sub">{sub}</span>
+    </div>
   );
 }

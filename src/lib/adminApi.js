@@ -36,3 +36,4 @@ export const fetchAdminUsage = (feature = "", query = "", page = 0) =>
   request(`/api/v1/admin/billing/usage?feature=${encodeURIComponent(feature)}&query=${encodeURIComponent(query)}&page=${page}&size=30`,
     { fallback: "AI 사용 기록을 불러오지 못했습니다" });
 export const fetchAdminSystem = () => request("/api/v1/admin/billing/system", { fallback: "시스템 상태를 불러오지 못했습니다" });
+export const fetchAdminAi = () => request("/api/v1/admin/billing/ai", { fallback: "AI 사용 현황을 불러오지 못했습니다" });
