@@ -7,6 +7,7 @@ import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
 import { htmlToMarkdown, renderMarkdown, sanitizeHtml } from "@/lib/markdownRender";
 import { extraSections, markdownToPrd, prdToMarkdownWithExtras } from "@/lib/prdMarkdown.mjs";
+import { isLightColor, techStackCards } from "@/lib/techStack.mjs";
 
 const C = {
   bg:        "var(--surface)",
@@ -386,27 +387,57 @@ function MvpView({ doc }) {
   );
 }
 
-const TECH_COLOR = { frontend:"#3b82f6",backend:"#10b981",database:"#f59e0b",infra:"#8b5cf6",devops:"#06b6d4",mobile:"#ec4899",cloud:"#f97316","api":"#6366f1" };
+/**
+ * 기술 로고 타일. 화면은 모노크롬이고 색은 로고에만 둔다. 밝은 브랜드색(JavaScript 노랑)은 어두운 타일에 올린다.
+ * logos가 아직 없으면(불러오는 중) 빈 타일만 그려 대체 아이콘이 깜빡이지 않게 한다.
+ */
+function TechLogo({ tech, logos, fallbackIcon }) {
+  const logo = tech?.slug && logos ? logos[tech.slug] : null;
+  const loading = tech?.slug && !logos;
+  const dark = logo && isLightColor(logo.hex);
+  return (
+    <div title={tech?.name} style={{ width:36, height:36, borderRadius:10, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", background:dark?"var(--text-1)":"var(--bg)", border:`1px solid ${C.border}` }}>
+      {logo
+        ? <svg width={20} height={20} viewBox="0 0 24 24" fill={logo.hex} aria-hidden="true"><path d={logo.path} /></svg>
+        : !loading && <Icon name={fallbackIcon} size={18} strokeWidth={1.7} style={{ color:"var(--text-2)" }} />}
+    </div>
+  );
+}
 
 function TechStackView({ doc }) {
-  const stack = doc.techStack;
-  if (!stack||typeof stack!=="object"||!Object.keys(stack).length) return (
+  const cards = useMemo(() => techStackCards(doc.techStack), [doc.techStack]);
+  const [logos, setLogos] = useState(null);
+  // 로고 데이터는 커서 이 화면을 열 때만 따로 받는다.
+  useEffect(() => {
+    let alive = true;
+    import("@/lib/techLogos.mjs").then(m => { if (alive) setLogos(m.TECH_LOGOS); }).catch(() => { if (alive) setLogos({}); });
+    return () => { alive = false; };
+  }, []);
+  if (!cards.length) return (
     <div><SectionTitle icon="wrench" title={"기술 스택"} /><EmptySectionState label={"기술 스택"} /></div>
   );
   return (
     <div>
       <SectionTitle icon="wrench" title={"기술 스택"} />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
-        {Object.entries(stack).map(([key,value]) => {
-          const ck = Object.keys(TECH_COLOR).find(k=>key.toLowerCase().includes(k));
-          const color = TECH_COLOR[ck]||"#6b7280";
-          return (
-            <div key={key} style={{ padding:"14px 16px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", borderLeft:`3px solid ${color}` }}>
-              <div style={{ fontSize:11, fontWeight:700, color, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:5 }}>{key}</div>
-              <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{String(value)}</div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:12 }}>
+        {cards.map(card => (
+          <div key={card.key} style={{ padding:"16px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column", gap:10 }}>
+            {/* 로고 3개 + 긴 라벨이 한 줄에 안 들어가면 라벨이 다음 줄 오른쪽으로 내려간다 */}
+            <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", gap:6 }}>
+              {card.techs.length
+                ? card.techs.map(t => <TechLogo key={t.name} tech={t} logos={logos} fallbackIcon={card.icon} />)
+                : <TechLogo fallbackIcon={card.icon} />}
+              <span style={{ marginLeft:"auto", fontSize:11, fontWeight:700, letterSpacing:"0.03em", color:"var(--text-2)", background:"rgba(0,0,0,0.04)", padding:"3px 10px", borderRadius:100, flexShrink:0 }}>{card.label}</span>
             </div>
-          );
-        })}
+            <div style={{ fontSize:15, fontWeight:700, color:C.text, lineHeight:1.4 }}>{card.title}</div>
+            {/* 설명은 첫 문장 두 줄까지. 전체 문장은 마우스를 올리면 보이고, 편집 모드에 그대로 있다. */}
+            {card.summary && (
+              <p title={card.full} style={{ margin:0, fontSize:13, color:"var(--text-2)", lineHeight:1.6, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                <SourceText text={card.summary} />
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

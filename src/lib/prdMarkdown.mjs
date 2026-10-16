@@ -22,7 +22,7 @@ const TITLE_TO_KEY = Object.fromEntries(SECTIONS.map((section) => [section.title
 // 예전 화면에서 쓰던 이름도 받아 준다.
 Object.assign(TITLE_TO_KEY, { "프로젝트 개요": "projectOverview", "배경 및 문제 정의": "background", "MVP": "mvpScope", "일정": "releaseSchedule", "페르소나": "userPersonas" });
 
-const TECH_LABELS = { backend: "백엔드", frontend: "프론트엔드", database: "데이터베이스", cache: "캐시", messageQueue: "메시지 큐", cdn: "CDN", monitoring: "모니터링", auth: "인증", infra: "인프라", mobile: "모바일" };
+export const TECH_LABELS = { backend: "백엔드", frontend: "프론트엔드", database: "데이터베이스", cache: "캐시", messageQueue: "메시지 큐", cdn: "CDN", monitoring: "모니터링", auth: "인증", infra: "인프라", mobile: "모바일" };
 const TECH_KEYS = Object.fromEntries(Object.entries(TECH_LABELS).map(([key, label]) => [label, key]));
 
 const KPI_FIELDS = [["basis", "근거"], ["measurementMethod", "측정 방법"], ["frequency", "측정 주기"]];
