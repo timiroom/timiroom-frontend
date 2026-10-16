@@ -80,7 +80,8 @@ export async function apiFetch(url, options = {}) {
   }
 
   if (res.status === 401) {
-    const REDIRECT_EXEMPT = ["/", "/auth/callback"];
+    // 로그인 없이 보는 화면(약관·방침)은 로그인 확인 실패로 첫 화면으로 보내지 않는다.
+    const REDIRECT_EXEMPT = ["/", "/auth/callback", "/terms", "/privacy", "/refund-policy"];
     const path = typeof window !== "undefined" ? window.location.pathname : "/";
     if (!REDIRECT_EXEMPT.includes(path) && !path.startsWith("/invite/")) {
       rememberAuthReturnTo(path + window.location.search);
