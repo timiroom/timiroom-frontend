@@ -382,6 +382,18 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [runningPipeline, setRunningPipeline] = useState(null); // { pipelineId, projectId, projectName, teamId }
   const [contextPanelCollapsed, setContextPanelCollapsed] = useState(false);
+  // 휴대폰처럼 좁은 화면에서는 사이드바를 닫아 두고, 열면 화면 위에 덮어 보인다.
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      setIsNarrow(query.matches);
+      if (query.matches) setContextPanelCollapsed(true);
+    };
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
   const [openTabs, setOpenTabs] = useState([]); // 동시에 열린 문서 탭들 [{ id, projectId, view, label }]
   const [activeTabId, setActiveTabId] = useState(null);
 
@@ -462,15 +474,22 @@ export default function DashboardPage() {
   }, [selectedProject?.id, user?.id]);
 
   /* 발행 기준과 화면의 문서를 대조해 안내 바가 보여 줄 상태를 정한다. */
+  // 아직 발행하지 않은 프로젝트는 문서가 하나씩 불러와질 때마다 다시 묻지 않는다(발행하면 specStatusTick이 바뀐다).
+  const unpublishedRef = useRef(new Set());
   useEffect(() => {
     if (!integrationEnabled || !selectedProject?.id) { setSpecStatus(null); return undefined; }
+    const unpublishedKey = `${selectedProject.id}:${specStatusTick}`;
+    if (unpublishedRef.current.has(unpublishedKey)) { setSpecStatus({ state: "none" }); return undefined; }
     let active = true;
     latestSnapshot(selectedProject.id)
       .then(async (snapshot) => {
         const checks = await Promise.all(snapshot.documents.map((doc) => sourceMatchesSnapshot(selectedProject, doc.type, doc)));
         if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision });
       })
-      .catch((error) => { if (active) setSpecStatus(error.code === "SPEC_NOT_PUBLISHED" ? { state: "none" } : null); });
+      .catch((error) => {
+        if (error.code === "SPEC_NOT_PUBLISHED") unpublishedRef.current.add(unpublishedKey);
+        if (active) setSpecStatus(error.code === "SPEC_NOT_PUBLISHED" ? { state: "none" } : null);
+      });
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 문서 원본이 바뀔 때만 다시 대조한다
   }, [integrationEnabled, selectedProject?.id, selectedProject?.artifactSources, specStatusTick]);
@@ -1093,7 +1112,8 @@ export default function DashboardPage() {
       teamId: pipelineWorkspaceId,
       name: pipelineResult?.projectName ?? "새 프로젝트",
       description: "",
-      status: "active",
+      // 서버는 생성을 마친 프로젝트를 '기획 중'(draft)으로 둔다. 새로고침 전후 표시가 같도록 맞춘다.
+      status: "draft",
       prdDocument: nonEmpty(pipelineResult?.prdDocument),
       dbSchema: nonEmpty(pipelineResult?.dbSchema),
       apiSpec: nonEmpty(pipelineResult?.apiSpec),
@@ -1206,14 +1226,26 @@ export default function DashboardPage() {
         background: "var(--surface)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
+        {isNarrow && !contextPanelCollapsed && (
+          <div className="ctx-backdrop" aria-hidden="true" onClick={() => setContextPanelCollapsed(true)} />
+        )}
         <ContextPanel
           projects={projects}
           selectedProject={selectedProject}
           onSelectProject={handleSelectProject}
           selectedView={selectedView}
-          onSelectView={setSelectedView}
-          onOpenDocument={handleOpenDocument}
-          onCreateProject={handleOpenCreateProject}
+          onSelectView={(view) => {
+            setSelectedView(view);
+            if (isNarrow) setContextPanelCollapsed(true);
+          }}
+          onOpenDocument={(...args) => {
+            handleOpenDocument(...args);
+            if (isNarrow) setContextPanelCollapsed(true);
+          }}
+          onCreateProject={(...args) => {
+            handleOpenCreateProject(...args);
+            if (isNarrow) setContextPanelCollapsed(true);
+          }}
           onOpenWorkspaceComposer={() => {
             setComposerError("");
             setComposerOpen(true);

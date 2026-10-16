@@ -169,9 +169,10 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
     setEventLog([]);
     currentKeyRef.current = null;
     doneRef.current = false;
-    const startedAt = Date.now();
+    // 새로고침 뒤 다시 붙으면 서버가 처음 진행 이벤트부터 다시 보낸다. 그 시각을 시작 시각으로 쓴다.
+    let startedAt = Date.now();
     const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
     }, 1000);
 
     let source = null;
@@ -191,6 +192,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         attempt = 0;
         setReconnecting(false);
         const d      = JSON.parse(e.data);
+        const eventAt = d.timestamp ? Date.parse(d.timestamp) : NaN;
+        if (!Number.isNaN(eventAt) && eventAt < startedAt) startedAt = eventAt;
         const newKey = SSE_TO_STEP[d.step];
         setPercent(d.percent || 0);
         setEventLog(prev => [

@@ -1129,7 +1129,7 @@ function SchemaSummary({ schema }) {
     { label: "관계",   value: schema.relationships?.length ?? 0, color: "var(--text-1)" },
   ];
   return (
-    <div style={{ marginBottom: 16 }}><StatGrid items={stats} /></div>
+    <div className="erd-stats" style={{ marginBottom: 16 }}><StatGrid items={stats} /></div>
   );
 }
 
