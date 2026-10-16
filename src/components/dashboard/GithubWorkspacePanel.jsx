@@ -1,5 +1,7 @@
 "use client";
 
+import { RepoConnectEmpty } from "./RepoConnectEmpty";
+import { ActionButton, Icon, PanelHeader, StatGrid } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchProjectIssues,
@@ -190,49 +192,22 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* 헤더 */}
-      <div style={{
-        height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-        display: "flex", alignItems: "center", padding: "0 24px",
-        justifyContent: "space-between", background: C.surface,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {project && (
-            <>
-              <div style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: `${project.color || "var(--text-1)"}22`,
-                border: `1px solid ${project.color || "var(--text-1)"}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-              }}>
-                {(project.name || "P").charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-              <span style={{ fontSize: 13, color: C.muted }}>›</span>
-            </>
-          )}
-          <span style={{
-            fontSize: 13, fontWeight: 500, color: "#818cf8",
-            padding: "2px 8px", borderRadius: 6,
-            background: "rgba(129,140,248,0.1)", border: "1px solid rgba(129,140,248,0.25)",
-          }}>GitHub 작업</span>
-        </div>
-        <button type="button" onClick={load} disabled={loading} style={{ padding: "6px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, color: C.text2, fontSize: 11.5, fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit" }}>{loading ? "동기화 중…" : "새로고침"}</button>
-      </div>
+      <PanelHeader project={project} label="GitHub 작업">
+        <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
+      </PanelHeader>
 
-      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "linear-gradient(180deg, var(--db-bg-primary) 0%, var(--bg) 100%)" }}>
+      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "var(--content-bg)" }}>
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 9, marginBottom: 16 }}>
-          {[{ label: "연결 레포", value: repos.length, tone: "purple" }, { label: "최근 커밋", value: recentCommitCount, tone: "neutral" }, { label: "열린 Issue", value: openIssueCount, tone: "blue" }, { label: "열린 PR", value: pulls.length, tone: "green" }].map((stat) => <div key={stat.label} style={{ padding: "13px 14px", border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface }}><div style={{ color: C.muted, fontSize: 10.5 }}>{stat.label}</div><div style={{ marginTop: 5, color: C.text, fontSize: 20, fontWeight: 850 }}>{stat.value}</div></div>)}
-        </div>
+        {repos.length > 0 && (
+          <div style={{ marginBottom: 16 }}><StatGrid items={[{ label: "연결 레포", value: repos.length }, { label: "최근 커밋", value: recentCommitCount }, { label: "열린 Issue", value: openIssueCount }, { label: "열린 PR", value: pulls.length }]} /></div>
+        )}
 
         {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
 
         {error && <div style={{ marginBottom: 15, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
-        {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <div style={{ padding: 54, border: `1px dashed ${C.border}`, borderRadius: 15, textAlign: "center", color: C.muted, fontSize: 13 }}>프로젝트 설정에서 GitHub 레포를 먼저 연결해 주세요.</div> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}
+        {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <RepoConnectEmpty projectId={project?.id} message="레포를 연결하면 브랜치·이슈·PR 현황을 한 화면에서 볼 수 있습니다." /> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}
       </div>
       </section>
     </div>

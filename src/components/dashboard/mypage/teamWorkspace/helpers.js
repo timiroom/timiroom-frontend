@@ -19,22 +19,6 @@ export function buildInviteLink(inviteCode) {
   }
 }
 
-export function formatJoinedAt(value) {
-  if (!value) return "";
-
-  try {
-    return new Intl.DateTimeFormat("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return String(value);
-  }
-}
-
 export function getDefaultTransferTarget(members = []) {
   const nextTarget = members.find((member) => member.teamRole !== "OWNER")?.memberId ?? "";
   return nextTarget ? String(nextTarget) : "";

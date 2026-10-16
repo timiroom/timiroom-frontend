@@ -1,10 +1,10 @@
 /**
  * agentApi.js
  * -----------
- * 문서 어시스턴트 통신 레이어. 모델은 EXAONE 하나로 고정돼 있습니다.
+ * 문서 어시스턴트 통신 레이어. 실제 모델은 pipeline_py 런타임 설정을 따릅니다.
  *
  * ┌─ 아키텍처 ───────────────────────────────────────────────────────┐
- * │  Browser  →  pipeline_py  →  EXAONE (Friendli.ai)               │
+ * │  Browser  →  pipeline_py  →  configured OpenAI-compatible LLM  │
  * │                                                                  │
  * │  API 키는 pipeline_py의 .env에만 있고 브라우저로 나오지 않습니다.│
  * └──────────────────────────────────────────────────────────────────┘
@@ -140,7 +140,7 @@ export const DOC_TYPES = {
 };
 
 /**
- * EXAONE이 현재 문서를 읽고 섹션/항목 단위 수정안을 만듭니다.
+ * 문서 편집 모델이 현재 문서를 읽고 섹션/항목 단위 수정안을 만듭니다.
  * 문서를 저장하지는 않습니다 — 사용자가 제안문과 diff를 보고 승인해야 적용됩니다.
  *
  * @param {object}   opts
@@ -149,7 +149,7 @@ export const DOC_TYPES = {
  * @param {string}   opts.instruction - 사용자의 수정 요청
  * @param {object[]} [opts.history]   - 직전 대화 [{role, content}]
  * @param {AbortSignal} [opts.signal]
- * @returns {Promise<{intent: "edit"|"chat", reply: string, edits: object[]}>}
+ * @returns {Promise<{intent: "edit"|"chat", reply: string, analysis?: object, edits: object[]}>}
  *   edits[]: { section, label, before, after, diff: [{type:"same"|"add"|"del", text}] }
  */
 export async function requestDocumentEdit({ docType, document, instruction, history = [], signal }) {

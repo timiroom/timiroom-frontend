@@ -21,12 +21,13 @@ export function AiToolConnectionsPanel({ projects = [] }) {
   const load = useCallback(async ({ quiet = false } = {}) => {
     const generation = ++loadGeneration.current;
     if (!quiet) setLoading(true);
-    try {
-      const [grants, account] = await Promise.all([connections(), slackEnabled ? slackConnection() : Promise.resolve(null)]);
-      if (generation !== loadGeneration.current) return;
-      setItems(grants); setSlack(account); setLoaded(true);
-    } catch (error) { if (generation === loadGeneration.current) setFeedback(error.message); }
-    finally { if (generation === loadGeneration.current) setLoading(false); }
+    // AI 도구 연결과 Slack 연결은 서로 다른 서비스라, 한쪽이 실패해도 다른 쪽 상태는 보여 준다.
+    const [grants, account] = await Promise.allSettled([connections(), slackEnabled ? slackConnection() : Promise.resolve(null)]);
+    if (generation !== loadGeneration.current) return;
+    if (grants.status === "fulfilled") { setItems(grants.value); setLoaded(true); }
+    else if (!quiet) setFeedback(grants.reason?.message ?? "AI 도구 연결 상태를 확인하지 못했습니다.");
+    setSlack(account.status === "fulfilled" ? account.value : null);
+    setLoading(false);
   }, [slackEnabled]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {

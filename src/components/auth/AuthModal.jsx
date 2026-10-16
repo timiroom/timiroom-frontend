@@ -149,7 +149,7 @@ export function AuthModal() {
         style={{
           position:   "fixed",
           inset:      0,
-          background: "rgba(26,25,22, 0.4)",
+          background: "color-mix(in srgb, var(--text-1) 40%, transparent)",
           backdropFilter: "blur(6px)",
           zIndex:     9000,
           display:    "flex",
@@ -169,7 +169,7 @@ export function AuthModal() {
             width:        "100%",
             maxWidth:     420,
             position:     "relative",
-            boxShadow:    "0 32px 80px rgba(26,25,22, 0.1), 0 8px 32px rgba(0,0,0,0.12)",
+            boxShadow:    "0 32px 80px color-mix(in srgb, var(--text-1) 10%, transparent), 0 8px 32px rgba(0,0,0,0.12)",
             animation:    "auth-slide-up 0.2s cubic-bezier(0.34,1.56,0.64,1)",
           }}
         >
@@ -213,7 +213,7 @@ export function AuthModal() {
               fontWeight:     900,
               color:          "#fff",
               margin:         "0 auto 16px",
-              boxShadow:      "0 6px 20px rgba(26,25,22, 0.15)",
+              boxShadow:      "0 6px 20px color-mix(in srgb, var(--text-1) 15%, transparent)",
             }}>
               A
             </div>
