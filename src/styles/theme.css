@@ -75,6 +75,12 @@
   --db-transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── 폼 요소 폰트 ──
+   버튼·입력창·선택 상자·글 입력칸은 브라우저 기본값 때문에 본문 폰트를 물려받지 않고
+   Arial(한글은 맑은 고딕)로 그려졌다. 폰트 종류만 물려받게 하고 크기는 그대로 둔다.
+   고정폭이 필요한 곳(.md-editor__input, .ui-input--mono 등)은 클래스 지정이 우선한다. */
+button, input, select, textarea { font-family: inherit; }
+
 /* ── Global dashboard reset ── */
 .db-root {
   font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
