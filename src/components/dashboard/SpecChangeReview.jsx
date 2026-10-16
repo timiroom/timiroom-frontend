@@ -2,46 +2,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { specChange, proposeManualChange, reviewChange, integrationJob, approveChange, rejectChange } from "@/lib/integrationApi";
 import { Badge } from "@/components/ui";
+import { SpecDocumentView } from "./SpecDocumentView";
 
 const labels = { PRD: "PRD", API_SPEC: "API 명세", DB_SCHEMA: "DB 스키마", FEATURE_LIST: "기능 명세" };
 const terminal = new Set(["COMPLETED", "FAILED"]);
-function pretty(value) { if (typeof value === "string") { try { value = JSON.parse(value); } catch {} } return JSON.stringify(value, null, 2); }
+function prettyJson(value) { if (typeof value === "string") { try { value = JSON.parse(value); } catch {} } return JSON.stringify(value, null, 2); }
 const statusLabels = { GENERATING: "생성 중", READY: "검토 대기", APPROVED: "승인됨", REJECTED: "거절됨", STALE: "기준 변경", FAILED: "실패" };
 const statusTones = { READY: "warning", APPROVED: "success", REJECTED: "neutral", STALE: "warning", FAILED: "danger", GENERATING: "info" };
 const jobLabels = { QUEUED: "접수됨", RUNNING: "진행 중", COMPLETED: "완료", FAILED: "실패" };
 const severityTones = { WARNING: "warning", INCONCLUSIVE: "info", PASS: "success" };
 
-// 문서는 JSON 문자열로 온다. 맨 위 항목 단위로 비교해 바뀐 항목만 보여 주고, 글은 줄바꿈을 살려 그대로 보여 준다.
+// 문서는 JSON 문자열로 온다. 맨 위 항목 단위로 비교해 바뀐 항목만 골라 문서 모양으로 보여 준다.
 function parseDocument(value) { if (typeof value === "string") { try { return JSON.parse(value); } catch { return value; } } return value; }
-// PRD 본문처럼 HTML로 저장된 글은 태그를 걷어 내고 문단만 줄바꿈으로 남긴다(화면에 그리지 않고 글로만 보여 준다).
-function htmlToText(html) {
-  return html
-    .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|h[1-6]|li|tr|blockquote)\s*>/gi, "\n")
-    .replace(/<li[^>]*>/gi, "· ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-function readable(value) {
-  if (value == null || value === "") return "(비어 있음)";
-  if (typeof value !== "string") return JSON.stringify(value, null, 2);
-  return /<\/?[a-z][^>]*>/i.test(value) ? htmlToText(value) : value;
-}
-function changedFields(before, after) {
+function changedParts(before, after) {
   const prev = parseDocument(before), next = parseDocument(after);
   const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
   if (!isObject(prev) || !isObject(next)) {
-    return { changed: JSON.stringify(prev) === JSON.stringify(next) ? [] : [{ key: null, before: readable(prev), after: readable(next) }], unchanged: [] };
+    const same = JSON.stringify(prev) === JSON.stringify(next);
+    return { count: same ? 0 : 1, before: same ? null : prev, after: same ? null : next, unchanged: [] };
   }
   const keys = [...new Set([...Object.keys(prev), ...Object.keys(next)])];
-  const changed = [], unchanged = [];
-  keys.forEach((key) => {
-    if (JSON.stringify(prev[key]) === JSON.stringify(next[key])) unchanged.push(key);
-    else changed.push({ key, before: readable(prev[key]), after: readable(next[key]) });
-  });
-  return { changed, unchanged };
+  const changedKeys = keys.filter((key) => JSON.stringify(prev[key]) !== JSON.stringify(next[key]));
+  const pick = (source) => Object.fromEntries(changedKeys.map((key) => [key, source[key] ?? null]));
+  return { count: changedKeys.length, before: pick(prev), after: pick(next), unchanged: keys.filter((key) => !changedKeys.includes(key)) };
 }
 
 export function SpecChangeReview({ project, proposalId, draft, canApprove, allowedTargets = [], onClose, onApproved, onProposalChanged }) {
@@ -146,20 +129,16 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       {documentTypes.map((type) => {
         const original = (proposal?.base || draft?.snapshot)?.documents.find((doc) => doc.type === type);
         const afterValue = proposal ? proposal.documents[type] : draft.document;
-        const { changed, unchanged } = changedFields(original?.content, afterValue);
-        return <article key={type}><h3>{labels[type] || type} <span className="review-count">바뀐 항목 {changed.length}개</span></h3>
-          {changed.length === 0 && <p className="review-note">바뀐 내용이 없습니다.</p>}
-          {changed.map((field) => <div key={field.key ?? "document"} className="review-field">
-            {field.key && <h4 className="review-key">{field.key}</h4>}
-            <div className="review-columns">
-              <div><h4>변경 전</h4><pre tabIndex={0} className="review-before">{field.before}</pre></div>
-              <div><h4>변경 후</h4><pre tabIndex={0} className="review-after">{field.after}</pre></div>
-            </div>
-          </div>)}
-          {unchanged.length > 0 && <p className="review-note">바뀌지 않은 항목 {unchanged.length}개: {unchanged.join(", ")}</p>}
+        const diff = changedParts(original?.content, afterValue);
+        return <article key={type}><h3>{labels[type] || type} <span className="review-count">바뀐 항목 {diff.count}개</span></h3>
+          {diff.count === 0 ? <p className="review-note">바뀐 내용이 없습니다.</p> : <div className="review-columns">
+            <div><h4>변경 전</h4><div className="review-preview review-before" tabIndex={0}><SpecDocumentView value={diff.before} emptyLabel="(없던 항목)" /></div></div>
+            <div><h4>변경 후</h4><div className="review-preview review-after" tabIndex={0}><SpecDocumentView value={diff.after} emptyLabel="(지운 항목)" /></div></div>
+          </div>}
+          {diff.unchanged.length > 0 && <p className="review-note">바뀌지 않은 항목 {diff.unchanged.length}개는 접어 두었습니다.</p>}
           <details className="review-full"><summary>문서 전체 보기</summary><div className="review-columns">
-            <div><h4>변경 전</h4><pre tabIndex={0}>{pretty(original?.content)}</pre></div>
-            <div><h4>변경 후</h4><pre tabIndex={0}>{pretty(afterValue)}</pre></div>
+            <div><h4>변경 전</h4><div className="review-preview" tabIndex={0}><SpecDocumentView value={original?.content} compareValue={afterValue} /></div></div>
+            <div><h4>변경 후</h4><div className="review-preview" tabIndex={0}><SpecDocumentView value={afterValue} compareValue={original?.content} /></div></div>
           </div></details>
         </article>;
       })}
@@ -168,7 +147,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       <p role="alert" className="review-error">{error}</p>
     </div>
     <footer>
-      {ready && canRevise && !corrections && <button disabled={busy || running} onClick={() => setCorrections(Object.fromEntries(Object.entries(proposal.documents).map(([type, value]) => [type, pretty(value)])))}>이 변경안 보완하기</button>}
+      {ready && canRevise && !corrections && <button disabled={busy || running} onClick={() => setCorrections(Object.fromEntries(Object.entries(proposal.documents).map(([type, value]) => [type, prettyJson(value)])))}>이 변경안 보완하기</button>}
       {ready && corrections && <><button disabled={busy || running} onClick={() => setCorrections(null)}>보완 취소</button><button disabled={busy || running} onClick={() => run(async () => {
         let documents; try { documents = Object.fromEntries(Object.entries(corrections).map(([type, value]) => [type, JSON.parse(value)])); }
         catch { throw new Error("보완 내용의 JSON 형식을 확인해 주세요."); }
@@ -204,9 +183,9 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; } header { justify-content:space-between; border-bottom:1px solid var(--border); } footer { border-top:1px solid var(--border); }
       h2 { font-size:22px; margin:4px 0; } h3 { font-size:17px; margin:24px 0 8px; } h4 { font-size:12px; color:var(--text-2); } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:var(--text-2); }
       .review-body { overflow:auto; padding:16px 24px; } .review-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .review-columns>div { min-width:0; }
-      pre { border:1px solid var(--border); border-radius:8px; padding:16px; background:white; overflow:auto; max-height:430px; font-size:12px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
-      button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:white; font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
-      .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,pre:focus-visible,a:focus-visible { outline:2px solid #7d4cfc; outline-offset:3px; }
+      .review-preview { border:1px solid var(--border); border-radius:8px; padding:12px; background:var(--surface); overflow:auto; max-height:520px; }
+      button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:var(--surface); font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
+      .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,.review-preview:focus-visible,a:focus-visible { outline:2px solid var(--text-1); outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
       .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
       .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }

@@ -802,7 +802,8 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     edits.forEach(e => { nextDoc[e.section] = e.after; });
     nextDoc.htmlContent = prdJsonToHtml(nextDoc);
 
-    if (await onProposeDocument?.({ sourceType: "PRD", document: nextDoc })) return { pendingApproval: true };
+    const review = await onProposeDocument?.({ sourceType: "PRD", document: nextDoc, deferReview: true });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
 
     // 승인한 수정은 곧바로 저장한다. 저장이 실패하면 편집기를 건드리지 않고
     // 예외를 그대로 올려보내 사이드바가 실패를 알리게 한다

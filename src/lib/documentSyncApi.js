@@ -66,7 +66,7 @@ PRD, 기능 명세, API 명세, ERD 사이의 의미적 연결을 분석합니�
     },
     body: JSON.stringify({
       messages: [{ role: "user", content: JSON.stringify(payload) }],
-      systemPrompt,
+      system_prompt: systemPrompt,
       projectContext: null,
     }),
     signal,

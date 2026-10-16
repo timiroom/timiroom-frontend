@@ -1193,11 +1193,15 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
     await saveProjectDocument(project.id, "FEATURE_LIST", JSON.stringify(features));
   }
 
-  async function proposeFeatures(features) {
+  async function proposeFeatures(features, { deferReview = false } = {}) {
     if (!onProposeDocument) return false;
     const payload = buildSavePayload(features);
     if (!payload) throw new Error("저장 대상 문서를 찾을 수 없습니다.");
-    return onProposeDocument({ sourceType: project?.artifactIds?.FEATURE_LIST ? "FEATURE_LIST" : "PRD", document: JSON.parse(payload.content) });
+    return onProposeDocument({
+      sourceType: project?.artifactIds?.FEATURE_LIST ? "FEATURE_LIST" : "PRD",
+      document: JSON.parse(payload.content),
+      deferReview,
+    });
   }
 
   async function handleSave() {
@@ -1242,7 +1246,8 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       throw new Error("저장 대상 기능 명세서를 찾을 수 없습니다. 파이프라인을 먼저 실행해 주세요.");
     }
 
-    if (await proposeFeatures(next)) return { pendingApproval: true };
+    const review = await proposeFeatures(next, { deferReview: true });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
     await updateArtifact(payload.artifactId, payload.content);
     savedFeaturesRef.current = cloneFeatures(next);
     setEditedFeatures(next.map(normalizeFeature));

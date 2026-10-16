@@ -1269,10 +1269,11 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
   const canEdit  = !readOnly && !!project?.artifactIds?.DB_SCHEMA;
 
   /* ── 공통 저장 ── */
-  async function persistSchema(newSchema) {
+  async function persistSchema(newSchema, { deferReview = false } = {}) {
     const artifactId = project?.artifactIds?.DB_SCHEMA;
     if (!artifactId) return;
-    if (await onProposeDocument?.({ sourceType: "DB_SCHEMA", document: newSchema })) return { pendingApproval: true };
+    const review = await onProposeDocument?.({ sourceType: "DB_SCHEMA", document: newSchema, deferReview });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
     await updateArtifact(artifactId, JSON.stringify(newSchema));
     setLocalSchema(newSchema);
     onDocumentSaved?.({ sourceType: "DB_SCHEMA", document: newSchema });
@@ -1290,7 +1291,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
     }
     const nextSchema = { ...(schema || { tables: [], relationships: [] }) };
     edits.forEach(e => { nextSchema[e.section] = e.after; });
-    return persistSchema(nextSchema);
+    return persistSchema(nextSchema, { deferReview: true });
   }
 
   /* ── 테이블 추가 ── */
