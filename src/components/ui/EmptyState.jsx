@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "./Icon";
+import { AlignMark } from "./Loader";
 
 /**
  * 목록·화면이 비었을 때의 안내. 아이콘, 제목, 한두 문장 설명, 다음 행동 버튼을 둔다.
@@ -20,11 +21,11 @@ export function EmptyState({ icon = "box", title, description, children, compact
   );
 }
 
-/** 불러오는 중 표시. 화면 가운데에 작은 원과 문구를 둔다. */
+/** 불러오는 중 표시. 화면 가운데에 정렬 표시와 문구를 둔다. */
 export function LoadingState({ label = "불러오는 중…" }) {
   return (
     <div className="ui-loading" role="status">
-      <span className="ui-loading__spinner" aria-hidden="true" />
+      <AlignMark size="sm" />
       {label}
     </div>
   );

@@ -14,6 +14,16 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
+      <head>
+        {/* 본문 폰트 Pretendard. 설치되지 않은 컴퓨터에서도 같은 폰트로 보이도록 웹폰트로 불러온다.
+            dynamic-subset은 화면에 나온 글자 묶음만 받는다(CSS 약 21KB, 글꼴 파일은 필요할 때). */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <AuthProvider>
           <ToastProvider>

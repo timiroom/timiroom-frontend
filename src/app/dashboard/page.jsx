@@ -22,7 +22,7 @@ import { ErdPanel } from "@/components/dashboard/ErdPanel";
 import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
-import { Icon } from "@/components/ui";
+import { Icon, LoadingScreen, LoadingState } from "@/components/ui";
 import { CommitHistoryView } from "@/components/dashboard/CommitHistoryView";
 import { ProjectSettingsView } from "@/components/dashboard/ProjectSettingsView";
 import { readDashboardUrl, writeDashboardUrl } from "@/lib/dashboardUrl";
@@ -732,21 +732,7 @@ export default function DashboardPage() {
   }, []);
 
   if (authLoading) {
-    return (
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-        minHeight: "100vh",
-        background: "var(--surface)",
-        color: "var(--text-3)",
-        fontSize: 13,
-        fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
-      }}>
-        로그인 상태를 확인하는 중...
-      </div>
-    );
+    return <LoadingScreen message="로그인 상태를 확인하는 중…" />;
   }
 
   if (!user) {
@@ -1327,15 +1313,8 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : isLoadingProjects ? (
-          <div style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--text-3)",
-            fontSize: 13,
-          }}>
-            프로젝트를 불러오는 중...
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <LoadingState label="프로젝트를 불러오는 중…" />
           </div>
         ) : projects.length > 0 ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-3)", fontSize: 13 }}>

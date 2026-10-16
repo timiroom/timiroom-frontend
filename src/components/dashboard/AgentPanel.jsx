@@ -15,9 +15,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
 import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
 
-/* 모델은 EXAONE 하나로 고정 — API 키는 pipeline_py가 들고 있어
+/* 모델은 pipeline_py의 OPENAI_CHAT_MODEL(gpt-5.4-mini) 하나로 고정 — API 키는 pipeline_py가 들고 있어
    사용자가 프로바이더나 키를 설정할 필요가 없다 */
-const MODEL_LABEL = "EXAONE";
+const MODEL_LABEL = "GPT-5.4 mini";
 
 /* ══════════════════════════════════════
    디자인 토큰

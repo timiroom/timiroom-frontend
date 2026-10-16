@@ -5,41 +5,49 @@ import { useMockProgress } from "@/hooks";
 import { useAuth } from "@/context/AuthContext";
 import { smoothScroll } from "@/lib/smoothScroll";
 
-/* ── 파이프라인 행 데이터 ── */
+/* ── 파이프라인 행 데이터 ──
+   실제 실행 순서(pipeline phase2/orchestration_graph.py)를 따른다:
+   Search → PRD → PM → Feature Spec → DBA·API(병렬) → QA.
+   parallel: 앞 노드와 동시에 실행되는 노드는 화살표 대신 ∥로 잇는다. */
 const PIPE_ROWS = [
   {
-    label: "수집",
+    label: "기획",
     nodes: [
       { label: "Search Agent", active: true,  color: "var(--text-1)" },
+      { label: "PRD Agent",    active: true,  color: "var(--text-1)" },
       { label: "PM Agent",     active: true,  color: "var(--text-2)" },
     ],
   },
   {
-    label: "생성",
+    label: "설계",
     nodes: [
-      { label: "PRD Agent",    active: true,  color: "var(--text-1)" },
-      { label: "API Agent",    active: false, color: "var(--text-2)" },
-      { label: "DB Agent",     active: false, color: "var(--text-3)" },
+      { label: "Feature Spec", active: true,  color: "var(--text-1)" },
+      { label: "DBA Agent",    active: false, color: "var(--text-2)" },
+      { label: "API Agent",    active: false, color: "var(--text-2)", parallel: true },
     ],
   },
   {
     label: "검증",
     nodes: [
       { label: "QA Agent",     active: false, color: "var(--text-3)" },
-      { label: "정합성 스코어", active: true,  color: "var(--text-1)" },
+      { label: "정합성 스코어", active: true,  color: "var(--text-1)", result: true },
     ],
   },
 ];
 
 const MOCK_TAGS = [
-  { bg: "var(--border)", color: "var(--text-1)", label: "Claude 3.5" },
+  { bg: "var(--border)", color: "var(--text-1)", label: "GPT-5.4 mini" },
   { bg: "var(--bg)", color: "var(--text-2)", label: "LangGraph"  },
+  { bg: "var(--bg)", color: "var(--text-2)", label: "pgvector"   },
   { bg: "var(--bg)", color: "var(--text-2)", label: "Neo4j"      },
   { bg: "var(--bg)", color: "var(--text-3)", label: "Spring Boot" },
 ];
 
+// 결과 노드(result)를 뺀 나머지가 에이전트다. 통계와 소개 문구가 이 수를 함께 쓴다.
+const AGENT_COUNT = PIPE_ROWS.flatMap((row) => row.nodes).filter((n) => !n.result).length;
+
 const HERO_STATS = [
-  { num: "6",        label: "전문 AI 에이전트" },
+  { num: String(AGENT_COUNT), label: "전문 AI 에이전트" },
   { num: "Full",     label: "E2E 정합성 보장"  },
   { num: "실시간",   label: "멀티에이전트 검증" },
 ];
@@ -74,7 +82,9 @@ function PipelineMockup() {
                         <div className="al-ndot" style={{ background: n.color }} />
                         {n.label}
                       </div>
-                      {i < row.nodes.length - 1 && <span className="al-parr">→</span>}
+                      {i < row.nodes.length - 1 && (row.nodes[i + 1].parallel
+                        ? <span className="al-parr al-parr--parallel" title="동시에 실행" aria-label="동시에 실행">∥</span>
+                        : <span className="al-parr" aria-hidden="true">→</span>)}
                     </Fragment>
                   ))}
                 </div>
@@ -138,7 +148,7 @@ export function Hero() {
 
         {/* 서브텍스트 */}
         <p className="al-hero-sub al-anim al-d2">
-          PRD부터 QA까지, <strong>6개의 전문 에이전트</strong>가 설계 일관성을 실시간으로 검증합니다.
+          PRD부터 QA까지, <strong>{AGENT_COUNT}개의 전문 에이전트</strong>가 설계 일관성을 실시간으로 검증합니다.
           기획·API·DB·QA 문서 파편화 문제를 AI로 근본적으로 해소합니다.
         </p>
 

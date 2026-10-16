@@ -75,6 +75,12 @@
   --db-transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── 폼 요소 폰트 ──
+   버튼·입력창·선택 상자·글 입력칸은 브라우저 기본값 때문에 본문 폰트를 물려받지 않고
+   Arial(한글은 맑은 고딕)로 그려졌다. 폰트 종류만 물려받게 하고 크기는 그대로 둔다.
+   고정폭이 필요한 곳(.md-editor__input, .ui-input--mono 등)은 클래스 지정이 우선한다. */
+button, input, select, textarea { font-family: inherit; }
+
 /* ── Global dashboard reset ── */
 .db-root {
   font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
@@ -503,7 +509,27 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ui-empty__desc { max-width: 380px; margin: 6px 0 0; font-size: 13px; line-height: 1.65; color: var(--text-3); }
 .ui-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
 .ui-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 56px 24px; font-size: 13px; color: var(--text-3); }
-.ui-loading__spinner { width: 14px; height: 14px; border: 2px solid var(--border-2); border-top-color: var(--text-2); border-radius: 50%; animation: ctx-spin .8s linear infinite; }
+
+/* ── 불러오는 중 (ui/Loader) ──
+   어긋난 막대 세 개가 왼쪽 끝으로 맞춰지는 표시. 막대마다 --from만큼 비켜났다가 0으로 돌아온다. */
+.ui-align { display: inline-flex; flex-direction: column; flex-shrink: 0; width: var(--w); gap: var(--gap); }
+.ui-align--sm { --w: 16px; --h: 3px; --gap: 2px; --shift: 4px; }
+.ui-align--md { --w: 28px; --h: 4px; --gap: 4px; --shift: 8px; }
+.ui-align--lg { --w: 48px; --h: 6px; --gap: 6px; --shift: 14px; }
+.ui-align__bar { display: block; height: var(--h); border-radius: 999px; animation: ui-align 1.8s cubic-bezier(.65, 0, .35, 1) infinite; }
+.ui-align__bar:nth-child(1) { width: 100%; background: var(--text-1); --from: var(--shift); }
+.ui-align__bar:nth-child(2) { width: 64%; background: var(--text-2); --from: calc(var(--shift) * -1); animation-delay: .1s; }
+.ui-align__bar:nth-child(3) { width: 82%; background: var(--text-3); --from: calc(var(--shift) * .6); animation-delay: .2s; }
+@keyframes ui-align {
+  0%, 100% { transform: translateX(var(--from)); }
+  40%, 70% { transform: translateX(0); }
+}
+.ui-loading-screen { display: flex; flex-direction: column; align-items: center; animation: ui-loading-in .3s ease .15s both; }
+.ui-loading-screen .ui-align { margin-bottom: 24px; }
+@keyframes ui-loading-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ui-align__bar { animation: none; }
+}
 
 /* ── GitHub 목록 화면 공통 (Issues 전체, PRs 전체) ── */
 .gh-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--content-bg); }
