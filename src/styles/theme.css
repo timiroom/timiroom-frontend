@@ -843,7 +843,9 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .adm-stats + .adm-table { border-top: 1px solid var(--border); }
 .adm-table th { padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--text-3); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
-.adm-table td { padding: 12px; color: var(--text-1); vertical-align: middle; border-bottom: 1px solid var(--border); }
+.adm-table td { padding: 12px; color: var(--text-1); vertical-align: middle; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.adm-scroll .adm-table { min-width: 640px; }
+
 .adm-table th:first-child, .adm-table td:first-child { padding-left: 20px; }
 .adm-table th:last-child, .adm-table td:last-child { padding-right: 20px; }
 .adm-table tbody tr:last-child td { border-bottom: none; }
@@ -868,3 +870,78 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .adm-pager { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
 .ui-set-section__actions .ui-search { flex: 0 1 260px; min-width: 180px; }
 .ui-set-section__actions select.ui-input { height: 34px; }
+.adm-table tr.is-clickable { cursor: pointer; }
+.adm-table td.adm-wrap { white-space: normal; min-width: 240px; color: var(--text-2); }
+.adm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.adm-actions__row { display: inline-flex; gap: 4px; }
+.adm-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.adm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@container (max-width: 820px) { .adm-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 구간 선택 */
+.adm-seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.adm-seg__item { padding: 4px 10px; border: none; border-radius: 6px; background: none; font-family: inherit; font-size: 12px; color: var(--text-2); cursor: pointer; }
+.adm-seg__item:hover { color: var(--text-1); }
+.adm-seg__item.is-active { background: var(--db-bg-elevated); color: var(--text-1); font-weight: 600; }
+
+/* 30일 그래프 */
+.adm-chart { padding: 14px 20px 10px; }
+.adm-chart__legend { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin-bottom: 8px; font-size: 12px; color: var(--text-3); }
+.adm-chart__key { display: inline-flex; align-items: baseline; gap: 6px; }
+.adm-chart__key strong { font-size: 15px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.adm-chart__dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
+.adm-chart__dot--primary, .adm-chart__bar--primary { background: var(--text-1); fill: var(--text-1); }
+.adm-chart__dot--muted, .adm-chart__bar--muted { background: var(--border-2); fill: var(--border-2); }
+.adm-chart__date { margin-left: auto; font-variant-numeric: tabular-nums; }
+.adm-chart__svg { display: block; width: 100%; height: auto; }
+.adm-chart__axis { stroke: var(--border); stroke-width: 1; }
+.adm-chart__hit { fill: transparent; }
+.adm-chart__hit.is-hover { fill: var(--db-bg-elevated); }
+.adm-chart__label { font-size: 10px; fill: var(--text-3); }
+
+/* 회원 상세 */
+.adm-table > tbody > tr.adm-detail-row > td { padding: 0; background: var(--content-bg); white-space: normal; }
+.adm-detail { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 20px; border-top: 1px solid var(--border); }
+.adm-detail__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.adm-detail__meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-3); }
+.adm-detail__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@container (max-width: 820px) { .adm-detail__grid { grid-template-columns: minmax(0, 1fr); } }
+.adm-detail__title { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.adm-detail .adm-scroll { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.adm-detail .ui-stat { background: var(--surface); }
+
+/* 서비스 상태 */
+.adm-health { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.adm-health__item { display: flex; align-items: center; gap: 10px; padding: 16px 20px; }
+.adm-health__item + .adm-health__item { border-left: 1px solid var(--border); }
+.adm-health__name { font-size: 14px; font-weight: 600; color: var(--text-1); }
+.adm-health__meta { margin-left: auto; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.adm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.adm-dot.is-up { background: var(--db-green); box-shadow: 0 0 0 3px var(--db-green-bg); }
+.adm-dot.is-down { background: var(--db-red); box-shadow: 0 0 0 3px var(--db-red-bg); }
+
+/* 관리자: 넓은 화면, 지표 카드, 좁은 표 */
+.adm-scope .ui-set-layout { max-width: 1280px; }
+.adm-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.adm-kpi { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.adm-kpi__label { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.adm-kpi__value { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--text-1); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.adm-kpi__sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-kpis--small .adm-kpi { padding: 12px 16px; }
+.adm-kpis--small .adm-kpi__value { font-size: 19px; }
+@container (max-width: 820px) { .adm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.adm-scroll--compact .adm-table { min-width: 0; }
+.adm-scroll--compact .adm-table td { white-space: normal; }
+.adm-scroll--compact .adm-table td.num { white-space: nowrap; }
+.adm-empty { padding: 22px 20px; font-size: 13px; color: var(--text-3); text-align: center; }
+.adm-grid > .ui-set-section { display: flex; flex-direction: column; min-width: 0; }
+.adm-grid > .ui-set-section > .ui-set-card { flex: 1; }
+.adm-detail .adm-empty { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.adm-detail .adm-table tbody tr:hover td { background: transparent; }
+.adm-detail .adm-kpis { gap: 10px; }
+.adm-detail-row .adm-refund { padding: 14px 20px; border-top: 1px solid var(--border); }
+.adm-health__name { white-space: nowrap; }
+.adm-health__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-filters { flex-wrap: nowrap; }
+.adm-filters .ui-search { flex: 0 0 220px; min-width: 0; }
+.adm-filters select.ui-input { flex-shrink: 0; }
