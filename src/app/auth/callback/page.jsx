@@ -12,53 +12,18 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AUTH_RETURN_TO_KEY, safeAuthReturnTo } from "@/lib/authConfig";
+import { ActionButton, LoadingScreen, StatusPage } from "@/components/ui";
 
+// 로그인 앞뒤 화면과 같은 밝은 바탕을 써서, 소셜 로그인 사이에 어두운 화면이 번쩍이지 않게 한다.
 function StatusScreen({ type, message }) {
-  const isError = type === "error";
-  return (
-    <div style={{
-      minHeight: "100vh", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 16,
-      background: "#0d0d0d", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
-    }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: 18,
-        background: isError
-          ? "linear-gradient(135deg,#EF4444,#DC2626)"
-          : "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 28,
-        boxShadow: isError
-          ? "0 8px 24px rgba(239,68,68,0.3)"
-          : "0 8px 24px rgba(107,92,231,0.35)",
-        animation: isError ? "none" : "cb-pulse 1.5s ease infinite",
-      }}>
-        {isError ? "✕" : "✦"}
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ fontSize: 18, fontWeight: 700, color: isError ? "#EF4444" : "#fff", marginBottom: 6 }}>
-          {isError ? "로그인 실패" : "로그인 중..."}
-        </p>
-        <p style={{ fontSize: 14, color: "#6B7280" }}>{message}</p>
-      </div>
-      {isError && (
-        <a href="/" style={{
-          marginTop: 8, padding: "10px 24px",
-          background: "linear-gradient(135deg,#6B5CE7,#8B5CF6)",
-          color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 14,
-          textDecoration: "none",
-        }}>
-          홈으로 돌아가기
-        </a>
-      )}
-      <style>{`
-        @keyframes cb-pulse {
-          0%,100% { transform: scale(1);    opacity: 1;   }
-          50%      { transform: scale(1.06); opacity: 0.85; }
-        }
-      `}</style>
-    </div>
-  );
+  if (type === "error") {
+    return (
+      <StatusPage title="로그인하지 못했습니다" message={message}>
+        <ActionButton variant="primary" href="/">처음 화면으로</ActionButton>
+      </StatusPage>
+    );
+  }
+  return <LoadingScreen title="로그인 중" message={message} />;
 }
 
 function CallbackInner() {

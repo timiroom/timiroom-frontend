@@ -1,14 +1,11 @@
 "use client";
 
-const CHIPS = [
-  "🤖 OpenAI GPT-4o", "🦜 LangChain",   "🗺️ LangGraph4j", "🕸️ Neo4j",
-  "🐘 PostgreSQL",     "⚡ pgvector",     "📊 React Flow",   "⚙️ Spring Boot",
-  "📝 Swagger",        "🔱 Mermaid.js",  "🧮 D3.js",        "🎯 TypeScript",
-];
+import { TECH_ITEMS, TechLogoMark, useTechLogos } from "./techStackData";
 
 export function TrustSection() {
-  // 무한 스크롤을 위해 2배 복제
-  const doubled = [...CHIPS, ...CHIPS];
+  const logos = useTechLogos();
+  // 무한 스크롤을 위해 2배 복제. 복제본은 화면 읽기 도구가 두 번 읽지 않게 숨긴다.
+  const doubled = [...TECH_ITEMS, ...TECH_ITEMS];
 
   return (
     <div className="al-trust">
@@ -17,8 +14,11 @@ export function TrustSection() {
       </div>
       <div className="al-logo-wrap">
         <div className="al-logo-track">
-          {doubled.map((chip, i) => (
-            <div className="al-tech-chip" key={i}>{chip}</div>
+          {doubled.map((item, i) => (
+            <div className="al-tech-chip" key={i} aria-hidden={i >= TECH_ITEMS.length || undefined}>
+              <TechLogoMark item={item} logos={logos} />
+              {item.label}
+            </div>
           ))}
         </div>
       </div>
