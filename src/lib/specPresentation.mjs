@@ -1,5 +1,6 @@
 const FIELD_LABELS = {
   htmlContent: "본문",
+  markdown: "마크다운 원문",
   projectOverview: "프로젝트 개요",
   background: "배경 및 문제 정의",
   goals: "목표",

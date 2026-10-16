@@ -14,6 +14,7 @@ const severityTones = { WARNING: "warning", INCONCLUSIVE: "info", PASS: "success
 
 // 문서는 JSON 문자열로 온다. 맨 위 항목 단위로 비교해 바뀐 항목만 골라 문서 모양으로 보여 준다.
 function parseDocument(value) { if (typeof value === "string") { try { return JSON.parse(value); } catch { return value; } } return value; }
+const PRESENTATION_KEYS = new Set(["markdown", "htmlContent"]);
 function changedParts(before, after) {
   const prev = parseDocument(before), next = parseDocument(after);
   const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
@@ -22,9 +23,12 @@ function changedParts(before, after) {
     return { count: same ? 0 : 1, before: same ? null : prev, after: same ? null : next, unchanged: [] };
   }
   const keys = [...new Set([...Object.keys(prev), ...Object.keys(next)])];
-  const changedKeys = keys.filter((key) => JSON.stringify(prev[key]) !== JSON.stringify(next[key]));
+  const allChanged = keys.filter((key) => JSON.stringify(prev[key]) !== JSON.stringify(next[key]));
+  // markdown·htmlContent는 구조화 항목을 보여 주기 위한 사본이다. 다른 항목이 바뀌었으면 세지 않는다.
+  const meaningful = allChanged.filter((key) => !PRESENTATION_KEYS.has(key));
+  const changedKeys = meaningful.length ? meaningful : allChanged;
   const pick = (source) => Object.fromEntries(changedKeys.map((key) => [key, source[key] ?? null]));
-  return { count: changedKeys.length, before: pick(prev), after: pick(next), unchanged: keys.filter((key) => !changedKeys.includes(key)) };
+  return { count: changedKeys.length, before: pick(prev), after: pick(next), unchanged: keys.filter((key) => !changedKeys.includes(key) && !PRESENTATION_KEYS.has(key)) };
 }
 
 export function SpecChangeReview({ project, proposalId, draft, canApprove, allowedTargets = [], onClose, onApproved, onProposalChanged }) {
@@ -177,6 +181,8 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       </>}
       {ready && !canApprove && <p>PM의 검토와 승인을 기다립니다.</p>}
     </footer>
+  </section>
+    {/* styled-jsx(SWC)는 style 태그가 있는 요소부터 범위를 잡으므로 바깥 요소 바로 아래에 둔다 */}
     <style jsx>{`
       .review-backdrop { position:fixed; inset:0; z-index:1000; background:color-mix(in srgb, var(--text-1) 38%, transparent); display:flex; align-items:center; justify-content:center; padding:24px; }
       .review-dialog { width:min(1100px,100%); max-height:90vh; background:var(--bg); color:var(--text-1); border:1px solid var(--border); border-radius:16px; display:flex; flex-direction:column; box-shadow:0 24px 80px #0002; outline:none; }
@@ -198,5 +204,5 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid var(--border-2); border-radius:8px; }
       @media(max-width:700px) { .review-backdrop { padding:8px; } .review-columns { grid-template-columns:1fr; } header,footer,.review-body { padding:16px; } h2 { font-size:19px; } }
     `}</style>
-  </section></div>;
+  </div>;
 }
