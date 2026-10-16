@@ -22,7 +22,8 @@ export const addPaymentMethod = (billingKey, makeDefault = false) => request("/a
 export const setDefaultPaymentMethod = (id) => request(`/api/v1/billing/payment-methods/${id}/default`, { method: "POST", fallback: "기본 카드를 바꾸지 못했습니다" });
 export const deletePaymentMethod = (id) => request(`/api/v1/billing/payment-methods/${id}`, { method: "DELETE", fallback: "카드를 지우지 못했습니다" });
 export const fetchCredits = () => request("/api/v1/billing/credits", { fallback: "추가 사용량을 불러오지 못했습니다" });
-export const buyCredit = (packId, source = {}) => request("/api/v1/billing/credits", { method: "POST", body: { packId, ...source }, fallback: "추가 사용량을 구매하지 못했습니다" });
+export const updateCreditSettings = (settings) => request("/api/v1/billing/credits/settings", { method: "PATCH", body: settings, fallback: "설정을 저장하지 못했습니다" });
+export const buyCredit = (amountKrw, source = {}) => request("/api/v1/billing/credits", { method: "POST", body: { amountKrw, ...source }, fallback: "충전하지 못했습니다" });
 export const cancelSubscription = () => request("/api/v1/billing/cancel", { method: "POST", fallback: "해지하지 못했습니다" });
 export const resumeSubscription = () => request("/api/v1/billing/resume", { method: "POST", fallback: "해지를 취소하지 못했습니다" });
 export const fetchPayments = (page = 0) => request(`/api/v1/billing/payments?page=${page}&size=20`, { fallback: "결제 내역을 불러오지 못했습니다" });

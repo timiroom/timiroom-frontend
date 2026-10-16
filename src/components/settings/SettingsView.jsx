@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { rememberAuthReturnTo } from "@/lib/authConfig";
 import { getActiveTeamId, getMyTeams, getPreferredTeam, getTeamWorkspace, setActiveTeamId } from "@/lib/teamApi";
@@ -31,8 +31,12 @@ function teamIdOf(team) {
  * 프로젝트 설정은 범위가 다르므로 여기 두지 않고 대시보드의 프로젝트 안(설정 탭)에 둔다.
  * 예전 주소 /settings/project/{id}/{tab}은 그 탭으로 넘긴다.
  */
-export function SettingsView({ section = [] }) {
+export function SettingsView() {
   const router = useRouter();
+  // 설정 틀은 /settings 레이아웃에 한 번만 붙어 있고, 주소만 보고 오른쪽 내용을 바꾼다.
+  // (페이지마다 틀을 새로 만들면 메뉴·워크스페이스 목록을 다시 불러오며 깜빡였다)
+  const pathname = usePathname();
+  const section = useMemo(() => (pathname || "").split("/").filter(Boolean).slice(1), [pathname]);
   const { user, isLoading: authLoading } = useAuth();
   const [area, first, second] = section;
 
