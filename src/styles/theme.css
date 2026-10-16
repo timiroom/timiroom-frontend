@@ -985,3 +985,18 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .adm-chart__ticks span { position: absolute; right: 6px; transform: translateY(-50%); font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .adm-chart__labels { position: relative; height: 16px; margin-top: -18px; }
 .adm-chart__labels span { position: absolute; transform: translateX(-50%); font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
+
+/* AI 품질 */
+.tier-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 16px 20px; }
+.tier-options.is-disabled { opacity: .55; }
+@container (max-width: 640px) { .tier-options { grid-template-columns: minmax(0, 1fr); } }
+.tier-option { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-1); font-family: inherit; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.tier-option:hover:not(:disabled) { border-color: var(--border-2); }
+.tier-option:disabled { cursor: default; }
+.tier-option.is-active { border-color: var(--text-1); box-shadow: 0 0 0 1px var(--text-1) inset; }
+.tier-option:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
+.tier-option__head { display: flex; align-items: center; gap: 6px; }
+.tier-option__name { font-size: 14px; font-weight: 700; }
+.tier-option__desc { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+.tier-option__meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tier-note { padding: 0 20px 16px; font-size: 12.5px; color: var(--text-3); }

@@ -63,3 +63,14 @@ async function getJson(path, fallbackMessage) {
 export const fetchUsageMe = () => getJson("/api/v1/usage/me", "사용량을 불러오지 못했습니다");
 export const fetchUsageFeatures = () => getJson("/api/v1/usage/me/features", "사용량을 불러오지 못했습니다");
 export const fetchPlans = () => getJson("/api/v1/usage/plans", "요금제를 불러오지 못했습니다");
+
+/** AI 품질(빠름·균형·정밀). { tier, effectiveTier, options: [{ tier, label, description, proOnly, available }] } */
+export const fetchModelTier = () => getJson("/api/v1/usage/model-tier", "AI 품질을 불러오지 못했습니다");
+
+export async function updateModelTier(tier) {
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/usage/model-tier`, { method: "PUT", body: JSON.stringify({ tier }) });
+  if (!res) return null;
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || "AI 품질을 바꾸지 못했습니다");
+  return body;
+}

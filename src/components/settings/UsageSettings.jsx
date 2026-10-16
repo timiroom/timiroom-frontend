@@ -10,7 +10,7 @@ import {
   refundCredit, updateCreditSettings,
 } from "@/lib/billingApi";
 import { PaymentConsent } from "./PaymentConsent";
-import { FEATURE_LABELS, fetchUsageFeatures, formatKrw, formatResetDate } from "@/lib/usageApi";
+import { FEATURE_LABELS, fetchModelTier, fetchUsageFeatures, formatKrw, formatResetDate, updateModelTier } from "@/lib/usageApi";
 import { ActionButton, Badge, EmptyState, LoadingState, SettingsHeader, SettingsSection, Switch } from "@/components/ui";
 
 const CAP_OPTIONS = [null, 10000, 30000, 50000, 100000];
@@ -189,6 +189,8 @@ export function UsageSettings() {
         </div>
       </SettingsSection>
 
+      <ModelTierSection usingOwnKey={usage.usingOwnKey} onChanged={refresh} />
+
       <SettingsSection title="추가 사용량"
         actions={credits && <Switch checked={credits.enabled} disabled={saving} label="추가 사용량 사용"
           onChange={(next) => saveSettings(next, credits.monthlyCapKrw)} />}>
@@ -298,5 +300,60 @@ export function UsageSettings() {
         )}
       </SettingsSection>
     </>
+  );
+}
+
+/**
+ * AI 품질 선택. 빠름·균형·정밀마다 다른 모델을 쓰고, 정밀할수록 같은 일에 사용량이 더 듭니다.
+ * 내 AI 키를 쓰는 중이면 그 키의 모델을 쓰므로 고를 수 없습니다.
+ */
+function ModelTierSection({ usingOwnKey, onChanged }) {
+  const { showToast } = useToast();
+  const [data, setData] = useState(null);
+  const [saving, setSaving] = useState("");
+
+  useEffect(() => {
+    fetchModelTier().then(setData).catch((e) => showToast("error", e.message));
+  }, [showToast]);
+
+  async function choose(option) {
+    if (!option.available || option.tier === data.tier || saving) return;
+    setSaving(option.tier);
+    try {
+      setData(await updateModelTier(option.tier));
+      onChanged?.();
+      showToast("success", `AI 품질을 '${option.label}'으로 바꿨습니다.`);
+    } catch (e) {
+      showToast("error", e.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  return (
+    <SettingsSection title="AI 품질"
+      description={usingOwnKey ? "내 AI 키를 쓰는 중이라 키에 설정한 모델로 동작합니다." : "프로젝트 생성, AI 채팅, 문서 수정에 쓰는 모델을 고릅니다."}>
+      {data === null ? <LoadingState /> : (
+        <div className={`tier-options${usingOwnKey ? " is-disabled" : ""}`} role="radiogroup" aria-label="AI 품질">
+          {data.options.map((option) => {
+            const active = option.tier === data.tier;
+            return (
+              <button key={option.tier} type="button" role="radio" aria-checked={active}
+                disabled={usingOwnKey || !option.available || Boolean(saving)}
+                className={`tier-option${active ? " is-active" : ""}`} onClick={() => choose(option)}>
+                <span className="tier-option__head">
+                  <span className="tier-option__name">{option.label}</span>
+                  {option.proOnly && <Badge tone={option.available ? "neutral" : "warning"}>프로</Badge>}
+                </span>
+                <span className="tier-option__desc">{option.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {data && data.tier !== data.effectiveTier && (
+        <div className="tier-note">프로 요금제가 끝나 지금은 &lsquo;균형&rsquo;으로 동작합니다.</div>
+      )}
+    </SettingsSection>
   );
 }
