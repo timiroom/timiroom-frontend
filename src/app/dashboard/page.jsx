@@ -38,7 +38,7 @@ import {
   fetchProject,
   fetchProjectsByTeam,
 } from "@/lib/projectApi";
-import { updateArtifact } from "@/lib/pipelineApi";
+import { fetchActiveRuns, updateArtifact } from "@/lib/pipelineApi";
 import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { SpecChangeBar } from "@/components/dashboard/SpecChangeBar";
@@ -539,7 +539,23 @@ export default function DashboardPage() {
     setIsLoadingProjects(true);
     try {
       const baseList = await fetchProjectsByTeam(teamId);
-      const currentRunningPipeline = runningPipelineRef.current;
+      let currentRunningPipeline = runningPipelineRef.current;
+      // 새로고침하거나 다시 들어온 경우: 서버에서 진행 중인 생성을 찾아 진행 화면을 이어 보인다.
+      if (!currentRunningPipeline) {
+        const runs = await fetchActiveRuns().catch(() => []);
+        const run = runs.find((r) => (baseList ?? []).some((p) => String(p.id) === String(r.projectId)));
+        if (run) {
+          const project = baseList.find((p) => String(p.id) === String(run.projectId));
+          currentRunningPipeline = {
+            pipelineId: run.pipelineId,
+            projectId: run.projectId,
+            projectName: project?.name ?? "새 프로젝트",
+            teamId,
+          };
+          runningPipelineRef.current = currentRunningPipeline;
+          setRunningPipeline(currentRunningPipeline);
+        }
+      }
       const mergedList = mergeWorkspaceProjects(
         baseList,
         currentRunningPipeline?.teamId === teamId ? currentRunningPipeline : null
@@ -1243,6 +1259,11 @@ export default function DashboardPage() {
                 projectId: runningPipeline.projectId,
                 projectName: runningPipeline.projectName,
               })}
+              onLeave={() => {
+                // 생성은 서버에서 계속된다. 진행 화면만 닫고, 프로젝트를 다시 누르면 이어서 본다.
+                setSelectedProject(null);
+                setShowWizard(true);
+              }}
               onCancel={() => {
                 setRunningPipeline(null);
                 setProjects((currentProjects) => currentProjects.filter((project) => String(project.id) !== String(runningPipeline.projectId)));
