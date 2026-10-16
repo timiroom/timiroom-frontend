@@ -16,6 +16,7 @@ import {
   fetchRepositoryCommits,
 } from "@/lib/githubApi";
 import { createCommit, fetchCommits, fetchCommitsByProject } from "@/lib/commitApi";
+import { getTeamWorkspace } from "@/lib/teamApi";
 import { ActionButton, EmptyState, PanelHeader } from "@/components/ui";
 
 /* ── 색상 토큰 ── */
@@ -77,6 +78,17 @@ function ProjectCommitPanel({ selectedProject }) {
   const [commits, setCommits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [memberNames, setMemberNames] = useState({});
+
+  // 서버 기록에는 memberId만 있어 워크스페이스 멤버 목록에서 이름을 찾는다.
+  useEffect(() => {
+    if (!selectedProject?.teamId) return undefined;
+    let active = true;
+    getTeamWorkspace(selectedProject.teamId).then((workspace) => {
+      if (active) setMemberNames(Object.fromEntries((workspace?.members ?? []).map((m) => [m.memberId, m.memberName || m.email])));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [selectedProject?.teamId]);
 
   const loadCommits = useCallback(async () => {
     setLoading(true);
@@ -146,7 +158,7 @@ function ProjectCommitPanel({ selectedProject }) {
         ) : commits.length === 0 ? (
           selectedProject ? <EmptyState compact icon="list" title="아직 남긴 기록이 없습니다" description="문서를 크게 바꾼 뒤 아래에서 무엇을 바꿨는지 남겨 두면 팀이 흐름을 따라가기 쉽습니다." /> : <EmptyHistoryState message="커밋을 보려면 프로젝트를 선택해 주세요." />
         ) : commits.map((commit, index) => (
-          <ProjectCommitItem key={commit.id} commit={commit} isLatest={index === 0} />
+          <ProjectCommitItem key={commit.id} commit={commit} author={memberNames[commit.memberId]} isLatest={index === 0} />
         ))}
       </div>
 
@@ -164,19 +176,17 @@ function ProjectCommitPanel({ selectedProject }) {
   );
 }
 
-function ProjectCommitItem({ commit, isLatest }) {
+function ProjectCommitItem({ commit, author, isLatest }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.05)", background: "rgba(0,0,0,0.015)", marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid color-mix(in srgb, var(--text-1) 40%, transparent)" : "none" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.summary}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflowWrap: "anywhere" }}>{commit.summary}</div>
+          {commit.description && <div style={{ marginTop: 4, fontSize: 12.5, lineHeight: 1.6, color: "var(--text-2)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{commit.description}</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{commit.project}</span>
-            <span style={{ fontSize: 11, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
-          </div>
-          <div style={{ display: "inline-flex", marginTop: 8, background: "rgba(0,0,0,0.04)", borderRadius: 999, padding: "4px 8px" }}>
-            <span style={{ fontSize: 10, color: C.sub, fontFamily: "monospace" }}>{commit.hash}</span>
+            <span style={{ fontSize: 11.5, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{author || ""}</span>
+            <span style={{ fontSize: 11.5, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
           </div>
         </div>
       </div>

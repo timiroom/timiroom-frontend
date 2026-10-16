@@ -51,7 +51,7 @@ export function GithubConnectionSection({
       onInstallationsChange(connected);
       setUnassigned(found);
       if (found.length === 0) {
-        showToast("success", "새로 연결할 GitHub 설치가 없습니다.");
+        showToast("success", "새로 연결할 GitHub 계정이 없습니다.");
       }
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "동기화에 실패했습니다.");
@@ -66,7 +66,7 @@ export function GithubConnectionSection({
       const linked = await linkTeamGithubInstallation(teamId, installationId);
       onInstallationsChange([...installations, linked]);
       setUnassigned((prev) => prev.filter((i) => i.installationId !== installationId));
-      showToast("success", "GitHub 설치를 연결했어요.");
+      showToast("success", "GitHub 계정을 연결했습니다.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "연결에 실패했습니다.");
     } finally {
@@ -81,7 +81,7 @@ export function GithubConnectionSection({
     try {
       await unlinkTeamGithubInstallation(teamId, installationId);
       onInstallationsChange(installations.filter((i) => i.installationId !== installationId));
-      showToast("success", "GitHub 설치 연결을 해제했어요.");
+      showToast("success", "GitHub 계정 연결을 해제했습니다.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "연결 해제에 실패했습니다.");
     } finally {
@@ -89,7 +89,9 @@ export function GithubConnectionSection({
     }
   }
 
-  return (
+  const linkable = isOwner ? unassigned : [];
+
+  return (<>
     <SettingsSection
       sectionRef={sectionRef}
       highlighted={highlighted}
@@ -107,7 +109,7 @@ export function GithubConnectionSection({
       ) : installations.length === 0 ? (
         <SettingsEmpty>
           연결된 GitHub 계정이 없습니다.
-          {isOwner && <><br />GitHub App을 설치한 뒤 동기화하면 여기에 나타납니다.</>}
+          {isOwner && <><br />{linkable.length > 0 ? "아래에서 이 워크스페이스에 연결할 계정을 고르세요." : "GitHub App을 설치한 뒤 동기화하면 여기에 나타납니다."}</>}
         </SettingsEmpty>
       ) : (
         installations.map((installation) => (
@@ -127,13 +129,16 @@ export function GithubConnectionSection({
           />
         ))
       )}
+    </SettingsSection>
 
-      {isOwner && unassigned.map((installation) => (
+    {linkable.length > 0 && (
+      <SettingsSection title="연결할 수 있는 계정" description="GitHub App이 설치됐지만 아직 어느 워크스페이스에도 연결되지 않은 계정입니다.">
+      {linkable.map((installation) => (
         <SettingsItem
           key={installation.installationId}
           leading={<Avatar name={installation.accountLogin} square />}
           title={installation.accountLogin}
-          subtitle={`${accountTypeLabel(installation.accountType)} · 아직 어느 워크스페이스에도 연결되지 않음`}
+          subtitle={accountTypeLabel(installation.accountType)}
           trailing={
             <ActionButton size="sm" variant="primary" disabled={linkingId === installation.installationId} onClick={() => handleLink(installation.installationId)}>
               {linkingId === installation.installationId ? "연결 중…" : "이 워크스페이스에 연결"}
@@ -141,6 +146,7 @@ export function GithubConnectionSection({
           }
         />
       ))}
-    </SettingsSection>
-  );
+      </SettingsSection>
+    )}
+  </>);
 }

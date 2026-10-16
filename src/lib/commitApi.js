@@ -47,7 +47,8 @@ export async function fetchCommitsByProject(projectId) {
 export async function createCommit({ projectId, message, description = "" }) {
   const res = await apiFetch(`${API_BASE_URL}/api/v1/commits`, {
     method: "POST",
-    body: JSON.stringify({ projectId, message, description }),
+    // 서버는 message 한 칸만 저장한다. git처럼 첫 줄을 제목, 빈 줄 뒤를 설명으로 묶어 보낸다.
+    body: JSON.stringify({ projectId, message: description.trim() ? `${message}\n\n${description.trim()}` : message }),
   });
   if (!res || !res.ok) throw new Error(`커밋 생성 실패 (HTTP ${res?.status})`);
   const body = await res.json();
@@ -59,10 +60,12 @@ export async function createCommit({ projectId, message, description = "" }) {
    백엔드 CommitResponse → 프론트 Commit 객체
 ══════════════════════════════════════ */
 function normalizeCommit(raw) {
+  const [subject, ...rest] = String(raw.message ?? raw.summary ?? "").split("\n");
   return {
     id:          String(raw.id          ?? raw.commitId ?? ""),
-    summary:     raw.message            ?? raw.summary  ?? "",
-    description: raw.description        ?? "",
+    summary:     subject,
+    description: raw.description        ?? rest.join("\n").trim(),
+    memberId:    raw.memberId           ?? null,
     project:     raw.projectName        ?? raw.project  ?? "",
     projectId:   String(raw.projectId   ?? ""),
     hash:        raw.hash               ?? raw.shortHash ?? "",

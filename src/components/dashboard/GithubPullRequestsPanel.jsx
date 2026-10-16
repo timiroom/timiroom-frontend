@@ -1,17 +1,9 @@
 "use client";
 
-import { ActionButton, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
+import { ActionButton, Badge, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
 import { useCallback, useEffect, useState } from "react";
 import { navigateDashboard } from "@/lib/dashboardUrl";
 import { checkPullRequestConsistency, fetchProjectPullRequests, fetchProjectRepositories } from "@/lib/githubApi";
-
-const C = {
-  text: "var(--text-1)",
-  muted: "var(--text-3)",
-  border: "var(--border)",
-  surface: "var(--surface)",
-  bg: "var(--bg)",
-};
 
 function dateLabel(value) {
   if (!value) return "";
@@ -19,130 +11,115 @@ function dateLabel(value) {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
+const EVALUATOR_LABELS = {
+  PYTHON_EXAONE_FACT_GATE: "AI 판정 · EXAONE + 근거 확인",
+  PYTHON_EXAONE: "AI 판정 · EXAONE",
+  SPRING_FOUNDRY: "AI 판정 · Foundry",
+  AGENT: "AI 판정",
+  RULE_FALLBACK: "규칙 판정 (AI 응답 없음)",
+  CACHED: "이전 검사 결과",
+  RULES: "규칙 판정",
+};
+const SEVERITY = {
+  WARNING: { tone: "warning", label: "경고" },
+  INCONCLUSIVE: { tone: "info", label: "판정 보류" },
+  PASS: { tone: "success", label: "통과" },
+  INFO: { tone: "neutral", label: "참고" },
+};
+const SEVERITY_ORDER = { WARNING: 0, INCONCLUSIVE: 1, PASS: 2, INFO: 3 };
+
 function RelatedPullRequests({ pulls = [] }) {
   if (pulls.length === 0) return null;
   return (
-    <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-      <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>함께 확인할 연결 레포 PR</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {pulls.map((pull) => (
-          <a
-            key={`${pull.repoId}-${pull.number}`}
-            href={pull.htmlUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{ padding: "4px 8px", borderRadius: 999, border: `1px solid ${C.border}`, color: "var(--text-2)", fontSize: 11, fontWeight: 700, textDecoration: "none" }}
-          >
-            {pull.repoFullName} #{pull.number}
-          </a>
-        ))}
-      </div>
+    <div className="pr-related">
+      <span className="pr-related__label">함께 확인할 연결 레포 PR</span>
+      {pulls.map((pull) => (
+        <a key={`${pull.repoId}-${pull.number}`} href={pull.htmlUrl} target="_blank" rel="noreferrer" className="pr-related__link">
+          {pull.repoFullName} #{pull.number}
+        </a>
+      ))}
     </div>
   );
 }
 
 function ConsistencyResult({ result }) {
   if (!result) return null;
-  const status = result.reviewPosted
-    ? "GitHub 리뷰와 Check를 남겼습니다"
-    : result.skippedDuplicate
-      ? "같은 head SHA는 이미 검사됐습니다"
-      : "검사 결과";
-  const evaluatorLabels = {
-    PYTHON_EXAONE_FACT_GATE: "국내 EXAONE + Fact Gate",
-    PYTHON_EXAONE: "국내 EXAONE Agent",
-    SPRING_FOUNDRY: "해외 Foundry Agent",
-    AGENT: "AI Agent 판정",
-    RULE_FALLBACK: "규칙 fallback",
-    CACHED: "기존 검사 결과",
-    RULES: "규칙 판정",
-  };
-  const evaluator = evaluatorLabels[result.evaluator] || "규칙 판정";
-  const isAgentEvaluator = ["PYTHON_EXAONE_FACT_GATE", "PYTHON_EXAONE", "SPRING_FOUNDRY", "AGENT"].includes(result.evaluator);
-  const severityOrder = { WARNING: 0, INCONCLUSIVE: 1, PASS: 2, INFO: 3 };
-  const findings = [...(result.findings || [])].sort(
-    (left, right) => (severityOrder[left.severity] ?? 3) - (severityOrder[right.severity] ?? 3),
-  );
+  const findings = [...(result.findings || [])].sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3));
   const warningCount = findings.filter((finding) => finding.severity === "WARNING").length;
   const inconclusiveCount = findings.filter((finding) => finding.severity === "INCONCLUSIVE").length;
-  const needsAttention = warningCount > 0 || inconclusiveCount > 0;
-  const accent = warningCount > 0 ? "#b45309" : inconclusiveCount > 0 ? "#6366f1" : C.text;
+  const tone = warningCount > 0 ? "warning" : inconclusiveCount > 0 ? "info" : "success";
+  const headline = warningCount > 0 ? `검토 필요 · 경고 ${warningCount}건` : inconclusiveCount > 0 ? "판정 보류 · 근거 확인 필요" : "명세와 맞습니다";
+  const status = result.reviewPosted ? "GitHub에 리뷰와 Check를 남겼습니다" : result.skippedDuplicate ? "같은 커밋은 이미 검사했습니다" : "";
 
   return (
-    <div style={{ marginTop: 13, padding: "13px 14px", borderRadius: 12, background: warningCount > 0 ? "rgba(245,158,11,.055)" : inconclusiveCount > 0 ? "rgba(99,102,241,.055)" : C.bg, border: `1px solid ${warningCount > 0 ? "rgba(217,119,6,.3)" : inconclusiveCount > 0 ? "rgba(99,102,241,.3)" : C.border}` }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+    <section className={`pr-result pr-result--${tone}`} aria-label="정합성 검사 결과">
+      <div className="pr-result__head">
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: accent }}>
-            {warningCount > 0 ? `검토 필요 · 경고 ${warningCount}건` : inconclusiveCount > 0 ? "판정 보류 · 근거 확인 필요" : "정합성 확인 완료"}
+          <div className="pr-result__title">{headline}</div>
+          <div className="pr-result__meta">
+            <span>{EVALUATOR_LABELS[result.evaluator] || "규칙 판정"}</span>
+            {status && <span>{status}</span>}
           </div>
-          <div style={{ marginTop: 3, color: C.muted, fontSize: 10.5 }}>{status}</div>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 850, color: accent }}>
-          {inconclusiveCount > 0 ? "—" : result.score}
-          {inconclusiveCount === 0 && <span style={{ fontSize: 10, color: C.muted }}>/100</span>}
-        </div>
+        {inconclusiveCount === 0 && typeof result.score === "number" && (
+          <div className="pr-result__score">{result.score}<span>/100</span></div>
+        )}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9 }}>
-        <span style={{ padding: "2px 7px", borderRadius: 999, background: isAgentEvaluator ? "rgba(99,102,241,.1)" : C.surface, border: `1px solid ${C.border}`, color: isAgentEvaluator ? "#6366f1" : C.muted, fontSize: 10, fontWeight: 750 }}>
-          {evaluator}
-        </span>
-      </div>
-      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-        {findings.map((finding, index) => (
-          <div key={index} style={{ padding: "9px 10px", borderRadius: 9, background: C.surface, border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", gap: 7, alignItems: "flex-start", color: finding.severity === "WARNING" ? "#b45309" : finding.severity === "INCONCLUSIVE" ? "#6366f1" : C.text, fontSize: 11, lineHeight: 1.55 }}>
-              <span style={{ flexShrink: 0, fontWeight: 850 }}>{finding.severity === "PASS" ? "✓" : finding.severity === "WARNING" ? "!" : finding.severity === "INCONCLUSIVE" ? "?" : "i"}</span>
-              <div><strong>{finding.area}</strong> · {finding.message}</div>
-            </div>
-            {Array.isArray(finding.evidence) && finding.evidence.length > 0 && (
-              <div style={{ marginTop: 7, paddingTop: 7, borderTop: `1px solid ${C.border}`, color: C.muted, fontSize: 10.5, lineHeight: 1.55 }}>
-                <strong style={{ color: "var(--text-2)" }}>근거</strong>
-                {finding.evidence.map((evidence, evidenceIndex) => <div key={evidenceIndex} style={{ marginTop: 2 }}>· {evidence}</div>)}
-              </div>
-            )}
-            {Array.isArray(finding.references) && finding.references.length > 0 && (
-              <div style={{ marginTop: 7, display: "grid", gap: 5 }}>
-                <strong style={{ color: "var(--text-2)", fontSize: 10.5 }}>원문 위치</strong>
-                {finding.references.map((reference, referenceIndex) => (
-                  <div key={referenceIndex} style={{ padding: "6px 8px", borderRadius: 7, background: C.bg, color: C.muted, fontSize: 10, lineHeight: 1.45 }}>
-                    <code style={{ color: "var(--text-2)", fontWeight: 750 }}>{reference.source}{reference.line ? `:${reference.line}` : ""}</code>
-                    {reference.quote && <div style={{ marginTop: 2, overflowWrap: "anywhere" }}>{reference.quote}</div>}
+      {findings.length > 0 && (
+        <ul className="pr-findings">
+          {findings.map((finding, index) => {
+            const severity = SEVERITY[finding.severity] ?? SEVERITY.INFO;
+            return (
+              <li key={index} className="pr-finding">
+                <div className="pr-finding__head"><Badge tone={severity.tone}>{severity.label}</Badge><strong>{finding.area}</strong></div>
+                <p>{finding.message}</p>
+                {finding.evidence?.length > 0 && (
+                  <div className="pr-finding__block"><span>근거</span><ul>{finding.evidence.map((evidence, i) => <li key={i}>{evidence}</li>)}</ul></div>
+                )}
+                {finding.references?.length > 0 && (
+                  <div className="pr-finding__block"><span>원문 위치</span>
+                    {finding.references.map((reference, i) => (
+                      <div key={i} className="pr-finding__ref">
+                        <code>{reference.source}{reference.line ? `:${reference.line}` : ""}</code>
+                        {reference.quote && <div>{reference.quote}</div>}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-            {finding.recommendation && (
-              <div style={{ marginTop: 7, color: "var(--text-2)", fontSize: 10.5, lineHeight: 1.55 }}><strong>권장 수정</strong> · {finding.recommendation}</div>
-            )}
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: needsAttention ? 10 : 8 }}>
-        {result.reviewUrl && <a href={result.reviewUrl} target="_blank" rel="noreferrer" style={{ color: "var(--text-2)", fontSize: 11, fontWeight: 700 }}>GitHub 리뷰 열기 →</a>}
-        {result.checkRunUrl && <a href={result.checkRunUrl} target="_blank" rel="noreferrer" style={{ color: "var(--text-2)", fontSize: 11, fontWeight: 700 }}>Check 결과 열기 →</a>}
-      </div>
-    </div>
+                )}
+                {finding.recommendation && <p className="pr-finding__fix"><span>권장 수정</span> {finding.recommendation}</p>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {(result.reviewUrl || result.checkRunUrl) && (
+        <div className="pr-result__links">
+          {result.reviewUrl && <a href={result.reviewUrl} target="_blank" rel="noreferrer">GitHub 리뷰 열기 →</a>}
+          {result.checkRunUrl && <a href={result.checkRunUrl} target="_blank" rel="noreferrer">Check 결과 열기 →</a>}
+        </div>
+      )}
+    </section>
   );
 }
 
 function PullRequestCard({ pull, canManage, checking, onCheck, result }) {
   const key = `${pull.repoId}-${pull.number}`;
   return (
-    <article style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 14, background: C.surface }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <a href={pull.htmlUrl} target="_blank" rel="noreferrer" style={{ color: C.text, textDecoration: "none", fontSize: 14, fontWeight: 750 }}>
-            #{pull.number} {pull.title}
+    <article className="pr-card">
+      <div className="pr-card__head">
+        <Icon name="shuffle" size={15} strokeWidth={1.8} className="gh-row__icon" />
+        <div className="gh-row__body">
+          <a className="gh-row__title pr-card__title" href={pull.htmlUrl} target="_blank" rel="noreferrer">
+            <span className="pr-card__number">#{pull.number}</span> {pull.title}
           </a>
-          <div style={{ marginTop: 7, display: "flex", gap: 7, flexWrap: "wrap", color: C.muted, fontSize: 11 }}>
-            <span>{pull.repoFullName}</span><span>·</span><span>{pull.headRef} → {pull.baseRef}</span><span>·</span>
-            <span>{pull.authorLogin || "알 수 없음"}</span><span>·</span><span>{dateLabel(pull.updatedAt)}</span>
-            {pull.draft && <span style={{ padding: "2px 7px", borderRadius: 999, background: C.bg, border: `1px solid ${C.border}` }}>Draft</span>}
-          </div>
+          <span className="gh-row__meta">
+            {pull.repoFullName} · {pull.headRef} → {pull.baseRef} · {pull.authorLogin || "알 수 없음"} · {dateLabel(pull.updatedAt)}
+            {pull.draft && <> <Badge>초안</Badge></>}
+          </span>
         </div>
         {canManage && (
-          <ActionButton variant="primary" disabled={checking === key} onClick={() => onCheck(pull)} title="명세와 맞는지 검사하고 GitHub에 리뷰를 남깁니다">
-            {checking === key ? "검사 중…" : "정합성 검사"}
+          <ActionButton size="sm" variant={result ? "secondary" : "primary"} disabled={checking === key} onClick={() => onCheck(pull)} title="명세와 맞는지 검사하고 GitHub에 리뷰를 남깁니다">
+            {checking === key ? "검사 중…" : result ? "다시 검사" : "정합성 검사"}
           </ActionButton>
         )}
       </div>
