@@ -30,6 +30,8 @@
  */
 
 import { tint } from "@/lib/color";
+import { useUsage, isUsageBlocked, USAGE_WARN_PERCENT } from "@/context/UsageContext";
+import { formatResetDate } from "@/lib/usageApi";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { sendMessageStream, requestDocumentEdit } from "@/lib/agentApi";
 import { normalizeChatText } from "@/lib/specPresentation.mjs";
@@ -400,6 +402,25 @@ const DOCK_SIZE = {
   wide:   { width: 640, height: "calc(100vh - 96px)" },
 };
 
+/** 입력창 위 사용량 안내. 80%부터 알리고, 다 쓰면 입력을 막고 다음 방법을 보여 준다(내 키를 쓰면 띄우지 않는다). */
+function UsageNotice({ usage }) {
+  if (!usage || usage.usingOwnKey || !usage.enforced || usage.percent < USAGE_WARN_PERCENT) return null;
+  const blocked = usage.percent >= 100;
+  const reset = formatResetDate(usage.resetAt);
+  return (
+    <div className={`chat-usage${blocked ? " is-blocked" : ""}`} role={blocked ? "alert" : "status"}>
+      <span>
+        {blocked
+          ? `이번 달 AI 사용 한도를 다 썼습니다.${reset ? ` ${reset}에 다시 쓸 수 있습니다.` : ""}`
+          : `이번 달 사용량 ${usage.percent}% · ${reset ? `${reset} 초기화` : "곧 한도에 닿습니다"}`}
+      </span>
+      <a href={blocked && usage.plan !== "PRO" ? "/settings/billing" : "/settings/ai-keys"}>
+        {blocked && usage.plan !== "PRO" ? "업그레이드" : "내 AI 키"}
+      </a>
+    </div>
+  );
+}
+
 export function AiChatDock({
   contextType = "prd",
   docType,
@@ -421,6 +442,8 @@ export function AiChatDock({
 
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");
+  const { usage } = useUsage();
+  const usageBlocked = isUsageBlocked(usage);
   const [busy,     setBusy]     = useState(false);
   const [applying, setApplying] = useState(false);
   const [streamingId, setStreamingId] = useState(null);
@@ -524,6 +547,7 @@ export function AiChatDock({
         document:    docJson,
         instruction: userMsg.content,
         history:     buildHistory(),
+        projectId:   project?.id,
         signal:      abortRef.current.signal,
       });
 
@@ -566,6 +590,7 @@ export function AiChatDock({
     await sendMessageStream({
       messages: buildHistory(userMsg),
       systemPrompt: buildContextSystemPrompt(contextType, project, currentContent),
+      projectId: project?.id,
       projectContext: {
         name:        project?.name || "",
         description: project?.description || "",
@@ -592,7 +617,7 @@ export function AiChatDock({
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || busy || applying) return;
+    if (!text || busy || applying || usageBlocked) return;
 
     /* 대기 중인 수정 제안이 있으면 예/아니요를 먼저 해석한다. */
     const pending = pendingRef.current;
@@ -626,7 +651,7 @@ export function AiChatDock({
     if (editMode) await runEditRequest(userMsg);
     else          await runStreamRequest(userMsg);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, busy, applying, editMode, messages, project, currentContent, docJson]);
+  }, [input, busy, applying, usageBlocked, editMode, messages, project, currentContent, docJson]);
 
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -767,6 +792,7 @@ export function AiChatDock({
 
       {/* 입력창 */}
       <div style={{ padding: "10px 12px 11px", borderTop: `1px solid ${C.border}`, flexShrink: 0, background: "var(--bg)" }}>
+        <UsageNotice usage={usage} />
         <label htmlFor={`ai-chat-input-${contextType}`} style={{ display: "block", fontSize: 10.5, fontWeight: 750, color: C.muted, margin: "0 0 6px 2px" }}>
           {editMode ? "요구사항 또는 수정 요청" : "문서에 대한 질문"}
         </label>
@@ -779,7 +805,7 @@ export function AiChatDock({
             id={`ai-chat-input-${contextType}`}
             ref={textareaRef}
             value={input}
-            disabled={applying}
+            disabled={applying || usageBlocked}
             onChange={e => { setInput(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
             placeholder={meta.placeholder}

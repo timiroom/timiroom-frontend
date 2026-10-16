@@ -70,6 +70,15 @@ export async function apiFetch(url, options = {}) {
     credentials: "include",
   });
 
+  // AI 사용 한도 초과는 어느 화면에서 났든 같은 안내를 띄운다(UsageContext가 받는다).
+  if (res.status === 429 && typeof window !== "undefined") {
+    res.clone().json().then((body) => {
+      if (body?.code === "USAGE_LIMIT_EXCEEDED") {
+        window.dispatchEvent(new CustomEvent("timiroom:usage-limit", { detail: body }));
+      }
+    }).catch(() => {});
+  }
+
   if (res.status === 401) {
     const REDIRECT_EXEMPT = ["/", "/auth/callback"];
     const path = typeof window !== "undefined" ? window.location.pathname : "/";

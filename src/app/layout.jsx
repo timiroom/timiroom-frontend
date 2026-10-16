@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { UsageProvider } from "@/context/UsageContext";
 import { AuthModal }    from "@/components/auth/AuthModal";
 import { ConfirmHost } from "@/components/ui/ConfirmHost";
 
@@ -26,10 +27,12 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <ToastProvider>
+            <UsageProvider>
             {children}
             {/* 전역 인증 모달 — 어느 페이지에서든 openAuthModal() 호출로 표시 */}
             <AuthModal />
             <ConfirmHost />
+            </UsageProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

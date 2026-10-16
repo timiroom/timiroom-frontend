@@ -11,3 +11,4 @@ export { SettingsLayout, SettingsNav, SettingsHeader, SettingsSection, SettingsR
 export { EmptyState, LoadingState } from "./EmptyState";
 export { AlignMark, LoadingScreen } from "./Loader";
 export { MarkdownEditor } from "./MarkdownEditor";
+export { Switch } from "./Switch";
