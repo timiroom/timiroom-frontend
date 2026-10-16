@@ -25,13 +25,11 @@ export function FooterCTA() {
         <div className="al-anim al-d2">
           {isLoggedIn ? (
             <a href="/dashboard" className="al-pill-glass">
-              <span>⚡</span>
-              대시보드로 이동
+              대시보드로 이동 →
             </a>
           ) : (
             <a href="/dashboard" className="al-pill-glass">
-              <span>⚡</span>
-              무료로 시작하기
+              무료로 시작하기 →
             </a>
           )}
         </div>

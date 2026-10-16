@@ -7,11 +7,12 @@ import { smoothScroll } from "@/lib/smoothScroll";
 import { Button } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 
+// href는 메인 페이지(app/page.jsx)에 실제로 있는 섹션 id여야 한다. 없는 id면 눌러도 움직이지 않는다.
+// "성과"(#metrics)는 근거 없는 수치라 메인에서 뺀 섹션이어서 메뉴에서도 뺐다.
 const NAV_LINKS = [
-  { href: "#features", label: "기능"     },
-  { href: "#how",      label: "작동방식" },
-  { href: "#tech",     label: "기술스택" },
-  { href: "#metrics",  label: "성과"     },
+  { href: "#agents", label: "핵심 기능" },
+  { href: "#how",    label: "작동방식" },
+  { href: "#tech",   label: "기술스택" },
 ];
 
 /* ── 로그인 후 표시되는 유저 아바타 + 드롭다운 ── */
@@ -113,8 +114,8 @@ function UserMenu({ user, onLogout }) {
 
           {/* 메뉴 아이템 */}
           {[
-            { label: "대시보드",   href: "/dashboard", icon: "🏠" },
-            { label: "프로필 설정", href: "/settings",  icon: "⚙️" },
+            { label: "대시보드",   href: "/dashboard" },
+            { label: "프로필 설정", href: "/settings"  },
           ].map((item) => (
             <Link
               key={item.href}
@@ -133,7 +134,6 @@ function UserMenu({ user, onLogout }) {
               onMouseEnter={(e) => (e.currentTarget.style.background = "#F9FAFB")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             >
-              <span>{item.icon}</span>
               {item.label}
             </Link>
           ))}
@@ -160,7 +160,7 @@ function UserMenu({ user, onLogout }) {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#FEF2F2")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
-            <span>🚪</span>로그아웃
+            로그아웃
           </button>
         </div>
       )}
