@@ -1000,3 +1000,16 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .tier-option__desc { font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
 .tier-option__meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .tier-note { padding: 0 20px 16px; font-size: 12.5px; color: var(--text-3); }
+
+/* ERD 숫자 카드: 6개를 한 줄(넓을 때), 3개씩 두 줄(좁을 때)로 맞춰 하나만 떨어지지 않게 한다. */
+.erd-stats .ui-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .erd-stats .ui-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .erd-stats .ui-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 좁은 화면: 사이드바를 화면 위에 덮어 보이게(본문 폭을 빼앗지 않게) */
+.ctx-backdrop { display: none; }
+@media (max-width: 767px) {
+  .ctx-panel { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(320px, 86vw); box-shadow: 0 12px 40px rgba(0, 0, 0, .18); }
+  .ctx-panel.is-collapsed { width: 0; box-shadow: none; }
+  .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .28); }
+}
