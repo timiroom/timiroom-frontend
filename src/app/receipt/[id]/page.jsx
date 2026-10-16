@@ -79,6 +79,12 @@ export default function ReceiptPage() {
           <div><dt>공급가액</dt><dd>{formatKrw(receipt.supplyKrw)}</dd></div>
           <div><dt>부가세</dt><dd>{formatKrw(receipt.vatKrw)}</dd></div>
           <div className="is-total"><dt>합계</dt><dd>{formatKrw(receipt.amountKrw)}</dd></div>
+          {receipt.refundedKrw > 0 && (
+            <>
+              <div><dt>환불</dt><dd>-{formatKrw(receipt.refundedKrw)} ({dateTime(receipt.refundedAt)})</dd></div>
+              <div className="is-total"><dt>최종 결제</dt><dd>{formatKrw(receipt.amountKrw - receipt.refundedKrw)}</dd></div>
+            </>
+          )}
         </dl>
 
         <p className="receipt__note">

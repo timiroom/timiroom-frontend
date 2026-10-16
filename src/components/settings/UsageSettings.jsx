@@ -6,8 +6,10 @@ import { useToast } from "@/context/ToastContext";
 import { useUsage, USAGE_WARN_PERCENT } from "@/context/UsageContext";
 import { confirmDialog } from "@/lib/feedback";
 import {
-  buyCredit, fetchBillingConfig, fetchCredits, fetchPaymentMethods, fetchSubscription, issueBillingKey, updateCreditSettings,
+  buyCredit, fetchBillingConfig, fetchCredits, fetchPaymentMethods, fetchRefundOptions, fetchSubscription, issueBillingKey,
+  refundCredit, updateCreditSettings,
 } from "@/lib/billingApi";
+import { PaymentConsent } from "./PaymentConsent";
 import { FEATURE_LABELS, fetchUsageFeatures, formatKrw, formatResetDate } from "@/lib/usageApi";
 import { ActionButton, Badge, EmptyState, LoadingState, SettingsHeader, SettingsSection, Switch } from "@/components/ui";
 
@@ -35,12 +37,18 @@ export function UsageSettings() {
   const [saving, setSaving] = useState(false);
   const [editingCap, setEditingCap] = useState(false);
   const [capDraft, setCapDraft] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [refundable, setRefundable] = useState(0);
+  const [refunding, setRefunding] = useState(false);
   const handledRedirect = useRef(false);
 
   const load = useCallback(async () => {
     try {
-      const [nextCredits, nextFeatures] = await Promise.all([fetchCredits(), fetchUsageFeatures()]);
+      const [nextCredits, nextFeatures, nextRefunds] = await Promise.all([
+        fetchCredits(), fetchUsageFeatures(), fetchRefundOptions().catch(() => null),
+      ]);
       setCredits(nextCredits);
+      setRefundable(nextRefunds?.credit?.refundableKrw ?? 0);
       setFeatures(nextFeatures?.features ?? []);
     } catch (e) {
       showToast("error", e.message);
@@ -107,8 +115,26 @@ export function UsageSettings() {
     if (await saveSettings(true, value)) setEditingCap(false);
   }
 
+  async function handleRefund() {
+    const ok = await confirmDialog(`쓰지 않은 잔액 ${formatKrw(refundable)}을 환불할까요? 환불한 만큼 잔액이 줄어듭니다.`,
+      { confirmLabel: "환불", danger: true });
+    if (!ok) return;
+    setRefunding(true);
+    try {
+      const result = await refundCredit();
+      showToast(result?.warning ? "error" : "success", result?.warning
+        ?? `${formatKrw(result?.refundedKrw ?? refundable)} 환불을 요청했습니다. 카드사에 따라 3~7영업일 걸릴 수 있습니다.`);
+    } catch (e) {
+      showToast("error", e.message);
+    } finally {
+      setRefunding(false);
+      load();
+      refresh();
+    }
+  }
+
   async function handleBuy() {
-    if (!validAmount) return;
+    if (!validAmount || !agreed) return;
     try {
       const methods = (await fetchPaymentMethods())?.methods ?? [];
       const defaultCard = methods.find((m) => m.isDefault);
@@ -233,13 +259,25 @@ export function UsageSettings() {
                   <span>원</span>
                 </label>
               </div>
+              {credits.paymentReady && (
+                <PaymentConsent kind="credit" priceLabel={validAmount ? formatKrw(chargeAmount) : "고른 금액"}
+                  checked={agreed} onChange={setAgreed} />
+              )}
               <div className="usage-block__foot">
                 <span>{custom && !validAmount ? `${formatKrw(minKrw)}~${formatKrw(maxKrw)}, 1,000원 단위` : "충전한 금액은 다 쓸 때까지 남습니다."}</span>
-                <ActionButton size="sm" variant="primary" disabled={!credits.paymentReady || !validAmount || buying} onClick={handleBuy}>
+                <ActionButton size="sm" variant="primary" disabled={!credits.paymentReady || !validAmount || !agreed || buying} onClick={handleBuy}>
                   {buying ? "결제 중…" : credits.paymentReady ? `${validAmount ? formatKrw(chargeAmount) + " " : ""}충전` : "준비 중"}
                 </ActionButton>
               </div>
             </div>
+            {refundable > 0 && (
+              <div className="bill-refund">
+                <span>쓰지 않은 잔액 {formatKrw(refundable)}은 환불받을 수 있습니다.</span>
+                <ActionButton size="sm" variant="ghost" disabled={refunding} onClick={handleRefund}>
+                  {refunding ? "환불 중…" : "잔액 환불"}
+                </ActionButton>
+              </div>
+            )}
           </>
         )}
       </SettingsSection>
