@@ -507,12 +507,12 @@ function SectionContent({ doc, sectionKey, htmlSections, extras = [] }) {
 ══════════════════════════════════════ */
 function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
   return (
-    <div style={{ width:210, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"16px 14px 10px" }}>
+    <div className="prd-side" style={{ width:210, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div className="prd-side__title" style={{ padding:"16px 14px 10px" }}>
         <div style={{ fontSize:11, fontWeight:700, color:C.sub, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:3 }}>PRD</div>
         <div style={{ fontSize:14, fontWeight:700, color:C.text, lineHeight:1.35, wordBreak:"break-word" }}>{projectName || "제품 요구사항 문서"}</div>
       </div>
-      <div style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
+      <div className="prd-side__list" style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
         {sections.map(sec => {
           const isActive = activeKey===sec.key;
           return (
@@ -529,7 +529,7 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
           );
         })}
       </div>
-      <div style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
+      <div className="prd-side__foot" style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
         <button
           onClick={onEditAll}
           style={{ width:"100%", padding:"7px 12px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, display:"flex", alignItems:"center", gap:6 }}
@@ -715,7 +715,7 @@ ${content}</body></html>`;
   );
 
   return (
-    <div style={{ flex:1, display:"flex", height:"100%", minHeight:0, overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
+    <div className="prd-layout" style={{ flex:1, display:"flex", height:"100%", minHeight:0, overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
 
       {/* ── 뷰 모드 ── */}
       {!editMode && (
@@ -727,7 +727,7 @@ ${content}</body></html>`;
             projectName={project?.name}
             onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
-          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div className="prd-main" style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
             <PanelHeader project={project} label="PRD" docType="PRD">
               {hasDraft && <Badge tone="success"><Icon name="check" size={11} /> AI 초안</Badge>}
               <PdfBtn disabled={!hasDraft} />

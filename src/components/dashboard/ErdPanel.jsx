@@ -1017,8 +1017,8 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
             background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 18%, transparent)",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
           }}>⟷</div>
-          <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text }}>테이블 관계</span>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>테이블 관계</span>
+          <div className="erd-rel-legend" style={{ display: "flex", gap: 6, alignItems: "center" }}>
             {["1:1","1:N","N:M"].map(k => {
               const { bg, bd, c } = cardColor(k);
               return (
