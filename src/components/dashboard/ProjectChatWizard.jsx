@@ -506,7 +506,7 @@ function MessageBubble({ role, content, files }) {
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 8 }}>
       {!isUser && (
-        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
       )}
       <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", gap: 6 }}>
         {files && files.length > 0 && (
@@ -588,7 +588,7 @@ function SuggestionChips({ suggestions, onSelect, disabled }) {
 function TypingIndicator() {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16, gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
       <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px 18px 18px 4px", display: "flex", gap: 5, alignItems: "center" }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", animation: `dot-bounce 1.2s ${i * 0.2}s infinite ease-in-out` }}/>
