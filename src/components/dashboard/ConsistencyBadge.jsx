@@ -33,9 +33,12 @@ export function ConsistencyBadge({ projectId, areaKeyword }) {
 
   const isWarning = warningCount > 0;
   const isInconclusive = !isWarning && inconclusiveCount > 0;
+  // PYTHON_EXAONE은 검사 서비스가 모델을 밝히지 않았을 때 백엔드가 붙이는 기본값이라 모델명을 쓰지 않는다.
+  // *_FACT_GATE는 서비스 응답(evaluationMode)이 직접 밝힌 모델이다.
   const evaluatorLabels = {
-    PYTHON_EXAONE_FACT_GATE: "국내 EXAONE + Fact Gate",
-    PYTHON_EXAONE: "국내 EXAONE Agent",
+    PYTHON_OPENAI_COMPATIBLE_FACT_GATE: "OpenAI 호환 모델 + Fact Gate",
+    PYTHON_EXAONE_FACT_GATE: "EXAONE + Fact Gate",
+    PYTHON_EXAONE: "Python 정합성 Agent",
     SPRING_FOUNDRY: "해외 Foundry Agent",
     RULE_FALLBACK: "규칙 fallback",
     RULES: "규칙 판정",
