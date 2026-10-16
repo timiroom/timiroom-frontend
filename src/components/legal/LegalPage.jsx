@@ -13,7 +13,7 @@ export function LegalPage({ title, current, children }) {
   return (
     <div className="legal">
       <header className="legal__top">
-        <Link href="/" className="legal__brand">Align-it</Link>
+        <Link href="/" className="legal__brand"><span className="legal__logo" aria-hidden="true">A</span>Align-it</Link>
         <nav className="legal__nav" aria-label="약관과 정책">
           {DOCS.map((doc) => (
             <Link key={doc.href} href={doc.href} aria-current={doc.href === current ? "page" : undefined}
