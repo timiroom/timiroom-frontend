@@ -1013,3 +1013,18 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .ctx-panel.is-collapsed { width: 0; box-shadow: none; }
   .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .28); }
 }
+
+/* 좁은 화면: PRD 목차를 위쪽 가로 탭으로 바꿔 본문이 화면 폭을 다 쓰게 하고, 머리글 버튼은 줄바꿈한다. */
+@media (max-width: 767px) {
+  .prd-layout { flex-direction: column; }
+  .prd-side { width: 100% !important; flex-direction: row !important; align-items: center; border-right: none !important; border-bottom: 1px solid var(--border); }
+  .prd-side__title { display: none; }
+  .prd-side__list { display: flex; gap: 4px; overflow-x: auto !important; overflow-y: hidden !important; padding: 6px 8px !important; scrollbar-width: none; }
+  .prd-side__list > button { width: auto !important; flex-shrink: 0; white-space: nowrap; margin-bottom: 0 !important; }
+  .prd-side__foot { border-top: none !important; border-left: 1px solid var(--border); padding: 6px 8px !important; flex-shrink: 0; }
+  .prd-side__foot > button { width: auto !important; white-space: nowrap; }
+  .prd-main { min-height: 0; }
+  .ui-panel-header { flex-wrap: wrap; padding: 8px 16px; row-gap: 6px; }
+  .ui-panel-header__crumb { min-width: 0; }
+}
+@media (max-width: 767px) { .erd-rel-legend { display: none !important; } }
