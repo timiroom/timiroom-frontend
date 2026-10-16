@@ -12,6 +12,9 @@ import { Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimit
 import { AiToolConnectionsPanel } from "@/components/dashboard/mypage/AiToolConnectionsPanel";
 import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { ProfileSettings } from "./ProfileSettings";
+import { UsageSettings } from "./UsageSettings";
+import { BillingSettings } from "./BillingSettings";
+import { AiKeySettings } from "./AiKeySettings";
 import { WorkspaceSettings, WORKSPACE_PAGES } from "./WorkspaceSettings";
 
 const INTEGRATION_ENABLED = process.env.NEXT_PUBLIC_INTEGRATION_ENABLED === "true";
@@ -23,7 +26,7 @@ function teamIdOf(team) {
 
 /**
  * /settings — 내 계정과 워크스페이스 설정. 주소가 곧 페이지다.
- *   /settings/profile, /settings/connections
+ *   /settings/profile, /settings/usage, /settings/billing, /settings/ai-keys, /settings/connections
  *   /settings/workspace/{general|members|github|manage}
  * 프로젝트 설정은 범위가 다르므로 여기 두지 않고 대시보드의 프로젝트 안(설정 탭)에 둔다.
  * 예전 주소 /settings/project/{id}/{tab}은 그 탭으로 넘긴다.
@@ -43,6 +46,7 @@ export function SettingsView({ section = [] }) {
   // 잘못된 주소나 /settings 자체는 프로필로 보낸다.
   const route = useMemo(() => {
     if (area === "connections" && INTEGRATION_ENABLED) return { key: "connections" };
+    if (area === "usage" || area === "billing" || area === "ai-keys") return { key: area };
     if (area === "workspace") {
       const page = WORKSPACE_PAGES[first] ? first : "general";
       return { key: `workspace:${page}`, page };
@@ -132,6 +136,9 @@ export function SettingsView({ section = [] }) {
           ),
           items: [
             { key: "profile", label: "프로필", href: "/settings/profile", icon: "users" },
+            { key: "usage", label: "사용량", href: "/settings/usage", icon: "meter" },
+            { key: "billing", label: "요금제·결제", href: "/settings/billing", icon: "card" },
+            { key: "ai-keys", label: "내 AI 키", href: "/settings/ai-keys", icon: "key" },
             ...(INTEGRATION_ENABLED ? [{ key: "connections", label: "연결된 도구", href: "/settings/connections", icon: "link" }] : []),
           ],
         },
@@ -154,6 +161,12 @@ export function SettingsView({ section = [] }) {
   let content;
   if (route.key === "profile") {
     content = <ProfileSettings />;
+  } else if (route.key === "usage") {
+    content = <UsageSettings />;
+  } else if (route.key === "billing") {
+    content = <BillingSettings />;
+  } else if (route.key === "ai-keys") {
+    content = <AiKeySettings />;
   } else if (route.key === "connections") {
     content = (
       <>

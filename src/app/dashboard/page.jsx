@@ -912,6 +912,7 @@ export default function DashboardPage() {
         before,
         after: document,
         documents: projectDocuments(projectWithSource),
+        projectId: projectWithSource?.id,
         signal: controller.signal,
       });
       if (documentSyncRequestRef.current !== requestId) return;

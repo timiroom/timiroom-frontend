@@ -8,12 +8,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useUsage, USAGE_WARN_PERCENT } from "@/context/UsageContext";
+import { formatResetDate } from "@/lib/usageApi";
 import { confirmDialog } from "@/lib/feedback";
 import { Avatar, Icon } from "@/components/ui";
 import { NotificationBell } from "./NotificationBell";
 
 export function SidebarAccount() {
   const { user, logout } = useAuth();
+  const { usage } = useUsage();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -56,11 +59,27 @@ export function SidebarAccount() {
             <strong>{name}</strong>
             {user?.email && <span>{user.email}</span>}
           </div>
+          {usage && (
+            // ChatGPT·Claude처럼 메뉴 안에서 이번 달 사용량을 바로 본다. 누르면 사용량 화면으로 간다.
+            <Link role="menuitem" href="/settings/usage" className="ctx-usage" onClick={() => setOpen(false)}>
+              <span className="ctx-usage__row">
+                <span>{usage.planName} · 이번 달 사용량</span>
+                <span>{usage.usingOwnKey ? "내 키" : `${usage.percent}%`}</span>
+              </span>
+              <span className={`usage-meter usage-meter--sm${usage.percent >= 100 ? " is-full" : usage.percent >= USAGE_WARN_PERCENT ? " is-warn" : ""}`}>
+                <span style={{ width: `${Math.min(100, usage.percent)}%` }} />
+              </span>
+              <span className="ctx-usage__reset">{formatResetDate(usage.resetAt)} 초기화</span>
+            </Link>
+          )}
           <Link role="menuitem" href="/settings/profile" className="ctx-account__item" onClick={() => setOpen(false)}>
             <Icon name="users" size={14} /> 프로필
           </Link>
           <Link role="menuitem" href="/settings" className="ctx-account__item" onClick={() => setOpen(false)}>
             <Icon name="wrench" size={14} /> 설정
+          </Link>
+          <Link role="menuitem" href="/settings/billing" className="ctx-account__item" onClick={() => setOpen(false)}>
+            <Icon name="card" size={14} /> {usage?.plan === "PRO" ? "요금제·결제" : "프로로 업그레이드"}
           </Link>
           <div className="ctx-account__divider" />
           <button role="menuitem" type="button" className="ctx-account__item" onClick={handleLogout}>
