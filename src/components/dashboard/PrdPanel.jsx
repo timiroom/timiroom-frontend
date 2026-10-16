@@ -1,7 +1,7 @@
 "use client";
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { ActionButton, Badge, EmptyState, Icon, PanelHeader } from "@/components/ui";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
@@ -871,12 +871,8 @@ ${content}</body></html>`;
             </PanelHeader>
             <div style={{ flex:1, overflowY:"auto" }}>
               {!doc ? (
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"80px 0", gap:14 }}>
-                  <div style={{ color:C.muted }}><Icon name="doc" size={30} strokeWidth={1.6} /></div>
-                  <div style={{ fontSize:16, fontWeight:700, color:C.text }}>PRD{"가 없습니다"}</div>
-                  <div style={{ fontSize:13, color:C.muted }}>{"파이프라인을 실행하거나 편집 모드에서 작성하세요"}</div>
-                  {!readOnly && <ActionButton size="lg" onClick={()=>setEditMode(true)}>편집 모드 열기</ActionButton>}
-                </div>
+                // 편집은 AI가 만든 PRD를 고치는 방식이라, 문서가 없을 때는 편집을 열지 않는다(저장할 곳이 없다).
+                <EmptyState icon="doc" title="아직 PRD가 없습니다" description="AI 기획 생성이 끝나면 여기에 PRD가 만들어집니다. 생성이 끝났는데도 비어 있다면 생성 과정에서 실패한 것입니다." />
               ) : (
                 <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
                   <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} />
@@ -898,17 +894,9 @@ ${content}</body></html>`;
           <Badge>PRD 편집</Badge>
           <div style={{ flex:1 }} />
           {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
-          <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
-            {saved ? "저장됨" : saving ? "저장 중..." : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-                </svg>
-                {"저장"}
-              </>
-            )}
-          </button>
+          <ActionButton size="sm" variant="primary" onClick={handleSave} disabled={saving || readOnly || !project?.artifactIds?.PRD}>
+            <Icon name="save" size={12} /> {saving ? "저장 중…" : "저장"}
+          </ActionButton>
           <PdfBtn disabled={!hasDraft} />
         </div>
         <NotionEditor editorRef={editorRef} onTextChange={nextText => {
