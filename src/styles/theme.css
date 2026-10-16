@@ -569,3 +569,9 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .history-row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .history-row__title { font-size: 13px; font-weight: 600; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-row__meta { font-size: 12px; color: var(--text-3); }
+
+/* 새 프로젝트 대화의 답변 제안 */
+.wizard-suggestion { width: 100%; padding: 9px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-1); font-family: inherit; font-size: 13px; line-height: 1.5; text-align: left; cursor: pointer; transition: background .12s, border-color .12s; }
+.wizard-suggestion:hover:not(:disabled) { border-color: color-mix(in srgb, var(--text-1) 25%, transparent); background: var(--bg); }
+.wizard-suggestion:focus-visible { outline: 2px solid var(--text-1); outline-offset: 1px; }
+.wizard-suggestion:disabled { opacity: .5; cursor: not-allowed; }

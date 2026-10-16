@@ -743,12 +743,14 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               <IconPanelToggle />
             </button>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--db-purple-400)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
-            <span style={{ fontSize: 14 }}>✦</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--text-1)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-1)" }}>
+            <Icon name="plus" size={13} />
             새 프로젝트 만들기
           </div>
         </div>
-        <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", fontSize: 16, cursor: "pointer", padding: "4px 8px", borderRadius: 4 }} title="닫기">✕</button>
+        <button type="button" onClick={onCancel} style={{ display: "flex", background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", padding: 6, borderRadius: 6 }} title="닫기" aria-label="새 프로젝트 만들기 닫기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
       </div>
 
       {sessionError && (
@@ -792,31 +794,10 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               {currentSuggestions.map((s, i) => (
                 <button
                   key={i}
+                  type="button"
+                  className="wizard-suggestion"
                   onClick={() => sendText(s)}
                   disabled={isLoading || isSubmitting}
-                  style={{
-                    width: "100%", padding: "9px 14px",
-                    borderRadius: 10, textAlign: "left",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.06)",
-                    color: "var(--text-2)",
-                    fontSize: 13, lineHeight: 1.5,
-                    cursor: isLoading || isSubmitting ? "not-allowed" : "pointer",
-                    transition: "all 0.15s",
-                    opacity: isLoading || isSubmitting ? 0.5 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    if (!isLoading && !isSubmitting) {
-                      e.currentTarget.style.borderColor = "rgba(107,85,220,0.45)";
-                      e.currentTarget.style.color = "var(--db-purple-300)";
-                      e.currentTarget.style.background = "rgba(107,85,220,0.1)";
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.color = "var(--text-2)";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                  }}
                 >
                   {s}
                 </button>
@@ -891,7 +872,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               value={inputText}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="위에서 선택하거나 직접 입력하세요... (Enter 전송, Shift+Enter 줄바꿈)"
+              placeholder={currentSuggestions.length > 0 ? "위에서 고르거나 직접 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)" : "만들고 싶은 서비스를 설명해 주세요 (Enter 전송, Shift+Enter 줄바꿈)"}
               disabled={isLoading || isSubmitting || !!sessionError}
               rows={1}
               className="chat-textarea"
