@@ -11,9 +11,12 @@ function dateLabel(value) {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
+// PYTHON_EXAONE은 검사 서비스가 모델을 밝히지 않았을 때 백엔드가 붙이는 기본값이라 모델명을 쓰지 않는다.
+// *_FACT_GATE는 서비스 응답(evaluationMode)이 직접 밝힌 모델이다.
 const EVALUATOR_LABELS = {
+  PYTHON_OPENAI_COMPATIBLE_FACT_GATE: "AI 판정 · OpenAI 호환 + 근거 확인",
   PYTHON_EXAONE_FACT_GATE: "AI 판정 · EXAONE + 근거 확인",
-  PYTHON_EXAONE: "AI 판정 · EXAONE",
+  PYTHON_EXAONE: "AI 판정",
   SPRING_FOUNDRY: "AI 판정 · Foundry",
   AGENT: "AI 판정",
   RULE_FALLBACK: "규칙 판정 (AI 응답 없음)",
