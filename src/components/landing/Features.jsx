@@ -135,7 +135,7 @@ const AGENT_CARDS = [
     badge:   "PRD · API · DB Agent",
     title:   "명세 자동 생성",
     desc:    "확정된 기능 목록을 바탕으로 PRD 문서, Swagger API 명세, ERD 스키마를 동시에 자동 생성합니다. 기획부터 기술 명세까지 일관된 정보가 자동으로 연결됩니다.",
-    visual:  "v-purple",
+    visual:  "v-blue",
     IllusComp: SpecIllus,
     steps: [
       { name: "PRD Agent", text: "프로젝트 개요, 목표·KPI, 핵심 기능, 사용자 페르소나, MVP 범위, 기술 스택, 릴리즈 일정을 갖춘 PRD를 씁니다." },
@@ -148,7 +148,7 @@ const AGENT_CARDS = [
     badge:   "QA Agent",
     title:   "정합성 자동 검증",
     desc:    "지식 그래프를 통해 기능·API·DB 간의 논리적 연결 관계를 추적하고, 불일치 이슈를 자동 탐지합니다. 정합성 스코어와 이슈 리포트를 실시간으로 제공합니다.",
-    visual:  "v-purple",
+    visual:  "v-green",
     IllusComp: ConsistencyIllus,
     steps: [
       { name: "QA Agent", text: "시니어 DBA·백엔드 아키텍트 관점에서 스키마와 API를 검토하고, 문제가 있으면 한 번 더 고칩니다. 기존 항목은 지우지 않고 필요한 부분만 바꿉니다." },

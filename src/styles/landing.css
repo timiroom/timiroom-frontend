@@ -424,8 +424,9 @@ button.al-agent-card-link { font: inherit; cursor: pointer; }
   position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
 }
-/* 세 카드 모두 같은 회색 바탕을 쓴다(예전 파랑·초록 바탕은 모노크롬 원칙에 맞지 않아 뺐다) */
 .al-agent-card-visual.v-purple { background: linear-gradient(135deg,var(--border) 0%,var(--border-2) 100%); }
+.al-agent-card-visual.v-blue   { background: linear-gradient(135deg,#dbeafe 0%,#93c5fd 100%); }
+.al-agent-card-visual.v-green  { background: linear-gradient(135deg,#d1fae5 0%,#6ee7b7 100%); }
 .al-agent-card-visual.v-orange { background: linear-gradient(135deg,#ffedd5 0%,#fca876 100%); }
 
 /* ── Pipeline SVG illustration ── */
