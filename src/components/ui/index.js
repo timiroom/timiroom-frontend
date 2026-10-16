@@ -9,3 +9,4 @@ export { PanelToolbar, SearchInput, StatGrid } from "./PanelToolbar";
 export { StatusPage } from "./StatusPage";
 export { SettingsLayout, SettingsNav, SettingsHeader, SettingsSection, SettingsRow, SettingsItem, SettingsEmpty, Avatar } from "./Settings";
 export { EmptyState, LoadingState } from "./EmptyState";
+export { MarkdownEditor } from "./MarkdownEditor";

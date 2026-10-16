@@ -1,10 +1,12 @@
 "use client";
 
 import { confirmDialog, toast } from "@/lib/feedback";
-import { ActionButton, Badge, EmptyState, Icon, PanelHeader } from "@/components/ui";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { ActionButton, Badge, EmptyState, Icon, MarkdownEditor, PanelHeader } from "@/components/ui";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
+import { htmlToMarkdown, renderMarkdown, sanitizeHtml } from "@/lib/markdownRender";
+import { extraSections, markdownToPrd, prdToMarkdownWithExtras } from "@/lib/prdMarkdown.mjs";
 
 const C = {
   bg:        "var(--surface)",
@@ -442,18 +444,17 @@ function ScheduleView({ doc }) {
   );
 }
 
+// 저장된 HTML은 사용자가 쓴 글이라 반드시 걸러서 넣는다.
 function HtmlSectionView({ html }) {
-  return (
-    <div
-      className="notion-block-editor"
-      dangerouslySetInnerHTML={{ __html: html || `<p style='color:#9ca3af'>내용이 없습니다</p>` }}
-      style={{ fontSize:14, lineHeight:1.85, color:C.text }}
-    />
-  );
+  const safe = sanitizeHtml(html);
+  if (!safe) return <p style={{ color:C.muted, fontSize:14 }}>내용이 없습니다</p>;
+  return <div className="md-preview" dangerouslySetInnerHTML={{ __html: safe }} />;
 }
 
-function SectionContent({ doc, sectionKey, htmlSections }) {
+function SectionContent({ doc, sectionKey, htmlSections, extras = [] }) {
   if (!doc) return <EmptySectionState label="PRD" />;
+  const extra = extras.find((section) => section.key === sectionKey);
+  if (extra) return <HtmlSectionView html={renderMarkdown(extra.markdown)} />;
   if (doc.type === "html") {
     const sec = htmlSections.find(s=>s.key===sectionKey);
     return <HtmlSectionView html={sec?.html||""} />;
@@ -514,206 +515,11 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
 }
 
 /* ══════════════════════════════════════
-   Notion 에디터 (contentEditable 기반)
-══════════════════════════════════════ */
-const BLOCK_OPTS = [
-  { value: "p",          label: "본문" },
-  { value: "h1",         label: "제목 1" },
-  { value: "h2",         label: "제목 2" },
-  { value: "h3",         label: "제목 3" },
-  { value: "blockquote", label: "인용" },
-  { value: "pre",        label: "코드" },
-];
-const FONT_SIZES = [12,13,14,15,16,18,20,24,28,32];
-const TEXT_COLORS = [
-  { label: "기본", value: "var(--text-1)" }, { label: "회색", value: "#9ca3af" },
-  { label: "빨강", value: "#ef4444" }, { label: "주황", value: "#f97316" },
-  { label: "노랑", value: "#ca8a04" }, { label: "초록", value: "#16a34a" },
-  { label: "파랑", value: "#2563eb" }, { label: "보라", value: "#7c3aed" },
-  { label: "분홍", value: "#db2777" },
-];
-const HL_COLORS = [
-  { label: "없음",  value: "transparent" }, { label: "노랑", value: "#fef9c3" },
-  { label: "초록",  value: "#dcfce7"     }, { label: "파랑", value: "#dbeafe" },
-  { label: "보라",  value: "#ede9fe"     }, { label: "분홍", value: "#fce7f3" },
-  { label: "주황",  value: "#ffedd5"     }, { label: "빨강", value: "#fee2e2" },
-  { label: "회색",  value: "#f3f4f6"     },
-];
-
-function NotionEditor({ editorRef, onTextChange }) {
-  const [blockType, setBlockType] = useState("p");
-  const [fontSize,  setFontSize]  = useState(14);
-  const [textColor, setTextColor] = useState("var(--text-1)");
-  const [hlColor,   setHlColor]   = useState("transparent");
-  const [isBold,    setIsBold]    = useState(false);
-  const [isItalic,  setIsItalic]  = useState(false);
-  const [colorMenu, setColorMenu] = useState(null);
-
-  function exec(cmd, val = null) { editorRef.current?.focus(); document.execCommand(cmd, false, val); syncState(true); }
-  function syncState(contentChanged = false) {
-    if (!editorRef.current) return;
-    try { setIsBold(document.queryCommandState("bold")); setIsItalic(document.queryCommandState("italic")); } catch {}
-    if (contentChanged && onTextChange) onTextChange(editorRef.current.innerText || "");
-    const sel = window.getSelection();
-    if (sel?.rangeCount) {
-      let el = sel.getRangeAt(0).startContainer;
-      if (el.nodeType === 3) el = el.parentElement;
-      while (el && el !== editorRef.current) {
-        const tag = el.tagName?.toLowerCase();
-        if (BLOCK_OPTS.some(o => o.value === tag)) { setBlockType(tag); break; }
-        el = el.parentElement;
-      }
-    }
-  }
-  function setBlock(tag) { editorRef.current?.focus(); document.execCommand("formatBlock", false, tag); setBlockType(tag); syncState(true); }
-  function applyFontSize(size) {
-    setFontSize(size);
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !editorRef.current) return;
-    const range = sel.getRangeAt(0);
-    const span = document.createElement("span");
-    span.style.fontSize = size + "px";
-    try { range.surroundContents(span); } catch { const f = range.extractContents(); span.appendChild(f); range.insertNode(span); }
-    syncState(true);
-  }
-  function applyTextColor(color) { setTextColor(color); exec("foreColor", color); setColorMenu(null); }
-  function applyHL(color) {
-    setHlColor(color); editorRef.current?.focus();
-    document.execCommand("styleWithCSS", false, true);
-    document.execCommand(color === "transparent" ? "removeFormat" : "hiliteColor", false, color === "transparent" ? null : color);
-    setColorMenu(null); syncState(true);
-  }
-  function handleKeyDown(e) {
-    if (e.metaKey || e.ctrlKey) {
-      if (e.key === "b") { e.preventDefault(); exec("bold"); }
-      else if (e.key === "i") { e.preventDefault(); exec("italic"); }
-      else if (e.key === "u") { e.preventDefault(); exec("underline"); }
-    }
-    if (e.key === "Tab") { e.preventDefault(); exec("insertHTML", "&nbsp;&nbsp;&nbsp;&nbsp;"); }
-  }
-
-  const Btn = ({ label, active, onClick, title, xs }) => (
-    <button onMouseDown={e => { e.preventDefault(); onClick(); }} title={title} style={{
-      minWidth: 28, height: 26, borderRadius: 5, border: "none", cursor: "pointer",
-      background: active ? "color-mix(in srgb, var(--text-2) 15%, transparent)" : "none",
-      color: active ? C.text : C.muted, fontSize: 12, fontWeight: 600,
-      padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center",
-      transition: "all 0.1s", ...xs,
-    }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(0,0,0,0.06)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? "color-mix(in srgb, var(--text-2) 15%, transparent)" : "none"; }}
-    >{label}</button>
-  );
-  const Sep = () => <div style={{ width: 1, height: 18, background: C.border, margin: "0 3px", flexShrink: 0 }} />;
-
-  return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* 툴바 */}
-      <div style={{ height: 42, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 14px", gap: 2, borderBottom: `1px solid ${C.border}`, background: "var(--bg)", overflowX: "auto" }}>
-        <select value={blockType} onChange={e => setBlock(e.target.value)} style={{ height: 26, padding: "0 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--bg)", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer", outline: "none", marginRight: 2 }}>
-          {BLOCK_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <Sep />
-        <Btn label="B" active={isBold}   onClick={() => exec("bold")}          title="굵게 (Ctrl+B)"   xs={{ fontWeight: 800 }} />
-        <Btn label="I" active={isItalic} onClick={() => exec("italic")}        title="기울임 (Ctrl+I)" xs={{ fontStyle: "italic" }} />
-        <Btn label="U" active={false}    onClick={() => exec("underline")}     title="밑줄 (Ctrl+U)"   xs={{ textDecoration: "underline" }} />
-        <Btn label="S" active={false}    onClick={() => exec("strikeThrough")} title="취소선"           xs={{ textDecoration: "line-through" }} />
-        <Sep />
-        <select value={fontSize} onChange={e => applyFontSize(Number(e.target.value))} style={{ height: 26, padding: "0 4px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--bg)", fontSize: 11, color: C.text, cursor: "pointer", outline: "none" }}>
-          {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
-        </select>
-        <Sep />
-        {/* 글자 색상 */}
-        <div style={{ position: "relative" }}>
-          <button onMouseDown={e => { e.preventDefault(); setColorMenu(colorMenu === "text" ? null : "text"); }} title="글자 색상"
-            style={{ width: 30, height: 26, borderRadius: 5, border: "none", cursor: "pointer", background: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: textColor, lineHeight: 1 }}>A</span>
-            <div style={{ width: 16, height: 3, borderRadius: 2, background: textColor }} />
-          </button>
-          {colorMenu === "text" && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onMouseDown={() => setColorMenu(null)} />
-              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
-                {TEXT_COLORS.map(col => (
-                  <button key={col.value} onMouseDown={e => { e.preventDefault(); applyTextColor(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value, border: textColor === col.value ? "2px solid var(--text-2)" : "1px solid rgba(0,0,0,0.1)", color: ["var(--text-1)","#7c3aed","#2563eb","#db2777"].includes(col.value) ? "white" : "var(--text-1)", fontSize: 9, fontWeight: 700 }}>
-                    {col.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-        {/* 형광펜 */}
-        <div style={{ position: "relative" }}>
-          <button onMouseDown={e => { e.preventDefault(); setColorMenu(colorMenu === "hl" ? null : "hl"); }} title="형광펜"
-            style={{ width: 30, height: 26, borderRadius: 5, border: "none", cursor: "pointer", background: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.text, lineHeight: 1, background: hlColor !== "transparent" ? hlColor : "none", padding: "0 2px", borderRadius: 2 }}>H</span>
-            <div style={{ width: 16, height: 3, borderRadius: 2, background: hlColor !== "transparent" ? hlColor : C.border }} />
-          </button>
-          {colorMenu === "hl" && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onMouseDown={() => setColorMenu(null)} />
-              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
-                {HL_COLORS.map(col => (
-                  <button key={col.value} onMouseDown={e => { e.preventDefault(); applyHL(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value === "transparent" ? "repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 2px,white 2px,white 8px)" : col.value, border: hlColor === col.value ? "2px solid var(--text-2)" : "1px solid rgba(0,0,0,0.1)", color: "var(--text-1)", fontSize: 9, fontWeight: 700 }}>
-                    {col.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-        <Sep />
-        <Btn label="• ≡"  active={false} onClick={() => exec("insertUnorderedList")} title="글머리 기호" />
-        <Btn label="1. ≡" active={false} onClick={() => exec("insertOrderedList")}   title="번호 목록" />
-        <Sep />
-        <Btn label="→" active={false} onClick={() => exec("indent")}  title="들여쓰기" />
-        <Btn label="←" active={false} onClick={() => exec("outdent")} title="내어쓰기" />
-        <Sep />
-        <Btn label={<Icon name="link" size={13} />} active={false} onClick={() => { const url = prompt("링크 URL:"); if (url) exec("createLink", url); }} title="링크 삽입" />
-        <Btn label="⎯"  active={false} onClick={() => exec("insertHorizontalRule")} title="구분선" />
-      </div>
-
-      {/* 편집 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", background: "var(--content-bg)" }}>
-        <div
-          ref={editorRef}
-          contentEditable suppressContentEditableWarning
-          onInput={() => syncState(true)} onKeyDown={handleKeyDown} onMouseUp={() => syncState(false)} onKeyUp={() => syncState(false)}
-          data-placeholder="PRD를 작성하세요..."
-          className="prd-notion-editor"
-          style={{ minHeight: "100%", maxWidth: 720, margin: "0 auto", padding: "48px 56px 120px", outline: "none", fontSize: 14, lineHeight: 1.85, color: C.text, fontFamily: "'Pretendard','Noto Sans KR',sans-serif" }}
-        />
-      </div>
-
-      <style>{`
-        .prd-notion-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--text-3); pointer-events: none; display: block; }
-        .prd-notion-editor h1 { font-size: 28px; font-weight: 900; color: var(--text-1); margin: 0 0 16px; line-height: 1.25; }
-        .prd-notion-editor h2 { font-size: 20px; font-weight: 700; color: var(--text-1); margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.08); }
-        .prd-notion-editor h3 { font-size: 16px; font-weight: 600; color: var(--text-1); margin: 22px 0 6px; }
-        .prd-notion-editor p  { margin: 5px 0; }
-        .prd-notion-editor ul { padding-left: 24px; margin: 6px 0; }
-        .prd-notion-editor ol { padding-left: 26px; margin: 6px 0; }
-        .prd-notion-editor li { margin: 4px 0; line-height: 1.7; }
-        .prd-notion-editor blockquote { border-left: 3px solid var(--text-2); margin: 12px 0; padding: 10px 18px; background: color-mix(in srgb, var(--text-2) 7%, transparent); border-radius: 0 8px 8px 0; color: var(--text-2); font-style: italic; }
-        .prd-notion-editor pre { background: var(--db-bg-elevated); padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); overflow-x: auto; margin: 12px 0; font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 13px; color: var(--text-2); white-space: pre; }
-        .prd-notion-editor code { background: color-mix(in srgb, var(--text-2) 12%, transparent); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.88em; color: var(--text-2); }
-        .prd-notion-editor a { color: var(--text-2); text-decoration: underline; }
-        .prd-notion-editor hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 20px 0; }
-        .prd-notion-editor:focus { outline: none; }
-      `}</style>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════
    PRD PANEL
 ══════════════════════════════════════ */
 export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
-  const editorRef      = useRef(null);
-  const [text,          setText]         = useState("");
+  const [markdown,      setMarkdown]     = useState("");
+  const dirtyRef = useRef(false); // 저장하지 않은 편집이 있으면 문서를 다시 받아도 편집기를 덮어쓰지 않는다
   const [hasDraft,      setHasDraft]     = useState(false);
   const [saving,        setSaving]       = useState(false);
   const [saved,         setSaved]        = useState(false);
@@ -728,11 +534,21 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     return parseSectionsFromHtml(doc?.htmlContent || "");
   }, [isHtmlDoc, doc?.htmlContent]);
 
+  // 마크다운 편집에서 정해진 PRD 항목 밖에 쓴 섹션. 구조화 문서에는 없으니 따로 보여 준다.
+  const extras = useMemo(() => (
+    !isHtmlDoc && doc?.markdown ? extraSections(doc.markdown).map((section) => ({ key:`extra:${section.title}`, label:section.title, icon:"doc", markdown:section.markdown })) : []
+  ), [isHtmlDoc, doc?.markdown]);
+
   const availableSections = useMemo(() => {
     if (!doc) return [];
     if (isHtmlDoc) return htmlSections.length>0 ? htmlSections : [{ key:"__all__", label:"전체", icon:"doc" }];
-    return PRD_SECTIONS.filter(s=>sectionHasData(doc, s.key));
-  }, [doc, isHtmlDoc, htmlSections]);
+    return [...PRD_SECTIONS.filter(s=>sectionHasData(doc, s.key)), ...extras];
+  }, [doc, isHtmlDoc, htmlSections, extras]);
+
+  // 편집 중 틀 밖 섹션이 생기면 저장 전에 알려 준다.
+  const unknownSections = useMemo(() => (
+    editMode && doc && !isHtmlDoc ? markdownToPrd(markdown, doc).unknownSections : []
+  ), [editMode, doc, isHtmlDoc, markdown]);
 
   useEffect(() => {
     if (availableSections.length>0) {
@@ -742,34 +558,50 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableSections]);
 
-  /* contentEditable 에디터 초기화 */
+  /* 편집기 원문: 구조화 PRD는 정해진 틀의 마크다운으로, HTML 문서는 마크다운으로 옮겨 연다 */
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (dirtyRef.current) return;
     if (doc && typeof doc === "object") {
-      const html = doc.htmlContent || (doc.type === "html" ? "<p><br></p>" : prdJsonToHtml(doc));
-      editorRef.current.innerHTML = html;
-      setText(editorRef.current.innerText || "");
+      setMarkdown(isHtmlDoc ? (doc.markdown || htmlToMarkdown(doc.htmlContent)) : prdToMarkdownWithExtras(doc, doc.markdown));
       setHasDraft(true);
     } else {
-      editorRef.current.innerHTML = "<p><br></p>";
-      setText("");
+      setMarkdown("");
       setHasDraft(false);
     }
+  // 문서가 새로 들어올 때만 다시 채운다. 편집 중인 글을 덮어쓰지 않도록 의존성을 좁힌다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, doc?.projectOverview ?? null, doc?.type ?? null]);
+  }, [project?.id, doc]);
+
+  // 저장하지 않은 편집이 있으면 확인을 받고, 버리면 저장된 문서로 편집기를 되돌린다.
+  async function closeEditor() {
+    if (dirtyRef.current) {
+      const ok = await confirmDialog("저장하지 않은 변경이 있습니다. 버리고 닫을까요?", { confirmLabel: "버리고 닫기", danger: true });
+      if (!ok) return;
+      dirtyRef.current = false;
+      setMarkdown(doc && typeof doc === "object" ? (isHtmlDoc ? (doc.markdown || htmlToMarkdown(doc.htmlContent)) : prdToMarkdownWithExtras(doc, doc.markdown)) : "");
+      onDocumentEditingChange?.("PRD", false);
+    }
+    setEditMode(false);
+  }
+
+  function buildDocument(source) {
+    const htmlContent = renderMarkdown(source);
+    if (isHtmlDoc) return { ...(doc || {}), markdown: source, htmlContent };
+    return { ...markdownToPrd(source, doc || {}).doc, markdown: source, htmlContent };
+  }
 
   async function handleSave() {
     const artifactId = project?.artifactIds?.PRD;
     if (!artifactId) return;
-    const htmlContent = editorRef.current?.innerHTML;
-    if (!htmlContent || htmlContent === "<p><br></p>" || htmlContent === "<p></p>") return;
-    // 원본 구조화 필드 전체 보존, htmlContent만 추가/갱신
-    const nextDoc = { ...(doc || {}), htmlContent };
+    if (!markdown.trim()) { toast.error("빈 문서는 저장할 수 없습니다."); return; }
+    // 마크다운을 구조화 필드로 되돌리고, 틀에 없는 원본 필드는 그대로 둔다.
+    const nextDoc = buildDocument(markdown);
     const content = JSON.stringify(nextDoc);
     setSaving(true);
     try {
       if (await onProposeDocument?.({ sourceType: "PRD", document: nextDoc })) return;
       await updateArtifact(artifactId, content);
+      dirtyRef.current = false;
       onDocumentEditingChange?.("PRD", false);
       onDocumentChange?.(nextDoc);
       onDocumentSaved?.({ sourceType: "PRD", document: nextDoc });
@@ -800,7 +632,9 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
 
     const nextDoc = { ...doc };
     edits.forEach(e => { nextDoc[e.section] = e.after; });
-    nextDoc.htmlContent = prdJsonToHtml(nextDoc);
+    // 바뀐 구조에서 마크다운을 다시 만들어 편집기·저장본·화면이 같은 내용을 보게 한다.
+    nextDoc.markdown = prdToMarkdownWithExtras(nextDoc, doc.markdown);
+    nextDoc.htmlContent = renderMarkdown(nextDoc.markdown) || prdJsonToHtml(nextDoc);
 
     const review = await onProposeDocument?.({ sourceType: "PRD", document: nextDoc, deferReview: true });
     if (review) return typeof review === "object" ? review : { pendingApproval: true };
@@ -809,10 +643,8 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     // 예외를 그대로 올려보내 사이드바가 실패를 알리게 한다
     await updateArtifact(artifactId, JSON.stringify(nextDoc));
 
-    if (editorRef.current) {
-      editorRef.current.innerHTML = nextDoc.htmlContent;
-      setText(editorRef.current.innerText || "");
-    }
+    dirtyRef.current = false;
+    setMarkdown(nextDoc.markdown);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
 
@@ -822,8 +654,8 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
   }
 
   function handleExportPdf() {
-    const content = editorRef.current?.innerHTML;
-    if (!content || content === "<p><br></p>" || content === "<p></p>") return;
+    const content = renderMarkdown(markdown);
+    if (!content) return;
     const projectName = project?.name || "PRD";
     const now = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
     const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${projectName} — PRD</title>
@@ -852,7 +684,7 @@ ${content}</body></html>`;
   );
 
   return (
-    <div style={{ flex:1, display:"flex", height:"100vh", overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
+    <div style={{ flex:1, display:"flex", height:"100%", minHeight:0, overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
 
       {/* ── 뷰 모드 ── */}
       {!editMode && (
@@ -875,7 +707,7 @@ ${content}</body></html>`;
                 <EmptyState icon="doc" title="아직 PRD가 없습니다" description="AI 기획 생성이 끝나면 여기에 PRD가 만들어집니다. 생성이 끝났는데도 비어 있다면 생성 과정에서 실패한 것입니다." />
               ) : (
                 <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
-                  <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} />
+                  <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} extras={extras} />
                 </div>
               )}
             </div>
@@ -886,7 +718,7 @@ ${content}</body></html>`;
       {/* ── 편집 모드: 항상 마운트, 뷰 모드에서 숨김 ── */}
       <div style={{ display:editMode?"flex":"none", flex:1, flexDirection:"column", overflow:"hidden" }}>
         <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface }}>
-          <button onClick={()=>setEditMode(false)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(0,0,0,0.04)", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer" }}>
+          <button onClick={closeEditor} title="편집 닫기" aria-label="편집 닫기" style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(0,0,0,0.04)", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           {project && <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>}
@@ -899,17 +731,24 @@ ${content}</body></html>`;
           </ActionButton>
           <PdfBtn disabled={!hasDraft} />
         </div>
-        <NotionEditor editorRef={editorRef} onTextChange={nextText => {
-          setText(nextText);
-          onDocumentEditingChange?.("PRD", true);
-        }} />
+        <MarkdownEditor
+          value={markdown}
+          ariaLabel="PRD 본문"
+          placeholder={"## 개요\n\n서비스를 한두 문장으로 설명하세요.\n\n## 목표\n\n- 첫 번째 목표"}
+          notice={unknownSections.length > 0 ? `'${unknownSections.join("', '")}' 섹션은 정해진 PRD 항목이 아니어서 AI와 정합성 검사에는 쓰이지 않고, 문서 화면에 추가 섹션으로만 보입니다.` : null}
+          onChange={(next) => {
+            dirtyRef.current = true;
+            setMarkdown(next);
+            onDocumentEditingChange?.("PRD", true);
+          }}
+        />
       </div>
 
       {/* html 타입 문서는 섹션 키가 없어 구조화 편집이 불가능하다 — 상담 모드로만 붙인다 */}
       <AiChatDock
         contextType="prd"
         project={project}
-        currentContent={text}
+        currentContent={markdown}
         document={!readOnly && doc && !isHtmlDoc ? doc : null}
         onApplyEdits={!readOnly && doc && !isHtmlDoc ? handleApplyEdits : undefined}
       />
