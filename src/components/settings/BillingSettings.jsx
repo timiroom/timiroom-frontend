@@ -7,8 +7,11 @@ import { useUsage } from "@/context/UsageContext";
 import { confirmDialog } from "@/lib/feedback";
 import {
   PAYMENT_STATUS, addPaymentMethod, cancelSubscription, deletePaymentMethod, fetchBillingConfig, fetchPaymentMethods,
-  fetchPayments, fetchSubscription, issueBillingKey, resumeSubscription, setDefaultPaymentMethod, subscribePro,
+  fetchPayments, fetchRefundOptions, fetchSubscription, issueBillingKey, refundSubscription, resumeSubscription,
+  setDefaultPaymentMethod, subscribePro,
 } from "@/lib/billingApi";
+import { BusinessInfo } from "@/components/legal/BusinessInfo";
+import { PaymentConsent, TestModeNotice } from "./PaymentConsent";
 import { fetchPlans, formatKrw } from "@/lib/usageApi";
 import { ActionButton, Badge, EmptyState, Icon, LoadingState, SettingsHeader, SettingsSection } from "@/components/ui";
 
@@ -29,13 +32,17 @@ export function BillingSettings() {
   const [methods, setMethods] = useState(null);
   const [payments, setPayments] = useState(null);
   const [busy, setBusy] = useState("");
+  const [refunds, setRefunds] = useState(null);
+  const [agreed, setAgreed] = useState(false);
   const handledRedirect = useRef(false);
 
   const load = useCallback(async () => {
     try {
-      const [nextConfig, nextSubscription, nextPlans, nextMethods, nextPayments] = await Promise.all([
+      const [nextConfig, nextSubscription, nextPlans, nextMethods, nextPayments, nextRefunds] = await Promise.all([
         fetchBillingConfig(), fetchSubscription(), fetchPlans(), fetchPaymentMethods(), fetchPayments(0),
+        fetchRefundOptions().catch(() => null),
       ]);
+      setRefunds(nextRefunds);
       setConfig(nextConfig);
       setSubscription(nextSubscription);
       setPlans(nextPlans?.plans ?? []);
@@ -118,6 +125,12 @@ export function BillingSettings() {
     }
   }
 
+  async function handleRefund() {
+    const ok = await confirmDialog(`${formatKrw(refunds.subscription.amountKrw)}을 환불하고 바로 무료 요금제로 바꿀까요?`,
+      { confirmLabel: "환불", danger: true });
+    if (ok) run("refund", refundSubscription, "환불을 요청했습니다. 카드사에 따라 3~7영업일 걸릴 수 있습니다.");
+  }
+
   async function handleCancel() {
     const ok = await confirmDialog(`${dateLabel(subscription.periodEnd)}까지 프로를 쓰고 무료로 바뀝니다. 해지할까요?`, { confirmLabel: "해지", danger: true });
     if (ok) run("cancel", cancelSubscription, "해지를 예약했습니다.");
@@ -143,6 +156,7 @@ export function BillingSettings() {
   return (
     <>
       <SettingsHeader eyebrow="내 계정" title="요금제·결제" />
+      {config?.testMode && <TestModeNotice />}
 
       <SettingsSection title="요금제">
         <div className="bill-plan">
@@ -157,7 +171,7 @@ export function BillingSettings() {
             <div className="bill-plan__meta">{pastDue ? "결제에 실패했습니다. 결제 수단을 확인해 주세요." : planMeta}</div>
           </div>
           <div className="bill-plan__actions">
-            {!isPro && <ActionButton variant="primary" disabled={!ready || Boolean(busy)} onClick={handleUpgrade}>
+            {!isPro && <ActionButton variant="primary" disabled={!ready || !agreed || Boolean(busy)} onClick={handleUpgrade}>
               {busy === "subscribe" ? "결제 중…" : ready ? "프로로 업그레이드" : "준비 중"}
             </ActionButton>}
             {isPro && !subscription.grantedByAdmin && (subscription.cancelAtPeriodEnd
@@ -169,6 +183,18 @@ export function BillingSettings() {
           <div className="bill-upsell">
             <strong>프로 · {formatKrw(pro.priceKrw)}/월</strong>
             <span>무료의 {pro.usageMultiplier}배 사용량</span>
+          </div>
+        )}
+        {!isPro && ready && (
+          <PaymentConsent kind="subscription" priceLabel={formatKrw(config.priceKrw)} checked={agreed} onChange={setAgreed}
+            refundDays={config.subscriptionRefundDays} />
+        )}
+        {isPro && refunds?.subscription?.eligible && (
+          <div className="bill-refund">
+            <span>결제 후 {refunds.subscriptionRefundDays}일 안이고 아직 AI 기능을 쓰지 않아 전액 환불받을 수 있습니다.</span>
+            <ActionButton size="sm" variant="ghost" disabled={Boolean(busy)} onClick={handleRefund}>
+              {busy === "refund" ? "환불 중…" : `${formatKrw(refunds.subscription.amountKrw)} 환불`}
+            </ActionButton>
           </div>
         )}
       </SettingsSection>
@@ -209,15 +235,20 @@ export function BillingSettings() {
                 <span className="pay-row__title">{p.kind === "CREDIT" ? "추가 사용량" : "프로 요금제"}</span>
                 <span className="pay-row__meta">{dateLabel(p.paidAt || p.createdAt)}{p.cardSummary ? ` · ${p.cardSummary}` : ""}</span>
               </div>
-              <span className="pay-row__amount">{formatKrw(p.amountKrw)}</span>
+              <span className="pay-row__amount">
+                {formatKrw(p.amountKrw)}
+                {p.refundedKrw > 0 && <small className="pay-row__refund">{formatKrw(p.refundedKrw)} 환불</small>}
+              </span>
               <Badge tone={status.tone}>{status.label}</Badge>
-              {p.status === "PAID"
+              {["PAID", "PARTIAL_CANCELLED", "CANCELLED"].includes(p.status) && p.paidAt
                 ? <ActionButton size="sm" variant="ghost" href={`/receipt/${p.id}`} target="_blank" rel="noopener">영수증</ActionButton>
                 : <span className="pay-row__spacer" />}
             </div>
           );
         })}
       </SettingsSection>
+
+      <BusinessInfo compact />
     </>
   );
 }

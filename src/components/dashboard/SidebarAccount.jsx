@@ -81,6 +81,11 @@ export function SidebarAccount() {
           <Link role="menuitem" href="/settings/billing" className="ctx-account__item" onClick={() => setOpen(false)}>
             <Icon name="card" size={14} /> {usage?.plan === "PRO" ? "요금제·결제" : "프로로 업그레이드"}
           </Link>
+          {user?.admin && (
+            <Link role="menuitem" href="/admin" className="ctx-account__item" onClick={() => setOpen(false)}>
+              <Icon name="meter" size={14} /> 관리자
+            </Link>
+          )}
           <div className="ctx-account__divider" />
           <button role="menuitem" type="button" className="ctx-account__item" onClick={handleLogout}>
             <Icon name="key" size={14} /> 로그아웃

@@ -67,8 +67,9 @@ export function Footer() {
         <div className="al-footer-btm">
           <div>© 2026 Align-it. 2026 Timiroom 프로젝트. All rights reserved.</div>
           <div className="al-footer-btm-r">
-            <a href="#">개인정보처리방침</a>
-            <a href="#">이용약관</a>
+            <a href="/privacy"><strong>개인정보처리방침</strong></a>
+            <a href="/terms">이용약관</a>
+            <a href="/refund-policy">환불 정책</a>
           </div>
         </div>
       </div>

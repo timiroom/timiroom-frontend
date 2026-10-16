@@ -785,3 +785,82 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .credit-stats { grid-template-columns: 1fr; }
   .credit-stat + .credit-stat { border-left: none; border-top: 1px solid var(--border); }
 }
+
+/* 결제 동의·테스트 결제 안내·환불 */
+.pay-consent { margin: 12px 20px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2, transparent); }
+.credit-charge .pay-consent { margin: 0; }
+.pay-consent__terms { margin: 0 0 10px; padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: var(--text-2); }
+.pay-consent__check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-1); cursor: pointer; }
+.pay-consent__check input { margin-top: 3px; }
+.pay-consent__check a { color: var(--text-1); text-decoration: underline; }
+.pay-testmode { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; border: 1px dashed var(--border-2); font-size: 13px; color: var(--text-2); }
+.bill-refund { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 20px 16px; padding: 10px 14px; border-radius: 10px; background: var(--bg-2, transparent); border: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
+.pay-row__refund { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-3); }
+
+/* 사업자 정보 */
+.biz-info { padding: 20px 0 8px; font-size: 12px; line-height: 1.7; color: var(--text-3); }
+.biz-info--compact { padding: 24px 4px 8px; }
+.biz-info__rows { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0; }
+.biz-info__rows div { display: flex; gap: 6px; }
+.biz-info__rows dt { color: var(--text-3); }
+.biz-info__rows dd { margin: 0; color: var(--text-2); }
+.biz-info__pending, .biz-info__note { margin: 0; }
+.biz-info__links { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 0; }
+.biz-info__links a { color: var(--text-2); text-decoration: none; }
+.biz-info__links a:hover { text-decoration: underline; }
+
+/* 약관·방침 */
+.legal { min-height: 100vh; background: var(--bg); color: var(--text-1); }
+.legal__top { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.legal__brand { font-weight: 800; font-size: 16px; color: var(--text-1); text-decoration: none; }
+.legal__nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.legal__navlink { padding: 6px 10px; border-radius: 8px; font-size: 13px; color: var(--text-2); text-decoration: none; }
+.legal__navlink:hover { background: var(--bg-hover, rgba(0,0,0,.04)); }
+.legal__navlink.is-active { color: var(--text-1); font-weight: 600; background: var(--bg-hover, rgba(0,0,0,.05)); }
+.legal__body { max-width: 760px; margin: 0 auto; padding: 40px 20px 24px; }
+.legal__title { margin: 0; font-size: 28px; font-weight: 800; }
+.legal__date { margin: 6px 0 28px; font-size: 13px; color: var(--text-3); }
+.legal__content { font-size: 14.5px; line-height: 1.8; color: var(--text-2); }
+.legal__content h2 { margin: 32px 0 8px; font-size: 16px; color: var(--text-1); }
+.legal__content p { margin: 0 0 10px; }
+.legal__content ol, .legal__content ul { margin: 0 0 10px; padding-left: 20px; }
+.legal__content a { color: var(--text-1); text-decoration: underline; }
+.legal__table { width: 100%; margin: 8px 0 14px; border-collapse: collapse; font-size: 13.5px; }
+.legal__table th, .legal__table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+.legal__table th { background: var(--bg-2, rgba(0,0,0,.03)); color: var(--text-1); font-weight: 600; }
+.legal__foot { max-width: 760px; margin: 0 auto; padding: 0 20px 40px; border-top: 1px solid var(--border); }
+@media (max-width: 640px) {
+  .legal__top { padding: 12px 16px; }
+  .legal__title { font-size: 22px; }
+  .legal__table { display: block; overflow-x: auto; }
+}
+
+/* 관리자 */
+.admin { max-width: 1120px; margin: 0 auto; padding: 28px 20px 60px; background: var(--bg); min-height: 100vh; color: var(--text-1); }
+.admin__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.admin__head h1 { margin: 4px 0 0; font-size: 24px; font-weight: 800; }
+.admin__crumb { font-size: 13px; color: var(--text-3); text-decoration: none; }
+.admin__back { text-align: center; }
+.admin__tabs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; }
+.admin__tab { padding: 6px 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; color: var(--text-2); cursor: pointer; }
+.admin__tab.is-active { background: var(--text-1); color: var(--bg); font-weight: 600; }
+.admin__stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.admin__stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; }
+.admin__stat-label { font-size: 12px; color: var(--text-3); }
+.admin__stat-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.admin__note { margin: 12px 2px 0; font-size: 12.5px; color: var(--text-3); }
+.admin__h2 { margin: 28px 0 10px; font-size: 15px; }
+.admin__toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+.admin__select { max-width: 180px; height: 34px; }
+.admin__table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin__table th, .admin__table td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+.admin__table th { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.admin__table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.admin__table td .ui-badge + .ui-badge { margin-left: 4px; }
+.admin__who { display: flex; flex-direction: column; }
+.admin__who span, .admin__sub { display: block; font-size: 11.5px; color: var(--text-3); }
+.admin__actions { text-align: right; white-space: nowrap; }
+.admin__pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 13px; color: var(--text-2); }
+@media (max-width: 760px) {
+  .admin__table { display: block; overflow-x: auto; white-space: nowrap; }
+}

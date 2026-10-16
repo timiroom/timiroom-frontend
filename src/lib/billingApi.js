@@ -27,13 +27,17 @@ export const buyCredit = (amountKrw, source = {}) => request("/api/v1/billing/cr
 export const cancelSubscription = () => request("/api/v1/billing/cancel", { method: "POST", fallback: "해지하지 못했습니다" });
 export const resumeSubscription = () => request("/api/v1/billing/resume", { method: "POST", fallback: "해지를 취소하지 못했습니다" });
 export const fetchPayments = (page = 0) => request(`/api/v1/billing/payments?page=${page}&size=20`, { fallback: "결제 내역을 불러오지 못했습니다" });
+export const fetchRefundOptions = () => request("/api/v1/billing/refunds", { fallback: "환불 정보를 불러오지 못했습니다" });
+export const refundSubscription = () => request("/api/v1/billing/refunds/subscription", { method: "POST", fallback: "환불하지 못했습니다" });
+export const refundCredit = () => request("/api/v1/billing/refunds/credit", { method: "POST", fallback: "환불하지 못했습니다" });
 export const fetchReceipt = (id) => request(`/api/v1/billing/payments/${encodeURIComponent(id)}/receipt`, { fallback: "영수증을 불러오지 못했습니다" });
 
 export const PAYMENT_STATUS = {
   PAID: { label: "결제 완료", tone: "success" },
   PENDING: { label: "처리 중", tone: "info" },
   FAILED: { label: "실패", tone: "danger" },
-  CANCELLED: { label: "취소", tone: "neutral" },
+  CANCELLED: { label: "환불", tone: "neutral" },
+  PARTIAL_CANCELLED: { label: "부분 환불", tone: "warning" },
 };
 
 /**
