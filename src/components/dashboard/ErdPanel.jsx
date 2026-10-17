@@ -861,7 +861,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
             }}>{warnings.join(", ")}</span>
           )}
 
-          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+          <div className="erd-table-badges" style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {pkCols.length > 0 && (
               <span style={{
                 fontSize: 10, padding: "2px 7px", borderRadius: 4,
@@ -878,7 +878,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
             )}
             <span style={{
               fontSize: 10, color: C.muted, padding: "2px 8px", borderRadius: 10,
-              background: "rgba(0,0,0,0.04)", fontWeight: 500,
+              background: "rgba(0,0,0,0.04)", fontWeight: 500, whiteSpace: "nowrap",
             }}>{table.columns?.length ?? 0}컬럼</span>
           </div>
 
@@ -1054,6 +1054,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
                 key={i}
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
+                className="erd-rel-row"
                 style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "8px 6px", borderRadius: 6,
@@ -1087,7 +1088,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
                   <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, flex: 1 }}>{rel}</span>
                 )}
                 {canEdit && (
-                  <div style={{
+                  <div className="erd-rel-actions" style={{
                     display: "flex", gap: 4, flexShrink: 0,
                     opacity: isHover ? 1 : 0,
                     transition: "opacity 0.15s",

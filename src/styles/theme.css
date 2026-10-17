@@ -1013,3 +1013,34 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .ctx-panel.is-collapsed { width: 0; box-shadow: none; }
   .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .28); }
 }
+
+/* 마우스가 없는 기기(휴대폰·태블릿): 올려야 보이던 관계 편집·삭제 버튼을 늘 보이게 한다. */
+@media (hover: none) {
+  .erd-rel-actions { opacity: 1 !important; pointer-events: auto !important; }
+}
+@media (max-width: 767px) {
+  .erd-rel-row { flex-wrap: wrap; }
+  .erd-rel-actions { margin-left: auto; }
+  .erd-table-badges > span:not(:last-child) { display: none; }
+  /* 설정·관리자 섹션 머리: 제목 옆 필터가 넓으면 아래 줄로 내려 제목이 세로로 쪼개지지 않게 한다. */
+  .ui-set-section__head { flex-wrap: wrap; align-items: flex-start; }
+  .ui-set-section__title { white-space: nowrap; }
+  .ui-set-section__actions { flex-shrink: 1; min-width: 0; max-width: 100%; }
+  .ui-set-section__actions .ui-search { min-width: 0; }
+}
+@media (max-width: 767px) { .adm-filters .ui-search { flex: 1 1 160px; } }
+/* 휴대폰: API 엔드포인트 줄에서 경로가 보이도록 요약·인증 표시는 숨기고 버튼은 아랫줄로 내린다. */
+@media (max-width: 767px) {
+  .api-ep-head { flex-wrap: wrap; }
+  .api-ep-head > button { flex: 1 1 100% !important; padding: 10px 12px !important; gap: 8px !important; }
+  .api-ep-summary, .api-ep-auth { display: none !important; }
+  .api-ep-tools { padding: 0 0 10px 12px !important; }
+  .api-ep-edit { padding: 0 12px 10px 0 !important; margin-left: auto; }
+  .api-ep-detail { grid-template-columns: 1fr !important; }
+}
+/* 휴대폰: 지식 그래프는 그림을 위에 크게, 상세·현황 패널은 그 아래로 쌓는다. */
+@media (max-width: 767px) {
+  .kg-body { flex-direction: column !important; overflow-y: auto !important; padding: 12px !important; gap: 12px !important; }
+  .kg-main { flex: 0 0 auto !important; height: 60vh; min-height: 320px; }
+  .kg-side { width: 100% !important; overflow: visible !important; }
+}

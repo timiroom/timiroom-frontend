@@ -335,9 +335,9 @@ export function KnowledgeGraph({ project }) {
             ))}
       </PanelToolbar>
 
-      <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: "var(--content-bg)", boxSizing: "border-box", overflow: "hidden" }}>
+      <div className="kg-body" style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: "var(--content-bg)", boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── 왼쪽: 그래프 ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+      <div className="kg-main" style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <div className="db-card" data-testid="kg-canvas" style={{
           flex: 1, position: "relative", overflow: "hidden", padding: 0, minHeight: 0,
           // 시안의 옅은 격자 — 빈 바탕이 평평한 종이처럼 죽지 않게 한다
@@ -367,7 +367,7 @@ export function KnowledgeGraph({ project }) {
       </div>
 
       {/* ── 오른쪽 패널: 시안 순서 그대로 (상세 → 현황 → 빠른 작업), 표시 설정을 덧붙인다 ── */}
-      <div data-testid="kg-side" style={{ width: 272, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
+      <div className="kg-side" data-testid="kg-side" style={{ width: 272, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
         {selected ? (
           <DetailPanel selection={selected} onClose={() => setSelected(null)} />
         ) : (

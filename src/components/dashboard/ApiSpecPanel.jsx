@@ -886,7 +886,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
       marginBottom: 6, overflow: "hidden", transition: "all 0.15s",
     }}>
       {/* 헤더 행 */}
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div className="api-ep-head" style={{ display: "flex", alignItems: "center" }}>
         <button
           onClick={() => setOpen(v => !v)}
           style={{
@@ -910,13 +910,13 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
             <PathDisplay path={endpoint.path} />
           </code>
 
-          <span style={{
+          <span className="api-ep-summary" style={{
             fontSize: 12, color: C.muted, flexShrink: 0,
             maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{endpoint.summary}</span>
 
           {endpoint.auth && (
-            <span style={{
+            <span className="api-ep-auth" style={{
               fontSize: 10, padding: "2px 7px", borderRadius: 4,
               background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)",
               color: "#fbbf24", flexShrink: 0,
@@ -931,14 +931,14 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
         </button>
 
         {/* 테스트 및 코드 생성 — 읽기 전용이어도 사용 가능 */}
-        <div style={{ display: "flex", gap: 4, paddingLeft: 12, flexShrink: 0 }}>
+        <div className="api-ep-tools" style={{ display: "flex", gap: 4, paddingLeft: 12, flexShrink: 0 }}>
           <ActionButton size="sm" onClick={() => onTest(endpoint)} title="API 요청 테스트"><Icon name="play" size={11} /> 테스트</ActionButton>
           <ActionButton size="sm" onClick={() => onShowCode(endpoint.specIdx)} title="클라이언트 코드 생성"><Icon name="code" size={11} /> 코드</ActionButton>
         </div>
 
         {/* 편집/삭제 버튼 */}
         {canEdit && (
-          <div style={{ display: "flex", gap: 4, padding: "0 12px", flexShrink: 0 }}>
+          <div className="api-ep-edit" style={{ display: "flex", gap: 4, padding: "0 12px", flexShrink: 0 }}>
             <ActionButton size="sm" iconOnly onClick={() => onEdit(endpoint.specIdx)} title="편집" aria-label="편집"><Icon name="pencil" size={12} /></ActionButton>
             <ActionButton size="sm" iconOnly variant="danger" onClick={() => onDelete(endpoint.specIdx)} title="삭제" aria-label="삭제"><Icon name="trash" size={12} /></ActionButton>
           </div>
@@ -953,7 +953,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
               {endpoint.description}
             </p>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
+          <div className="api-ep-detail" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
             <div>
               {endpoint.parameters.length > 0 && (
                 <Section title="Parameters">

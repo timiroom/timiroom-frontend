@@ -39,7 +39,7 @@ export default function SpecReviewPage() {
   }, [isLoading, user, router]);
   if (process.env.NEXT_PUBLIC_INTEGRATION_ENABLED !== "true") return <main style={{ minHeight: "100vh", background: "var(--bg)" }}><p style={note}>연결 기능을 사용할 수 없습니다.</p></main>;
   return <main style={{ minHeight: "100vh", background: "var(--bg)" }}>
-    {error && <p role="alert" style={{ ...note, color: "#b4413f" }}>{error}</p>}
+    {error && <p role="alert" style={{ ...note, color: "#b4413f" }}>{error} <a href="/dashboard" style={{ color: "var(--text-1)", fontWeight: 600, textDecoration: "underline" }}>대시보드로 가기</a></p>}
     {target && <SpecChangeReview {...target} canApprove={role === "PM"}
       onProposalChanged={onProposalChanged}
       allowedTargets={role === "BACKEND" ? ["API_SPEC", "DB_SCHEMA"] : role === "FRONTEND" ? ["API_SPEC", "FEATURE_LIST"] : role === "DESIGNER" ? ["PRD", "FEATURE_LIST"] : role === "INFRA" ? ["DB_SCHEMA"] : []}
