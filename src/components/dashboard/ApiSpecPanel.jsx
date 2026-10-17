@@ -103,12 +103,12 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
   const inp = {
     width: "100%", padding: "8px 12px", borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)",
-    color: "#e2e8f0", fontSize: 13, outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", background: "var(--surface)",
+    color: "var(--text-1)", fontSize: 13, outline: "none", boxSizing: "border-box",
     fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
   };
   const lbl = {
-    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+    fontSize: 11, fontWeight: 700, color: "var(--text-2)",
     letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6, display: "block",
   };
   const mc = METHOD_COLOR[method] || METHOD_COLOR.GET;
@@ -117,23 +117,23 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
     <>
       <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
       <div style={{
-        position: "fixed", top: 0, right: 0, width: 560, height: "100vh",
-        background: "#16181c", zIndex: 201,
+        position: "fixed", top: 0, right: 0, width: 560, maxWidth: "100vw", height: "100vh",
+        background: "var(--bg)", zIndex: 201,
         display: "flex", flexDirection: "column",
-        borderLeft: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "-12px 0 40px rgba(0,0,0,0.5)",
+        borderLeft: "1px solid var(--border)",
+        boxShadow: "-12px 0 40px rgba(0,0,0,0.14)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
         {/* 헤더 */}
         <div style={{
-          padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "#e2e8f0", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
             {isNew ? "API 엔드포인트 추가" : "API 엔드포인트 수정"}
           </span>
           <button onClick={onCancel} style={{
-            background: "none", border: "none", color: "#6b7280",
+            background: "none", border: "none", color: "var(--text-3)",
             cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "2px 6px",
           }}>×</button>
         </div>
@@ -163,11 +163,11 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 placeholder="/api/v1/resource/{id}"
                 style={{
                   ...inp, flex: 1, fontFamily: "'JetBrains Mono','Fira Code',monospace",
-                  borderColor: errors.path ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)",
+                  borderColor: errors.path ? "rgba(248,113,113,0.5)" : "var(--border)",
                 }}
               />
             </div>
-            {errors.path && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.path}</div>}
+            {errors.path && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.path}</div>}
           </div>
 
           {/* 설명 */}
@@ -187,9 +187,9 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
             <input
               type="checkbox" id="drawer-auth"
               checked={auth} onChange={e => setAuth(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#fbbf24" }}
+              style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#b45309" }}
             />
-            <label htmlFor="drawer-auth" style={{ fontSize: 13, color: "#e2e8f0", cursor: "pointer" }}>
+            <label htmlFor="drawer-auth" style={{ fontSize: 13, color: "var(--text-1)", cursor: "pointer" }}>
               JWT 인증 필요
             </label>
           </div>
@@ -203,12 +203,12 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 style={{
                   fontSize: 11, padding: "3px 10px", borderRadius: 5,
                   background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.3)",
-                  color: "#60a5fa", cursor: "pointer",
+                  color: "#2563eb", cursor: "pointer",
                 }}
               >+ 추가</button>
             </div>
             {params.length === 0 && (
-              <div style={{ fontSize: 12, color: "#4b5563", padding: "6px 0" }}>파라미터 없음</div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", padding: "6px 0" }}>파라미터 없음</div>
             )}
             {/* 헤더 라벨 */}
             {params.length > 0 && (
@@ -217,7 +217,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 gap: 6, marginBottom: 4, padding: "0 2px",
               }}>
                 {["위치","이름","타입","설명","*",""].map((h, i) => (
-                  <span key={i} style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</span>
+                  <span key={i} style={{ fontSize: 10, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</span>
                 ))}
               </div>
             )}
@@ -256,7 +256,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 />
                 <button
                   onClick={() => removeParam(i)}
-                  style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
+                  style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
                 >×</button>
               </div>
             ))}
@@ -273,10 +273,10 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               style={{
                 ...inp, resize: "vertical", fontFamily: "'JetBrains Mono','Fira Code',monospace",
                 fontSize: 12, lineHeight: 1.6,
-                borderColor: errors.body ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)",
+                borderColor: errors.body ? "rgba(248,113,113,0.5)" : "var(--border)",
               }}
             />
-            {errors.body && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.body}</div>}
+            {errors.body && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.body}</div>}
           </div>
 
           {/* 성공 응답 */}
@@ -290,10 +290,10 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               style={{
                 ...inp, resize: "vertical", fontFamily: "'JetBrains Mono','Fira Code',monospace",
                 fontSize: 12, lineHeight: 1.6,
-                borderColor: errors.success ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)",
+                borderColor: errors.success ? "rgba(248,113,113,0.5)" : "var(--border)",
               }}
             />
-            {errors.success && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.success}</div>}
+            {errors.success && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.success}</div>}
           </div>
 
           {/* 에러 설명 */}
@@ -310,15 +310,15 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
         {/* 푸터 */}
         <div style={{
-          padding: "14px 24px", borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "14px 24px", borderTop: "1px solid var(--border)",
           display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0,
         }}>
           <button
             onClick={onCancel}
             style={{
               padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-              color: "#9ca3af", cursor: "pointer",
+              background: "var(--surface)", border: "1px solid var(--border)",
+              color: "var(--text-2)", cursor: "pointer",
             }}
           >취소</button>
           <button
@@ -326,7 +326,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
             style={{
               padding: "7px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)",
-              color: "#60a5fa", cursor: saving ? "not-allowed" : "pointer",
+              color: "#2563eb", cursor: saving ? "not-allowed" : "pointer",
               opacity: saving ? 0.7 : 1,
             }}
           >

@@ -97,7 +97,7 @@ function CustomTypeSelect({ value, onChange }) {
   const showCustom = filter.trim() &&
     !SQL_TYPES.some(t => t.toLowerCase() === filter.trim().toLowerCase());
 
-  const color = value ? typeColor(value) : "#6b7280";
+  const color = value ? typeColor(value) : "var(--text-3)";
 
   return (
     <>
@@ -106,8 +106,8 @@ function CustomTypeSelect({ value, onChange }) {
         onClick={handleToggle}
         style={{
           padding: "7px 10px", borderRadius: 7, cursor: "pointer",
-          border: `1px solid ${open ? "rgba(96,165,250,0.45)" : "rgba(255,255,255,0.1)"}`,
-          background: open ? "rgba(96,165,250,0.06)" : "rgba(255,255,255,0.05)",
+          border: `1px solid ${open ? "rgba(96,165,250,0.45)" : "var(--border)"}`,
+          background: open ? "rgba(96,165,250,0.06)" : "var(--surface)",
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
           userSelect: "none", transition: "border-color 0.15s",
         }}
@@ -117,9 +117,9 @@ function CustomTypeSelect({ value, onChange }) {
           fontFamily: "'JetBrains Mono','Fira Code',monospace",
           flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {value || <span style={{ color: "#4b5563" }}>타입 선택...</span>}
+          {value || <span style={{ color: "var(--text-3)" }}>타입 선택...</span>}
         </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5"
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2.5"
           style={{ flexShrink: 0, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>
           <polyline points="6 9 12 15 18 9"/>
         </svg>
@@ -130,15 +130,15 @@ function CustomTypeSelect({ value, onChange }) {
           ref={dropdownRef}
           style={{
             position: "fixed", top: pos.top, left: pos.left, width: pos.width,
-            zIndex: 9999, background: "#1e2027",
-            border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
-            boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
+            zIndex: 9999, background: "var(--surface)",
+            border: "1px solid var(--border)", borderRadius: 10,
+            boxShadow: "0 10px 32px rgba(0,0,0,0.14)",
             maxHeight: 300, display: "flex", flexDirection: "column",
             overflow: "hidden",
           }}
         >
           {/* 검색 */}
-          <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
             <input
               autoFocus
               value={filter}
@@ -150,8 +150,8 @@ function CustomTypeSelect({ value, onChange }) {
               placeholder="검색 또는 직접 입력..."
               style={{
                 width: "100%", padding: "5px 9px", borderRadius: 6, boxSizing: "border-box",
-                border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)",
-                color: "#e2e8f0", fontSize: 12, outline: "none",
+                border: "1px solid var(--border)", background: "var(--surface)",
+                color: "var(--text-1)", fontSize: 12, outline: "none",
                 fontFamily: "'JetBrains Mono','Fira Code',monospace",
               }}
             />
@@ -163,7 +163,7 @@ function CustomTypeSelect({ value, onChange }) {
               <div key={group.label}>
                 <div style={{
                   padding: "6px 12px 2px",
-                  fontSize: 10, fontWeight: 700, color: "#4b5563",
+                  fontSize: 10, fontWeight: 700, color: "var(--text-3)",
                   letterSpacing: "0.07em", textTransform: "uppercase",
                 }}>{group.label}</div>
                 {group.types.map(type => {
@@ -180,11 +180,11 @@ function CustomTypeSelect({ value, onChange }) {
                         background: isSelected ? "rgba(96,165,250,0.12)" : "transparent",
                         display: "flex", alignItems: "center", gap: 8,
                       }}
-                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "var(--surface)"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = isSelected ? "rgba(96,165,250,0.12)" : "transparent"; }}
                     >
                       {isSelected && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="3">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3">
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>
                       )}
@@ -202,11 +202,11 @@ function CustomTypeSelect({ value, onChange }) {
                 onClick={() => select(filter.trim().toUpperCase())}
                 style={{
                   padding: "8px 14px", cursor: "pointer",
-                  fontSize: 12, color: "#9ca3af",
-                  borderTop: "1px solid rgba(255,255,255,0.06)",
+                  fontSize: 12, color: "var(--text-2)",
+                  borderTop: "1px solid var(--border)",
                   display: "flex", alignItems: "center", gap: 6,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -441,8 +441,8 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
 
   const selStyle = {
     width: "100%", padding: "9px 12px", borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)",
-    color: "#e2e8f0", fontSize: 13, outline: "none", cursor: "pointer",
+    border: "1px solid var(--border)", background: "var(--surface)",
+    color: "var(--text-1)", fontSize: 13, outline: "none", cursor: "pointer",
     fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     appearance: "none",
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
@@ -451,7 +451,7 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
     paddingRight: 32,
   };
   const lbl = {
-    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+    fontSize: 11, fontWeight: 700, color: "var(--text-2)",
     letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6, display: "block",
   };
 
@@ -461,21 +461,21 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
     <>
       <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
       <div style={{
-        position: "fixed", top: 0, right: 0, width: 480, height: "100vh",
-        background: "#16181c", zIndex: 201, display: "flex", flexDirection: "column",
-        borderLeft: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "-12px 0 40px rgba(0,0,0,0.5)",
+        position: "fixed", top: 0, right: 0, width: 480, maxWidth: "100vw", height: "100vh",
+        background: "var(--bg)", zIndex: 201, display: "flex", flexDirection: "column",
+        borderLeft: "1px solid var(--border)",
+        boxShadow: "-12px 0 40px rgba(0,0,0,0.14)",
         fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
       }}>
         {/* 헤더 */}
         <div style={{
-          padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "#e2e8f0", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
             {isNew ? "관계 추가" : "관계 수정"}
           </span>
-          <button onClick={onCancel} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 20 }}>×</button>
+          <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 20 }}>×</button>
         </div>
 
         {/* 폼 */}
@@ -488,17 +488,17 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
               background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 15%, transparent)",
               display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
             }}>
-              <code style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", fontFamily: "monospace",
-                background: "rgba(255,255,255,0.06)", padding: "3px 9px", borderRadius: 5 }}>{from}</code>
+              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "monospace",
+                background: "var(--border)", padding: "3px 9px", borderRadius: 5 }}>{from}</code>
               {(() => { const { bg, bd, c } = cardColor(card); return (
                 <span style={{ fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 5,
                   background: bg, border: `1px solid ${bd}`, color: c }}>{card}</span>
               );})()}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2">
                 <path d="M5 12h14M13 6l6 6-6 6"/>
               </svg>
-              <code style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", fontFamily: "monospace",
-                background: "rgba(255,255,255,0.06)", padding: "3px 9px", borderRadius: 5 }}>{to}</code>
+              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "monospace",
+                background: "var(--border)", padding: "3px 9px", borderRadius: 5 }}>{to}</code>
             </div>
           )}
 
@@ -508,12 +508,12 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
             <select
               value={from}
               onChange={e => { setFrom(e.target.value); setErrors(p => ({ ...p, from: "" })); }}
-              style={{ ...selStyle, borderColor: errors.from ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)" }}
+              style={{ ...selStyle, borderColor: errors.from ? "rgba(248,113,113,0.5)" : "var(--border)" }}
             >
               <option value="">테이블 선택...</option>
               {tableNames.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            {errors.from && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.from}</div>}
+            {errors.from && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.from}</div>}
           </div>
 
           {/* 카디널리티 */}
@@ -530,17 +530,17 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
                     style={{
                       padding: "10px 4px", borderRadius: 8, fontSize: 13, fontWeight: 800,
                       cursor: "pointer", transition: "all 0.15s",
-                      background: isActive ? bg : "rgba(255,255,255,0.03)",
-                      border: `2px solid ${isActive ? bd : "rgba(255,255,255,0.08)"}`,
-                      color: isActive ? col : "#6b7280",
+                      background: isActive ? bg : "var(--surface)",
+                      border: `2px solid ${isActive ? bd : "var(--border)"}`,
+                      color: isActive ? col : "var(--text-3)",
                     }}
                   >{c}</button>
                 );
               })}
             </div>
             {ci && (
-              <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
-                <span style={{ fontWeight: 600, color: "#9ca3af" }}>{ci.label}</span> — {ci.desc}
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 600, color: "var(--text-2)" }}>{ci.label}</span> — {ci.desc}
               </div>
             )}
           </div>
@@ -551,29 +551,29 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
             <select
               value={to}
               onChange={e => { setTo(e.target.value); setErrors(p => ({ ...p, to: "" })); }}
-              style={{ ...selStyle, borderColor: errors.to ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)" }}
+              style={{ ...selStyle, borderColor: errors.to ? "rgba(248,113,113,0.5)" : "var(--border)" }}
             >
               <option value="">테이블 선택...</option>
               {tableNames.filter(n => n !== from).map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            {errors.to && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.to}</div>}
+            {errors.to && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.to}</div>}
           </div>
         </div>
 
         {/* 푸터 */}
         <div style={{
-          padding: "14px 24px", borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "14px 24px", borderTop: "1px solid var(--border)",
           display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0,
         }}>
           <button onClick={onCancel} style={{
             padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            color: "#9ca3af", cursor: "pointer",
+            background: "var(--surface)", border: "1px solid var(--border)",
+            color: "var(--text-2)", cursor: "pointer",
           }}>취소</button>
           <button onClick={handleSubmit} disabled={saving} style={{
             padding: "7px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
             background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.35)",
-            color: "#60a5fa", cursor: saving ? "not-allowed" : "pointer",
+            color: "#2563eb", cursor: saving ? "not-allowed" : "pointer",
             opacity: saving ? 0.7 : 1,
           }}>
             {saving ? "저장 중..." : isNew ? "추가" : "저장"}
@@ -635,12 +635,12 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
   const inp = {
     padding: "7px 10px", borderRadius: 7,
-    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)",
-    color: "#e2e8f0", fontSize: 12.5, outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", background: "var(--surface)",
+    color: "var(--text-1)", fontSize: 12.5, outline: "none", boxSizing: "border-box",
     fontFamily: "'JetBrains Mono','Fira Code',monospace",
   };
   const lbl = {
-    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+    fontSize: 11, fontWeight: 700, color: "var(--text-2)",
     letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6, display: "block",
   };
   const CHIPS = ["PK", "FK", "NOT NULL", "UNIQUE", "DEFAULT now()", "AUTO_INCREMENT"];
@@ -649,21 +649,21 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
     <>
       <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
       <div style={{
-        position: "fixed", top: 0, right: 0, width: 620, height: "100vh",
-        background: "#16181c", zIndex: 201, display: "flex", flexDirection: "column",
-        borderLeft: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "-12px 0 40px rgba(0,0,0,0.5)",
+        position: "fixed", top: 0, right: 0, width: 620, maxWidth: "100vw", height: "100vh",
+        background: "var(--bg)", zIndex: 201, display: "flex", flexDirection: "column",
+        borderLeft: "1px solid var(--border)",
+        boxShadow: "-12px 0 40px rgba(0,0,0,0.14)",
         fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
       }}>
         {/* 헤더 */}
         <div style={{
-          padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "#e2e8f0", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
             {isNew ? "테이블 추가" : "테이블 수정"}
           </span>
-          <button onClick={onCancel} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 20 }}>×</button>
+          <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 20 }}>×</button>
         </div>
 
         {/* 폼 */}
@@ -678,10 +678,10 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               placeholder="table_name"
               style={{
                 ...inp, width: "100%",
-                borderColor: errors.name ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)",
+                borderColor: errors.name ? "rgba(248,113,113,0.5)" : "var(--border)",
               }}
             />
-            {errors.name && <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{errors.name}</div>}
+            {errors.name && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{errors.name}</div>}
           </div>
 
           {/* 컬럼 */}
@@ -691,14 +691,14 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               <button onClick={addColumn} style={{
                 fontSize: 11, padding: "3px 10px", borderRadius: 5,
                 background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)",
-                color: "#34d399", cursor: "pointer",
+                color: "#059669", cursor: "pointer",
               }}>+ 추가</button>
             </div>
 
             {/* 컬럼 헤더 */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.3fr 20px", gap: 6, marginBottom: 4, padding: "0 2px" }}>
               {["컬럼명", "타입", "제약조건", ""].map((h, i) => (
-                <span key={i} style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</span>
+                <span key={i} style={{ fontSize: 10, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{h}</span>
               ))}
             </div>
 
@@ -719,7 +719,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                     placeholder="column_name"
                     style={{
                       ...inp, width: "100%",
-                      borderColor: errors.cols && !col.name.trim() ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)",
+                      borderColor: errors.cols && !col.name.trim() ? "rgba(248,113,113,0.5)" : "var(--border)",
                     }}
                   />
                   <CustomTypeSelect
@@ -733,7 +733,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                     style={{ ...inp, width: "100%" }}
                   />
                   <button onClick={() => removeColumn(i)} style={{
-                    background: "none", border: "none", color: "#6b7280",
+                    background: "none", border: "none", color: "var(--text-3)",
                     cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0,
                   }}>×</button>
                 </div>
@@ -742,16 +742,16 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
             {/* 제약조건 빠른 입력 */}
             <div style={{ marginTop: 10, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 10, color: "#6b7280" }}>마지막 컬럼에 추가:</span>
+              <span style={{ fontSize: 10, color: "var(--text-3)" }}>마지막 컬럼에 추가:</span>
               {CHIPS.map(chip => (
                 <button key={chip} onClick={() => appendConstraint(chip)} style={{
                   fontSize: 10, padding: "2px 8px", borderRadius: 4,
                   background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
-                  color: "#9ca3af", cursor: "pointer",
+                  color: "var(--text-2)", cursor: "pointer",
                 }}>{chip}</button>
               ))}
             </div>
-            {errors.cols && <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>{errors.cols}</div>}
+            {errors.cols && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 6 }}>{errors.cols}</div>}
           </div>
 
           {/* 인덱스 */}
@@ -765,7 +765,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               }}>+ 추가</button>
             </div>
             {indexes.length === 0 && (
-              <div style={{ fontSize: 12, color: "#4b5563" }}>인덱스 없음</div>
+              <div style={{ fontSize: 12, color: "var(--text-3)" }}>인덱스 없음</div>
             )}
             {indexes.map((idx, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
@@ -776,7 +776,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                   style={{ ...inp, flex: 1 }}
                 />
                 <button onClick={() => removeIndex(i)} style={{
-                  background: "none", border: "none", color: "#6b7280",
+                  background: "none", border: "none", color: "var(--text-3)",
                   cursor: "pointer", fontSize: 16, lineHeight: 1, flexShrink: 0,
                 }}>×</button>
               </div>
@@ -786,18 +786,18 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 
         {/* 푸터 */}
         <div style={{
-          padding: "14px 24px", borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "14px 24px", borderTop: "1px solid var(--border)",
           display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0,
         }}>
           <button onClick={onCancel} style={{
             padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            color: "#9ca3af", cursor: "pointer",
+            background: "var(--surface)", border: "1px solid var(--border)",
+            color: "var(--text-2)", cursor: "pointer",
           }}>취소</button>
           <button onClick={handleSubmit} disabled={saving} style={{
             padding: "7px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
             background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.35)",
-            color: "#34d399", cursor: saving ? "not-allowed" : "pointer",
+            color: "#059669", cursor: saving ? "not-allowed" : "pointer",
             opacity: saving ? 0.7 : 1,
           }}>
             {saving ? "저장 중..." : isNew ? "추가" : "저장"}
