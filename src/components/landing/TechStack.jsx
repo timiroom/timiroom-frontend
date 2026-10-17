@@ -14,7 +14,7 @@ export function TechStack() {
             <SectionHeader
               eyebrow="적용 기술"
               title={<>검증된 기술 스택으로<br /><span className="hl">안정적인 성능</span>을 보장합니다</>}
-              desc="GPT-5.4 mini 기반 에이전트에 pgvector 하이브리드 검색과 Cohere 재정렬(RAG), Neo4j 지식 그래프를 더하고, Spring Boot 백엔드와 Next.js 프론트엔드로 묶었습니다."
+              desc="OpenAI GPT 기반 에이전트에 pgvector 하이브리드 검색과 Cohere 재정렬(RAG), Neo4j 지식 그래프를 더하고, Spring Boot 백엔드와 Next.js 프론트엔드로 묶었습니다."
             />
           </div>
 
