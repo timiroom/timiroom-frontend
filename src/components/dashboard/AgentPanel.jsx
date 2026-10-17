@@ -13,11 +13,26 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
+import { fetchModelTier } from "@/lib/usageApi";
 import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
 
-/* 모델은 pipeline_py의 OPENAI_CHAT_MODEL(gpt-5.4-mini) 하나로 고정 — API 키는 pipeline_py가 들고 있어
-   사용자가 프로바이더나 키를 설정할 필요가 없다 */
-const MODEL_LABEL = "GPT-5.4 mini";
+/* 실제 모델은 사용자가 설정에서 고른 AI 품질(빠름·균형·정밀)과 서버 설정으로 정해진다.
+   모델 이름은 바뀔 수 있어 화면에는 고른 품질만 보여 준다. */
+function useTierLabel() {
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    let active = true;
+    fetchModelTier()
+      .then((data) => {
+        const tier = data?.effectiveTier ?? data?.tier;
+        const found = data?.options?.find((option) => option.tier === tier);
+        if (active && found?.label) setLabel(`AI 품질 · ${found.label}`);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  return label;
+}
 
 /* ══════════════════════════════════════
    디자인 토큰
@@ -267,6 +282,7 @@ export function AgentPanel({ project, view }) {
     }
   };
 
+  const tierLabel = useTierLabel();
   const isEmpty = messages.length === 0 && !isLoading;
 
   return (
@@ -281,7 +297,7 @@ export function AgentPanel({ project, view }) {
       <TopBar
         project={project}
         view={view}
-        modelLabel={MODEL_LABEL}
+        modelLabel={tierLabel}
         hasMessages={messages.length > 0}
         onClear={() => { setMessages([]); setStreamText(""); }}
       />

@@ -12,7 +12,7 @@ import { isLightColor } from "@/lib/techStack.mjs";
  */
 export const TECH_CATEGORIES = [
   { label: "AI & LLM", type: "ai", items: [
-    { label: "GPT-5.4 mini",  slug: "openai" },
+    { label: "OpenAI GPT",    slug: "openai" },
     { label: "LangGraph",     icon: "graph" },
     { label: "Upstage Solar", icon: "zap" },
     { label: "Cohere Rerank", icon: "list" },

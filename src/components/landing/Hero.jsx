@@ -36,7 +36,7 @@ const PIPE_ROWS = [
 ];
 
 const MOCK_TAGS = [
-  { bg: "var(--border)", color: "var(--text-1)", label: "GPT-5.4 mini" },
+  { bg: "var(--border)", color: "var(--text-1)", label: "OpenAI GPT" },
   { bg: "var(--bg)", color: "var(--text-2)", label: "LangGraph"  },
   { bg: "var(--bg)", color: "var(--text-2)", label: "pgvector"   },
   { bg: "var(--bg)", color: "var(--text-2)", label: "Neo4j"      },
