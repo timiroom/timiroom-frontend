@@ -59,7 +59,7 @@ a { text-decoration: none; color: inherit; }
 
 /* ── Layout ── */
 .al-container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
-.al-section   { padding: 100px 0; }
+.al-section   { padding: 100px 0; overflow-x: clip; } /* 옆에서 미끄러져 들어오는 애니메이션 시작 위치가 휴대폰 화면 폭을 넓히지 않게 */
 
 /* ── Scroll animations ── */
 .al-anim {
