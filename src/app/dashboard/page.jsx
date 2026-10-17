@@ -382,10 +382,11 @@ export default function DashboardPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [runningPipeline, setRunningPipeline] = useState(null); // { pipelineId, projectId, projectName, teamId }
   const [contextPanelCollapsed, setContextPanelCollapsed] = useState(false);
-  // 휴대폰처럼 좁은 화면에서는 사이드바를 닫아 두고, 열면 화면 위에 덮어 보인다.
+  // 휴대폰·세로 태블릿처럼 좁은 화면에서는 사이드바를 닫아 두고, 열면 화면 위에 덮어 보인다.
+  // (세로 태블릿 768px에서 사이드바 320px가 자리를 차지하면 PRD 본문이 150px 남짓으로 좁아졌다)
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
+    const query = window.matchMedia("(max-width: 1023px)");
     const apply = () => {
       setIsNarrow(query.matches);
       if (query.matches) setContextPanelCollapsed(true);

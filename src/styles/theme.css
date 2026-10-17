@@ -1006,12 +1006,12 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 @media (max-width: 1100px) { .erd-stats .ui-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .erd-stats .ui-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* 좁은 화면: 사이드바를 화면 위에 덮어 보이게(본문 폭을 빼앗지 않게) */
+/* 좁은 화면(휴대폰·세로 태블릿): 사이드바를 화면 위에 덮어 보이게(본문 폭을 빼앗지 않게) */
 .ctx-backdrop { display: none; }
-@media (max-width: 767px) {
-  .ctx-panel { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(320px, 86vw); box-shadow: 0 12px 40px rgba(0, 0, 0, .18); }
+@media (max-width: 1023px) {
+  .ctx-panel { position: fixed; top: 0; left: 0; bottom: 0; z-index: 70; width: min(320px, 86vw); box-shadow: 0 12px 40px rgba(0, 0, 0, .18); }
   .ctx-panel.is-collapsed { width: 0; box-shadow: none; }
-  .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .28); }
+  .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 69; background: rgba(0, 0, 0, .28); }
 }
 
 /* 좁은 화면: PRD 목차를 위쪽 가로 탭으로 바꿔 본문이 화면 폭을 다 쓰게 하고, 머리글 버튼은 줄바꿈한다. */
