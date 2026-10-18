@@ -9,8 +9,9 @@ import { ActionButton } from "@/components/ui";
  *   differ — 화면의 문서가 발행 기준과 다름(재생성 등). 다시 불러오기와 발행을 준다.
  * 상태는 문구 앞의 색 점(회색·초록·주황)으로도 구분한다.
  * 상태를 아직 모르면(status 없음) 아무것도 그리지 않는다.
+ * anchorSlot — 안내 문구 옆에 두는 블록체인 기록 상태(SpecAnchorStatus).
  */
-export function SpecChangeBar({ projectId, status, canPublish, publishing, onReload, onPublish }) {
+export function SpecChangeBar({ projectId, status, canPublish, publishing, onReload, onPublish, anchorSlot }) {
   if (!status) return null;
   const { state, revision } = status;
   return (
@@ -23,6 +24,7 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         {state === "match" && `기준 revision ${revision} 발행됨. 문서 수정은 변경안 검토와 승인으로 적용합니다.`}
         {state === "differ" && `화면의 문서가 발행 기준(revision ${revision})과 다릅니다.`}
       </p>
+      {anchorSlot}
       <div className="spec-bar-actions">
         {state === "differ" && <ActionButton size="sm" onClick={onReload}>문서 다시 불러오기</ActionButton>}
         {state !== "none" && <ActionButton size="sm" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</ActionButton>}

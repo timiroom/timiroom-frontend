@@ -42,6 +42,9 @@ export const removeSlackChannel = (projectId) => integrationRequest(`/api/v1/int
 const projectPath = (id) => `/api/v1/projects/${id}`;
 export const latestSnapshot = (project) => integrationRequest(`${projectPath(project)}/spec-snapshots/latest`);
 export const publishSnapshot = (project) => integrationRequest(`${projectPath(project)}/spec-snapshots`, { method: "POST" });
+export const snapshotAnchor = (project, snapshotId) => integrationRequest(`${projectPath(project)}/spec-snapshots/${snapshotId}/anchor`);
+export const verifySnapshotAnchor = (project, snapshotId) => integrationRequest(`${projectPath(project)}/spec-snapshots/${snapshotId}/anchor/verify`, { method: "POST" });
+export const snapshotManifestUrl = (project, snapshotId) => `${API_BASE_URL}${projectPath(project)}/spec-snapshots/${snapshotId}/anchor/manifest`;
 export const specChange = (project, id) => integrationRequest(`${projectPath(project)}/spec-changes/${id}`);
 export const specChanges = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes?page=${page}`);
 export const integrationJobs = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes/jobs?page=${page}`);
