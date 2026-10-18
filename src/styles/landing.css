@@ -273,7 +273,9 @@ a { text-decoration: none; color: inherit; }
   flex: 1; text-align: center; font-size: 12px; color: var(--text-light); font-weight: 500;
 }
 .al-mockup-body { padding: 20px; background: #fafafe; }
-.al-pipeline    { display: flex; flex-direction: column; gap: 10px; }
+/* 노드 묶음을 가장 긴 줄 폭에 맞춰 목업 가운데에 둔다(왼쪽만 차고 오른쪽이 비던 것을 양쪽 고르게).
+   줄 이름끼리는 왼쪽이 맞는다. 좁은 화면에서는 max-width로 줄바꿈된다. */
+.al-pipeline    { display: flex; flex-direction: column; gap: 10px; width: fit-content; max-width: 100%; margin: 0 auto; }
 .al-pipe-row    { display: flex; align-items: center; gap: 8px; }
 .al-pipe-lbl {
   font-size: 11px; font-weight: 600; color: var(--text-mid);
