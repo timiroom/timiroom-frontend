@@ -11,7 +11,7 @@ import {
   setDefaultPaymentMethod, subscribePro,
 } from "@/lib/billingApi";
 import { BusinessInfo } from "@/components/legal/BusinessInfo";
-import { PaymentConsent, TestModeNotice } from "./PaymentConsent";
+import { PaymentConsent } from "./PaymentConsent";
 import { fetchPlans, formatKrw } from "@/lib/usageApi";
 import { ActionButton, Badge, EmptyState, Icon, LoadingState, SettingsHeader, SettingsSection } from "@/components/ui";
 
@@ -156,8 +156,6 @@ export function BillingSettings() {
   return (
     <>
       <SettingsHeader eyebrow="내 계정" title="요금제·결제" />
-      {config?.testMode && <TestModeNotice />}
-
       <SettingsSection title="요금제">
         <div className="bill-plan">
           <div className="bill-plan__icon" aria-hidden="true"><Icon name={isPro ? "star" : "box"} size={18} /></div>

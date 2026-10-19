@@ -786,14 +786,13 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .credit-stat + .credit-stat { border-left: none; border-top: 1px solid var(--border); }
 }
 
-/* 결제 동의·테스트 결제 안내·환불 */
-.pay-consent { margin: 12px 20px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--content-bg); }
+/* 결제 동의·환불 */
+.pay-consent { margin: 12px 20px 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--content-bg); }
 .credit-charge .pay-consent { margin: 0; }
 .pay-consent__terms { margin: 0 0 10px; padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: var(--text-2); }
 .pay-consent__check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-1); cursor: pointer; }
 .pay-consent__check input { margin-top: 3px; }
 .pay-consent__check a { color: var(--text-1); text-decoration: underline; }
-.pay-testmode { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; border: 1px dashed var(--border-2); font-size: 13px; color: var(--text-2); }
 .bill-refund { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 20px 16px; padding: 10px 14px; border-radius: 10px; background: var(--content-bg); border: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
 .pay-row__refund { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-3); }
 
