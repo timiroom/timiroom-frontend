@@ -31,12 +31,3 @@ export function PaymentConsent({ kind, priceLabel, checked, onChange, refundDays
     </div>
   );
 }
-
-/** 테스트 결제 환경 안내 */
-export function TestModeNotice() {
-  return (
-    <div className="pay-testmode" role="note">
-      지금은 테스트 결제 환경입니다. 카드를 등록하고 결제해도 실제로 돈이 빠져나가지 않습니다.
-    </div>
-  );
-}
