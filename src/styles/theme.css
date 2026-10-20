@@ -1057,3 +1057,13 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .kg-main { flex: 0 0 auto !important; height: 60vh; min-height: 320px; }
   .kg-side { width: 100% !important; overflow: visible !important; }
 }
+
+/* AI 진행 표시: 도는 표시 + 문구 + 경과 시간 */
+.ai-working { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 13px; color: var(--text-1); }
+.ai-working--compact { padding: 0; border: none; background: none; font-size: 12.5px; }
+.ai-working__spinner { flex-shrink: 0; width: 14px; height: 14px; margin-top: 2px; border: 2px solid var(--border-2, #d4d4d4); border-top-color: var(--text-1); border-radius: 50%; animation: db-spin .8s linear infinite; }
+.ai-working__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ai-working__label { font-weight: 600; line-height: 1.5; }
+.ai-working__time { font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.ai-working__hint { color: var(--text-3); font-size: 12px; line-height: 1.55; }
+@media (prefers-reduced-motion: reduce) { .ai-working__spinner { animation-duration: 2.4s; } }

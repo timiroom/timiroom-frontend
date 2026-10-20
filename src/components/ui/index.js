@@ -12,3 +12,4 @@ export { EmptyState, LoadingState } from "./EmptyState";
 export { AlignMark, LoadingScreen } from "./Loader";
 export { MarkdownEditor } from "./MarkdownEditor";
 export { Switch } from "./Switch";
+export { AiWorking } from "./AiWorking";
