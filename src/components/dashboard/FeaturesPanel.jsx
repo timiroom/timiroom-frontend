@@ -1474,7 +1474,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
 
         {/* 본문 */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <div className="features-panel-content" style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 28px 60px", minWidth: 0 }}>
+          <div className="features-panel-content panel-inner" style={{ minWidth: 0 }}>
 
             {total === 0 && <EmptyState />}
 
@@ -1547,7 +1547,6 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
         @container features-panel (max-width: 640px) {
           .features-panel-search { flex: 1; min-width: 100px; }
           .features-panel-search input { width: 100% !important; box-sizing: border-box; }
-          .features-panel-content { padding: 14px 12px 44px !important; }
         }
 
         @container feature-card (max-width: 600px) {

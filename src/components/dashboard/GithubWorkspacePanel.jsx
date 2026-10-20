@@ -196,7 +196,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
         <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
       </PanelHeader>
 
-      <section style={{ flex: 1, overflowY: "auto", padding: 28, background: "var(--content-bg)" }}>
+      <section className="panel-inner panel-inner--scroll" style={{ background: "var(--content-bg)" }}>
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 

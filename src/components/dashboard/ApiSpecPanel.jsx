@@ -1344,7 +1344,8 @@ ${mockBaseUrl}`}>
         </PanelToolbar>
 
         {/* 본문 */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="panel-inner">
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>{specTitle}</h1>
             {rawApiSpec?.authentication ? (
@@ -1406,6 +1407,7 @@ ${mockBaseUrl}`}>
               />
             ))
           )}
+          </div>
         </div>
       </div>
 
