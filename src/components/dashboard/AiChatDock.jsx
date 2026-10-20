@@ -484,7 +484,12 @@ export function AiChatDock({
   // 적용 확인 대기 중인 수정 제안 { id, edits } — 화면을 옮겨도 이어지도록 보관함에 둔다
   const pendingRef  = useRef(null);
   if (pendingRef.current === null && slot.pending) pendingRef.current = slot.pending;
-  useEffect(() => () => { slot.pending = pendingRef.current; slot.lastSeen = lastSeenRef.current; }, [slot]);
+  useEffect(() => {
+    // 보관함이 바뀌면(프로젝트 전환) 그 보관함의 대기 수정안·읽음 기준으로 맞춘다
+    pendingRef.current = slot.pending ?? null;
+    lastSeenRef.current = slot.lastSeen ?? 0;
+    return () => { slot.pending = pendingRef.current; slot.lastSeen = lastSeenRef.current; };
+  }, [slot]);
 
   /* 프로젝트·문서마다 대화를 따로 둔다 — 다른 프로젝트의 맥락이 섞이면 안 된다.
      이미 나눈 대화가 있으면 그대로 이어서 보여 준다. */
@@ -575,7 +580,7 @@ export function AiChatDock({
   /* ── 편집 모드: 수정 제안 요청 ── */
   async function runEditRequest(userMsg) {
     setBusy(true);
-    abortRef.current = new AbortController();
+    abortRef.current = slot.abort = new AbortController();
     try {
       const result = await requestDocumentEdit({
         docType:     editDocType,
@@ -621,7 +626,7 @@ export function AiChatDock({
     setStreamingId(aiId);
     setMessages(prev => [...prev, { id: aiId, role: "assistant", content: "" }]);
 
-    abortRef.current = new AbortController();
+    abortRef.current = slot.abort = new AbortController();
 
     await sendMessageStream({
       messages: buildHistory(userMsg),
@@ -656,7 +661,8 @@ export function AiChatDock({
     if (!text || busy || applying || usageBlocked) return;
 
     /* 대기 중인 수정 제안이 있으면 예/아니요를 먼저 해석한다. */
-    const pending = pendingRef.current;
+    // 화면을 떠나 있는 사이 도착한 수정안은 보관함에만 있다
+    const pending = pendingRef.current || slot.pending;
     if (pending) {
       const lower = text.toLowerCase();
       const userMsg = { id: Date.now(), role: "user", content: text };
@@ -853,7 +859,7 @@ export function AiChatDock({
             }}
           />
           <button
-            onClick={busy ? () => abortRef.current?.abort() : handleSend}
+            onClick={busy ? () => (abortRef.current || slot.abort)?.abort() : handleSend}
             disabled={!busy && !input.trim()}
             style={{
               width: 28, height: 28, borderRadius: 7, flexShrink: 0,
