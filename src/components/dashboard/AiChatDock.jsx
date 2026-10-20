@@ -423,6 +423,27 @@ function UsageNotice({ usage }) {
   );
 }
 
+/* ── 화면을 옮겨도 대화를 잃지 않게 하는 보관함 ──
+   문서 화면은 다른 화면으로 가면 통째로 내려간다. 채팅 상태를 컴포넌트 안에만 두면
+   돌아왔을 때 대화·쓰던 글이 사라지고, 답을 기다리던 중이면 그 답도 버려진다.
+   프로젝트·문서별로 여기에 보관해 두고, 화면이 내려간 동안 도착한 답도 여기에 쌓는다.
+   새로고침하면 비워진다(브라우저 저장소에는 남기지 않는다). */
+const chatStore = new Map();
+function chatSlot(key) {
+  if (!chatStore.has(key)) chatStore.set(key, {});
+  return chatStore.get(key);
+}
+function useChatState(slot, field, initial) {
+  const [value, setValue] = useState(() => (field in slot ? slot[field] : initial));
+  const set = useCallback((next) => {
+    const resolved = typeof next === "function" ? next(field in slot ? slot[field] : initial) : next;
+    slot[field] = resolved;
+    setValue(resolved);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot, field]);
+  return [value, set];
+}
+
 export function AiChatDock({
   contextType = "prd",
   docType,
@@ -434,41 +455,47 @@ export function AiChatDock({
   const meta = CTX_META[contextType] || CTX_META.prd;
   const editDocType = docType || contextType;
 
-  const [open,     setOpen]     = useState(false);
-  const [wide,     setWide]     = useState(false);
-  const [unread,   setUnread]   = useState(false);
-  const lastSeenRef = useRef(0);
-
   /* 편집 모드 조건: 문서 JSON과 적용 핸들러가 모두 있어야 한다 */
   const editMode = Boolean(docJson && onApplyEdits);
+  const slot = chatSlot(`${project?.id ?? "none"}:${contextType}:${editMode ? "edit" : "chat"}`);
 
-  const [messages, setMessages] = useState([]);
-  const [input,    setInput]    = useState("");
+  const [open,     setOpen]     = useChatState(slot, "open", false);
+  const [wide,     setWide]     = useChatState(slot, "wide", false);
+  const [unread,   setUnread]   = useState(false);
+  const lastSeenRef = useRef(slot.lastSeen ?? 0);
+
+  const [messages, setMessages] = useChatState(slot, "messages", []);
+  const [input,    setInput]    = useChatState(slot, "input", "");
   const { usage } = useUsage();
   const usageBlocked = isUsageBlocked(usage);
-  const [busy,     setBusy]     = useState(false);
+  const [busy,     setBusy]     = useChatState(slot, "busy", false);
   const [applying, setApplying] = useState(false);
-  const [streamingId, setStreamingId] = useState(null);
+  const [streamingId, setStreamingId] = useChatState(slot, "streamingId", null);
 
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
   const abortRef    = useRef(null);
-  const pendingRef  = useRef(null);   // 적용 확인 대기 중인 수정 제안 { id, edits }
+  // 적용 확인 대기 중인 수정 제안 { id, edits } — 화면을 옮겨도 이어지도록 보관함에 둔다
+  const pendingRef  = useRef(null);
+  if (pendingRef.current === null && slot.pending) pendingRef.current = slot.pending;
+  useEffect(() => () => { slot.pending = pendingRef.current; slot.lastSeen = lastSeenRef.current; }, [slot]);
 
-  /* 프로젝트가 바뀌면 대화를 초기화 — 다른 프로젝트의 맥락이 섞이면 안 된다 */
+  /* 프로젝트·문서마다 대화를 따로 둔다 — 다른 프로젝트의 맥락이 섞이면 안 된다.
+     이미 나눈 대화가 있으면 그대로 이어서 보여 준다. */
   useEffect(() => {
+    if (slot.messages?.length) return;
     setMessages([{
       id: "init", role: "assistant",
       content: editMode
         ? `${project?.name ? `**${project.name}** 프로젝트의 ` : ""}${meta.docLabel}를 검토하고 있습니다.\n\n요구사항이나 바꾸고 싶은 내용을 입력하면 현재 명세와 비교해 수정 근거와 변경 내용을 먼저 보여드리겠습니다.`
         : `안녕하세요! ${meta.subtitle}입니다.\n\n${project?.name ? `**${project.name}** 프로젝트에 대해 ` : ""}궁금한 점을 물어보세요.`,
     }]);
-    pendingRef.current = null;
+    pendingRef.current = slot.pending = null;
     // 인사말은 '읽지 않은 새 소식'이 아니므로 기준선을 여기서 맞춰 둔다
     lastSeenRef.current = 1;
     setUnread(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, contextType, editMode]);
+  }, [slot]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -492,7 +519,7 @@ export function AiChatDock({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, busy]);
+  }, [open, busy, setOpen]);
 
   /* ── 수정안 적용 ── */
   const applyEdits = useCallback(async (msgId, edits) => {
@@ -508,7 +535,7 @@ export function AiChatDock({
           openReview: typeof result?.openReview === "function" ? result.openReview : null,
         } : m
       ));
-      pendingRef.current = null;
+      pendingRef.current = slot.pending = null;
     } catch (e) {
       // 실패한 제안은 열어 둔 채로 남긴다 — 사용자가 그대로 다시 시도할 수 있어야 한다
       setMessages(prev => [...prev, {
@@ -518,14 +545,14 @@ export function AiChatDock({
     } finally {
       setApplying(false);
     }
-  }, [onApplyEdits]);
+  }, [onApplyEdits, setMessages, slot]);
 
   const dismissEdits = useCallback((msgId) => {
     setMessages(prev => prev.map(m =>
       m.id === msgId ? { ...m, resolved: true, applied: false } : m
     ));
-    pendingRef.current = null;
-  }, []);
+    pendingRef.current = slot.pending = null;
+  }, [setMessages, slot]);
 
   /* ── 대화 히스토리 (서버 전송용) ── */
   function buildHistory(extra) {
@@ -561,7 +588,7 @@ export function AiChatDock({
           requirement: userMsg.content,
           resolved: false, applied: false,
         }]);
-        pendingRef.current = { id, edits: result.edits };
+        pendingRef.current = slot.pending = { id, edits: result.edits };
       } else {
         setMessages(prev => [...prev, {
           id: Date.now() + 1, role: "assistant",
