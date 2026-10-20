@@ -1105,3 +1105,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .qa-steps { grid-template-columns: 1fr; gap: 2px; }
   .qa-steps dd { margin-bottom: 8px; }
 }
+
+/* 내 AI 키: 어떤 기능에 키가 쓰이는지 안내 */
+.aikey-scope { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 13px; line-height: 1.7; color: var(--text-2); }
+.aikey-scope strong { color: var(--text-1); font-weight: 600; }

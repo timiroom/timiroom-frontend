@@ -4,6 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/authConfig";
 import { aiClients, aiConnectionLink, connectionRows } from "@/lib/aiConnectionLinks.mjs";
 import { connections, revokeConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
+// 채널마다 골라 받을 수 있는 알림 종류
+const SLACK_EVENTS = [
+  { id: "CHANGE", label: "변경안 승인 요청" },
+  { id: "REVIEW", label: "교차검증 결과" },
+  { id: "PR", label: "PR 검사 결과" },
+];
 const scopeNames = { "projects:read": "프로젝트 조회", "specs:read": "명세 조회", "specs:propose": "문서 수정 제안", "consistency:run": "정합성 검사 요청", "consistency:read": "검사 결과 조회" };
 
 export function AiToolConnectionsPanel({ projects = [] }) {
@@ -115,14 +121,40 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         <p>Slack 계정을 연결하면 프로젝트 알림을 받고, Slack에서 바로 검토 대기 확인과 검사를 요청할 수 있습니다. 같은 Slack 워크스페이스의 팀원이라면 누구나 각자 연결할 수 있습니다.</p>
         <div className="integration-row">
           <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
-            {slack?.connected && <p className="connection-meta">{slack.account.user_id}</p>}
+            {slack?.connected && <p className="connection-meta">Slack 사용자 {slack.account.user_id}</p>}
           </div>
           {slack?.connected ? <button disabled={busy || loading} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
             : <button disabled={busy || loading || !slack} onClick={startSlackConnection}>{busy ? "연결 중…" : "연결"}</button>}
         </div>
         {slack?.connected && <>
           <h4>프로젝트 알림 채널</h4>
-          <p>변경안 승인 요청, 교차검증·PR 검사 결과가 이 채널로 옵니다. 가장 쉬운 방법은 알림을 받을 Slack 채널에서 <code>/timiroom 채널연결 프로젝트이름</code>을 입력하는 것입니다(PM만). 그다음 그 채널에 티미룸 앱을 초대하세요.</p>
+          <p>한 프로젝트에 채널을 여러 개 연결하고, 채널마다 받을 알림을 고를 수 있습니다. 예를 들어 기획 채널은 변경안·교차검증, 개발 채널은 PR 검사 결과만 받게 할 수 있습니다.</p>
+          <p>알림을 받을 Slack 채널에서 <code>/timiroom 채널연결 프로젝트이름</code>을 입력하면 바로 연결됩니다(PM만). 그다음 그 채널에 티미룸 앱을 초대하세요.</p>
+          {(slack.channels || []).length === 0 ? <p className="connection-meta">아직 연결한 채널이 없습니다.</p> : (
+            <ul className="slack-channels">{(slack.channels || []).map((item) => {
+              const events = String(item.events || "CHANGE,REVIEW,PR").split(",");
+              const toggle = (id) => {
+                const next = events.includes(id) ? events.filter((e) => e !== id) : [...events, id];
+                if (!next.length) { setFeedback("알림을 모두 끄려면 채널을 해제하세요."); return; }
+                run(() => configureSlackChannel(item.project_id, item.channel_id, next), "받을 알림을 바꿨습니다.");
+              };
+              return <li key={`${item.project_id}-${item.channel_id}`}>
+                <div className="connection-detail">
+                  <strong>{projectName(item.project_id)}</strong>
+                  <p className="connection-meta"><a href={`https://app.slack.com/client/${slack.account.team_id}/${item.channel_id}`} target="_blank" rel="noreferrer">Slack에서 채널 열기 ({item.channel_id})</a></p>
+                  <div className="slack-events" role="group" aria-label="받을 알림">
+                    {SLACK_EVENTS.map((event) => (
+                      <button key={event.id} type="button" aria-pressed={events.includes(event.id)} disabled={busy}
+                        className={`slack-event${events.includes(event.id) ? " is-on" : ""}`} onClick={() => toggle(event.id)}>
+                        {events.includes(event.id) ? "✓ " : ""}{event.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button disabled={busy} onClick={() => run(() => removeSlackChannel(item.project_id, item.channel_id), "알림 채널을 해제했습니다.")}>채널 해제</button>
+              </li>;
+            })}</ul>
+          )}
           <details className="integration-manual"><summary>채널 ID로 직접 연결하기</summary>
           <p>채널 이름을 눌러 열리는 채널 정보 맨 아래에서 채널 ID(C로 시작)를 복사할 수 있습니다.</p>
           <form onSubmit={(event) => { event.preventDefault(); run(() => configureSlackChannel(Number(project), channel.trim()), "알림 채널을 설정했습니다."); }}>
@@ -133,10 +165,6 @@ export function AiToolConnectionsPanel({ projects = [] }) {
             <button disabled={busy}>채널 연결</button>
           </form>
           </details>
-          <ul>{(slack.channels || []).map((item) => <li key={item.project_id}>
-            <div className="connection-detail"><strong>{projectName(item.project_id)}</strong><p className="connection-meta">{item.channel_id}</p></div>
-            <button disabled={busy} onClick={() => run(() => removeSlackChannel(item.project_id), "알림 채널을 해제했습니다.")}>채널 해제</button>
-          </li>)}</ul>
           <h4>자주 쓰는 Slack 명령</h4>
           <dl className="slack-commands">
             <dt><code>/timiroom</code></dt><dd>이 채널 프로젝트의 현황 (기준 명세, 승인 대기 수)</dd>
@@ -144,6 +172,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
             <dt><code>/timiroom 검증</code></dt><dd>가장 최근 대기 변경안의 문서 교차검증</dd>
             <dt><code>/timiroom pr 12</code></dt><dd>연결된 레포의 PR #12 정합성 검사</dd>
             <dt><code>/timiroom 상태</code></dt><dd>최근 작업 결과</dd>
+            <dt><code>/timiroom 알림 pr</code></dt><dd>이 채널은 PR 검사 결과만 받기 (<code>알림 전체</code>로 되돌리기)</dd>
             <dt><code>/timiroom 도움말</code></dt><dd>전체 명령</dd>
           </dl>
           <p className="connection-meta">승인과 거절은 티미룸 화면에서 합니다.</p>
@@ -154,6 +183,11 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         .integration-card { margin:16px 0; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--db-radius-lg); padding:24px 28px; color:var(--text-1); }
         h2,h3 { font-size:11px; font-weight:700; color:var(--text-3); letter-spacing:.07em; margin:0 0 16px; }
         h4 { font-size:13px; font-weight:600; margin:24px 0 8px; }
+        .slack-channels { list-style:none; padding:0; margin:8px 0 12px; display:grid; gap:8px; }
+        .slack-events { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+        .slack-event { padding:4px 10px; border-radius:999px; border:1px solid var(--border-2); background:var(--surface); color:var(--text-2); font-size:12px; cursor:pointer; }
+        .slack-event.is-on { border-color:var(--text-1); color:var(--text-1); font-weight:600; background:color-mix(in srgb, var(--text-1) 6%, var(--surface)); }
+        .slack-event:disabled { opacity:.6; cursor:default; }
         .integration-manual { margin:4px 0 12px; } .integration-manual summary { cursor:pointer; font-size:13px; color:var(--text-2); }
         .slack-commands { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:6px 16px; margin:0 0 8px; font-size:13px; line-height:1.6; }
         .slack-commands dt { white-space:nowrap; } .slack-commands dd { margin:0; color:var(--text-2); }

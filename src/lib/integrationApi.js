@@ -36,8 +36,9 @@ export const slackConnection = () => integrationRequest("/api/v1/integrations/sl
 export const connectSlack = () => integrationRequest("/api/v1/integrations/slack/connect", { method: "POST" });
 export const linkSlack = (code) => integrationRequest("/api/v1/integrations/slack/link", { method: "POST", body: { code } });
 export const unlinkSlack = () => integrationRequest("/api/v1/integrations/slack/link", { method: "DELETE" });
-export const configureSlackChannel = (projectId, channelId) => integrationRequest("/api/v1/integrations/slack/channels", { method: "POST", body: { projectId, channelId } });
-export const removeSlackChannel = (projectId) => integrationRequest(`/api/v1/integrations/slack/channels/${projectId}`, { method: "DELETE" });
+// events: 받을 알림 종류(CHANGE·REVIEW·PR). 비우면 전부 받는다. 같은 채널을 다시 보내면 알림 종류만 바뀐다.
+export const configureSlackChannel = (projectId, channelId, events) => integrationRequest("/api/v1/integrations/slack/channels", { method: "POST", body: { projectId, channelId, events } });
+export const removeSlackChannel = (projectId, channelId) => integrationRequest(`/api/v1/integrations/slack/channels/${projectId}${channelId ? `?channelId=${encodeURIComponent(channelId)}` : ""}`, { method: "DELETE" });
 
 const projectPath = (id) => `/api/v1/projects/${id}`;
 export const latestSnapshot = (project) => integrationRequest(`${projectPath(project)}/spec-snapshots/latest`);
