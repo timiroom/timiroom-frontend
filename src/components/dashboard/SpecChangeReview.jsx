@@ -165,7 +165,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         catch { throw new Error("보완 내용의 JSON 형식을 확인해 주세요."); }
         const expectedHashes = Object.fromEntries(Object.keys(documents).map((type) => [type, proposal.base.documents.find((doc) => doc.type === type)?.hash]));
         const next = await proposeManualChange(project.id, { snapshotId: proposal.snapshotId, targets: Object.keys(documents), documents, expectedHashes,
-          instruction: `변경안 ${proposal.proposalId}의 수정 내용을 이어서 검사 지적을 보완한다.`, constraints: [], idempotencyKey: crypto.randomUUID() });
+          instruction: "이전 변경안의 수정 내용을 이어서 검사 지적을 보완한다.", constraints: [], idempotencyKey: crypto.randomUUID() });
         setCorrections(null); setJob(next);
         if (terminal.has(next.status) && next.result?.proposalId) await refresh(next.result.proposalId);
       })}>보완안 생성</button></>}

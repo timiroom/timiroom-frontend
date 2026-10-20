@@ -58,6 +58,7 @@ export function QaTestPanel({ project }) {
   async function handleGenerate() {
     if (filter === "all") {
       showToast("error", "AI로 생성할 대상 기능을 먼저 선택해 주세요.");
+      document.querySelector("[aria-label=\"QA 대상 기능\"]")?.focus();
       return;
     }
     setGenerating(true);
@@ -128,7 +129,7 @@ export function QaTestPanel({ project }) {
         <ActionButton onClick={() => setShowAddForm(v => !v)}>
           {showAddForm ? "취소" : <><Icon name="plus" size={12} /> 직접 추가</>}
         </ActionButton>
-        <ActionButton variant="primary" onClick={handleGenerate} disabled={generating || filter === "all"}
+        <ActionButton variant="primary" onClick={handleGenerate} disabled={generating}
           title={filter === "all" ? "대상 기능을 먼저 고르세요" : "선택한 기능의 시나리오를 AI가 만듭니다"}>
           <Icon name="zap" size={12} /> {generating ? "생성 중…" : "AI로 생성"}
         </ActionButton>

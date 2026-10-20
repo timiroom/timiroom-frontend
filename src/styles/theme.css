@@ -1256,3 +1256,6 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .erd-mode .ui-chip { padding: 0 10px; }
   .erd-diagram__zoom button { height: 32px; min-width: 34px; }
 }
+
+/* 기능 명세 입력칸: 내용 길이만큼 늘어난다(지원하지 않는 브라우저는 기존처럼 스크롤). */
+.feature-autosize { field-sizing: content; }

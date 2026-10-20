@@ -139,7 +139,7 @@ export function GithubIssuesPanel({ project, canManage }) {
 
   return (
     <div className="gh-panel">
-      <PanelHeader project={project} label="Issues 전체">
+      <PanelHeader project={project} label="이슈 전체">
         <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
         {canManage && hasRepos && (
           <ActionButton variant={composerOpen ? "secondary" : "primary"} onClick={() => setComposerOpen((open) => !open)}>

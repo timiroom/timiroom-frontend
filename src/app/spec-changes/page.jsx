@@ -32,6 +32,12 @@ function StatusBadge({ status }) {
 }
 
 /** 변경안과 검사·생성 작업 기록. 대시보드의 명세 기준 바에서 "변경안·검사 기록"으로 연다. */
+/* 예전 보완안은 제목에 변경안 ID(UUID)가 그대로 들어가 있었다. 목록에서는 사람이 읽는 말로 바꿔 보여 준다. */
+function readableInstruction(text) {
+  if (!text) return "문서 변경안";
+  return text.replace(/변경안 [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}의/gi, "이전 변경안의");
+}
+
 export default function SpecChangesPage() {
   const { user, isLoading } = useAuth(); const router = useRouter();
   const [target, setTarget] = useState(null), [page, setPage] = useState(0);
@@ -121,7 +127,7 @@ export default function SpecChangesPage() {
       ) : proposalRows.map((p) => (
         <a key={p.proposalId} className="history-row" href={`/spec-review?projectId=${target.project}&proposalId=${p.proposalId}`}>
           <span className="history-row__body">
-            <span className="history-row__title">{p.instruction || "문서 변경안"}</span>
+            <span className="history-row__title">{readableInstruction(p.instruction)}</span>
             <span className="history-row__meta">{dateTime(p.createdAt)}</span>
           </span>
           <StatusBadge status={p.status} />
