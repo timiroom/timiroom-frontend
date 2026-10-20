@@ -1310,3 +1310,10 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .ws-compose__backdrop, .ws-compose, .ws-compose__error { animation: none; }
   .ws-compose__join, .ws-compose__link, .ws-compose__primary, .ws-compose__secondary, .ws-compose__close, .ws-compose__field { transition: none; }
 }
+
+/* 빈 화면 시작 버튼 (dashboard DashboardEmptyState) — 올리면 떠오르며 검게 차고, 누르면 눌린다 */
+.empty-cta { margin-top: 18px; padding: 11px 18px; border: 1px solid var(--border-2, rgba(0, 0, 0, .12)); border-radius: 14px; background: var(--surface); color: var(--text-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease; }
+.empty-cta:hover { background: var(--text-1); border-color: var(--text-1); color: var(--bg); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, .28); }
+.empty-cta:active { transform: translateY(0) scale(.97); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); transition-duration: .08s; }
+.empty-cta:focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .empty-cta { transition: none; } .empty-cta:hover, .empty-cta:active { transform: none; } }
