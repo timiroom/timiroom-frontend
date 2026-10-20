@@ -546,7 +546,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 /* ── GitHub 목록 화면 공통 (Issues 전체, PRs 전체) ── */
 .gh-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--content-bg); }
 .gh-body { flex: 1; overflow-y: auto; }
-.gh-body__inner { max-width: 1120px; margin: 0; padding: 24px 28px 48px; }
+.gh-body__inner { margin: 0; padding: 24px 28px 48px; }
 .gh-list { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
 .gh-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; color: inherit; text-decoration: none; transition: background .12s; }
 .gh-row + .gh-row { border-top: 1px solid var(--border); }
@@ -1084,7 +1084,6 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .qa-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--content-bg, var(--bg)); color: var(--text-1); }
 .qa-panel .ui-panel-header select.qa-input { min-height: 30px; height: 30px; padding: 0 28px 0 10px; font-size: 13px; width: auto; max-width: 220px; }
 .qa-body { flex: 1; overflow-y: auto; padding: 24px 28px 48px; }
-.qa-body > * { max-width: 1064px; }
 .qa-intro { margin: 0 0 18px; max-width: 760px; font-size: 13px; line-height: 1.7; color: var(--text-3); }
 .qa-gap { margin-bottom: 16px; }
 .qa-form { display: grid; gap: 10px; margin-bottom: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
@@ -1115,12 +1114,11 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .aikey-scope { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 13px; line-height: 1.7; color: var(--text-2); }
 .aikey-scope strong { color: var(--text-1); font-weight: 600; }
 
-/* 문서·작업 화면 본문 공통 여백: 위 24 · 좌우 28 · 아래 48. 넓은 화면에서도 왼쪽 28px에서 시작하고 1120px까지만 넓어진다
-   (가운데 정렬하면 스크롤바 유무·폭 차이로 화면마다 시작 위치가 달라진다).
+/* 문서·작업 화면 본문 공통 여백: 위 24 · 좌우 28 · 아래 48. 본문은 좌우 28px 안쪽을 꽉 채운다
+   (최대 폭을 두면 가운데 정렬 시 시작 위치가, 왼쪽 정렬 시 오른쪽 빈 공간이 화면마다 달라진다).
    화면마다 20~28px, 860~1180px로 제각각이던 것을 맞춘다. */
-.panel-inner { box-sizing: border-box; width: 100%; max-width: 1120px; margin: 0; padding: 24px 28px 48px; }
-.panel-inner--scroll { flex: 1; overflow-y: auto; max-width: none; }
-.panel-inner--scroll > * { max-width: 1064px; }
+.panel-inner { box-sizing: border-box; width: 100%; margin: 0; padding: 24px 28px 48px; }
+.panel-inner--scroll { flex: 1; overflow-y: auto; }
 .panel-inner--fill { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .commit-card { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
 @media (max-width: 767px) {
