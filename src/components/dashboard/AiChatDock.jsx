@@ -436,6 +436,11 @@ function chatSlot(key) {
 }
 function useChatState(slot, field, initial) {
   const [value, setValue] = useState(() => (field in slot ? slot[field] : initial));
+  // 같은 화면에서 프로젝트만 바뀌면 보관함도 바뀐다 — 이전 프로젝트의 글·열림 상태가 남지 않게 다시 읽는다.
+  useEffect(() => {
+    setValue(field in slot ? slot[field] : initial);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot]);
   const set = useCallback((next) => {
     const resolved = typeof next === "function" ? next(field in slot ? slot[field] : initial) : next;
     slot[field] = resolved;
