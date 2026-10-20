@@ -20,6 +20,7 @@ import { PrdPanel } from "@/components/dashboard/PrdPanel";
 import { FeaturesPanel } from "@/components/dashboard/FeaturesPanel";
 import { ErdPanel } from "@/components/dashboard/ErdPanel";
 import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
+import { QaTestPanel } from "@/components/dashboard/QaTestPanel";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
 import { Icon, LoadingScreen, LoadingState } from "@/components/ui";
@@ -84,7 +85,7 @@ const DOC_LABELS = {
   commits: "커밋 기록",
   settings: "프로젝트 설정",
   graph: "지식 그래프",
-  qa: "QA",
+  qa: "QA 테스트",
 };
 
 function documentTabId(projectId, view) {
@@ -1349,6 +1350,8 @@ export default function DashboardPage() {
                 <ErdPanel project={selectedProject} readOnly={!canEditDocType(myProjectRole, "DB_SCHEMA")} onDocumentSaved={handleDocumentSaved} onDocumentEditingChange={handleDocumentEditingChange} onProposeDocument={handleProposeDocument} />
               ) : selectedView === "graph" ? (
                 <KnowledgeGraph project={selectedProject} />
+              ) : selectedView === "qa" ? (
+                <QaTestPanel project={selectedProject} />
               ) : selectedView === "github" ? (
                 <GithubWorkspacePanel project={selectedProject} onSelectView={(view) => handleOpenDocument(selectedProject, view)} />
               ) : selectedView === "issues" ? (
