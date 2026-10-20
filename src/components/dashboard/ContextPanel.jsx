@@ -247,7 +247,16 @@ export function ContextPanel({
   documentSync,
   editingDocumentType,
   collapsed = false,
+  accountOnly = false,
 }) {
+  if (accountOnly && !collapsed) {
+    // 워크스페이스가 없을 때: 목록·검색은 보여줄 게 없어 계정 줄만 남긴다
+    return (
+      <div className="ctx-panel ctx-panel--onboarding">
+        <div className="ctx"><div style={{ flex: 1 }} /><SidebarAccount /></div>
+      </div>
+    );
+  }
   return (
     <div className={`ctx-panel${collapsed ? " is-collapsed" : ""}`}>
       {collapsed ? null : (
