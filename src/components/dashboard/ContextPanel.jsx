@@ -34,8 +34,8 @@ const PROJECT_DOCS = [
   { id: "erd",       label: "ERD 명세서",  icon: "database" },
   { id: "graph",     label: "지식 그래프", icon: "graph" },
   { id: "github",    label: "GitHub 작업", icon: "box" },
-  { id: "issues",    label: "Issues 전체", icon: "flag" },
-  { id: "pulls",     label: "PRs 전체",    icon: "shuffle" },
+  { id: "issues",    label: "이슈 전체", icon: "flag" },
+  { id: "pulls",     label: "PR 전체",    icon: "shuffle" },
   { id: "commits",   label: "커밋 기록",   icon: "list" },
   { id: "qa",        label: "QA 테스트",   icon: "check" },
 ];

@@ -99,10 +99,10 @@ export function ErdDiagram({ tables, edges, roleOf, onSelect }) {
   const [scale, setScale] = useState(1);
   const wrapRef = useRef(null);
 
-  // 처음 열 때 화면 너비에 맞춘다(너무 작아지지 않게 하한을 둔다).
+  // 처음 열 때 화면 너비에 맞추되, 글씨가 읽히도록 80% 아래로는 줄이지 않는다(넘치면 가로로 스크롤).
   useEffect(() => {
     const w = wrapRef.current?.clientWidth || 0;
-    if (w && width > w) setScale(Math.max(0.6, Math.floor((w / width) * 20) / 20));
+    if (w && width > w) setScale(Math.max(0.8, Math.floor((w / width) * 20) / 20));
   }, [width]);
 
   const related = useMemo(() => {

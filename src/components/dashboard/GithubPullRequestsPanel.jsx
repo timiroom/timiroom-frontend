@@ -216,7 +216,7 @@ export function GithubPullRequestsPanel({ project, canManage }) {
 
   return (
     <div className="gh-panel">
-      <PanelHeader project={project} label="PRs 전체">
+      <PanelHeader project={project} label="PR 전체">
         <ActionButton variant="ghost" iconOnly title="새로고침" aria-label="새로고침" disabled={loading} onClick={load}><Icon name="refresh" size={14} /></ActionButton>
       </PanelHeader>
       <div className="gh-body">

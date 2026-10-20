@@ -138,6 +138,7 @@ export function KnowledgeGraph({ project }) {
   const [display, setDisplay]       = useState(DEFAULT_DISPLAY);
   const [counts, setCounts]         = useState({ nodes: 0, edges: 0 });
   const [notice, setNotice]         = useState("");
+  const [placed, setPlaced]         = useState(false);  // 첫 배치가 끝났는지
 
   const projectId = project?.id;
 
@@ -176,6 +177,7 @@ export function KnowledgeGraph({ project }) {
       }
 
       const elements = toCytoscapeElements(graph);
+      setPlaced(false);
 
       cy = cytoscape({
         container: containerRef.current,
@@ -187,8 +189,11 @@ export function KnowledgeGraph({ project }) {
         textureOnViewport: true,
         motionBlur: false,
         style: baseStyle(DEFAULT_DISPLAY),
-        layout: fcoseLayout(elements.length),
+        // 첫 배치는 계산이 몇 초 걸린다. 그동안 노드가 왼쪽 위에 뭉쳐 보이지 않게
+        // 애니메이션 없이 끝난 결과만 보여 준다.
+        layout: { ...fcoseLayout(elements.length), animate: false },
       });
+      cy.one("layoutstop", () => { if (!disposed) setPlaced(true); });
 
       cy.on("tap", "node", (evt) => {
         const node = evt.target;
@@ -346,9 +351,10 @@ export function KnowledgeGraph({ project }) {
             "linear-gradient(rgba(13,13,13,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(13,13,13,.05) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
         }}>
-          <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+          <div ref={containerRef} style={{ position: "absolute", inset: 0, opacity: placed || !graph?.nodes?.length ? 1 : 0, transition: "opacity .25s" }} />
 
           {loading && <Overlay>그래프를 계산하는 중…</Overlay>}
+          {!loading && !error && graph?.nodes?.length > 0 && !placed && <Overlay>관계를 배치하는 중…</Overlay>}
           {error && <Overlay tone="error">{error}</Overlay>}
           {!loading && !error && graph && !graph.nodes?.length && (
             <Overlay>

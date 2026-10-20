@@ -216,6 +216,22 @@ export async function fetchProjectArtifacts(projectId) {
    Artifact 배열로 project 객체 보강
    artifactType: PRD | DB_SCHEMA | API_SPEC | FEATURE_LIST | MARKET_RESEARCH | QA_REPORT
 ══════════════════════════════════════ */
+/* AI가 기능 설명 끝에 "(API: Registry apiContract 없음, DB: …)" 같은 내부 메모를 붙인 문서가 있다.
+   사용자에게 보일 이유가 없으므로 읽을 때 걷어낸다. 이 문서를 다시 저장하면 메모 없이 저장된다. */
+const INTERNAL_NOTE_RE = /\s*[([][^()[\]]*(?:Registry|apiContract|dbContract|foreignKeys|featureId)[^()[\]]*[)\]]/g;
+const stripNotes = (text) => (typeof text === "string" ? text.replace(INTERNAL_NOTE_RE, "").trim() : text);
+function cleanPrdNotes(prd) {
+  if (!prd || !Array.isArray(prd.coreFeatures)) return prd;
+  return {
+    ...prd,
+    coreFeatures: prd.coreFeatures.map((f) => (f && typeof f === "object" ? {
+      ...f,
+      description: stripNotes(f.description),
+      ...(Array.isArray(f.requirements) ? { requirements: f.requirements.map(stripNotes) } : {}),
+    } : f)),
+  };
+}
+
 export function enrichProjectWithArtifacts(project, artifacts) {
   const map = {};
   const idMap = {};
@@ -242,7 +258,7 @@ export function enrichProjectWithArtifacts(project, artifacts) {
 
   return {
     ...project,
-    prdDocument:    tryParse(map["PRD"])              ?? project.prdDocument    ?? null,
+    prdDocument:    cleanPrdNotes(tryParse(map["PRD"]) ?? project.prdDocument ?? null),
     dbSchema:       tryParse(map["DB_SCHEMA"])        ?? project.dbSchema       ?? null,
     apiSpec:        tryParse(map["API_SPEC"])         ?? project.apiSpec        ?? null,
     // Feature Spec은 설명·요구사항·계약을 가진 상세 기능 객체다.

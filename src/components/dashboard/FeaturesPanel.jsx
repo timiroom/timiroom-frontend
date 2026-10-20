@@ -692,7 +692,7 @@ function FeaturePlanningCard({
               }}>{roleLabel(role)}</span>
             ))}
             {missingRoles.length > 0 && (
-              <span style={{ color: "#b45309", fontSize: 10 }}>연결 레포 필요: {missingRoles.join(", ")}</span>
+              <span style={{ color: "#b45309", fontSize: 11 }}>연결 레포 필요: {missingRoles.join(", ")}</span>
             )}
           </div>
         </div>
@@ -703,26 +703,27 @@ function FeaturePlanningCard({
       <div className="feature-card-body" style={{ padding: "18px 20px 20px", minWidth: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))", gap: 18 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.sub, marginBottom: 7, letterSpacing: ".06em" }}>기능 설명</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, marginBottom: 7, letterSpacing: ".06em" }}>기능 설명</div>
             <textarea
               value={feature.description}
               disabled={!canEdit}
               onChange={event => updateFeature("description", event.target.value)}
               placeholder="이 기능이 해결하는 문제와 동작을 적어주세요."
               rows={4}
+              className="feature-autosize"
               style={{
-                ...scheduleInputStyle, minHeight: 98, resize: "vertical", fontSize: 12,
+                ...scheduleInputStyle, minHeight: 98, maxHeight: 320, resize: "vertical", fontSize: 12,
                 lineHeight: 1.6, padding: "10px 11px",
               }}
             />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 7 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: C.sub, letterSpacing: ".06em" }}>요구사항 {requirements.length}개</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, letterSpacing: ".06em" }}>요구사항 {requirements.length}개</div>
               {canEdit && (
                 <button type="button" onClick={() => updateFeature("requirements", [...requirements, ""])} style={{
                   border: "none", background: "transparent", color: "#2563eb", padding: 0,
-                  fontFamily: "inherit", fontSize: 10, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
                 }}>+ 요구사항</button>
               )}
             </div>
@@ -734,15 +735,18 @@ function FeaturePlanningCard({
                 }}>등록된 요구사항이 없습니다.</div>
               )}
               {requirements.map((requirement, requirementIndex) => (
-                <div key={`${feature.featureKey}-requirement-${requirementIndex}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#16a34a", fontSize: 12, fontWeight: 800 }}>✓</span>
-                  <input
+                <div key={`${feature.featureKey}-requirement-${requirementIndex}`} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <span style={{ color: "#16a34a", fontSize: 12, fontWeight: 800, lineHeight: "30px" }}>✓</span>
+                  {/* 긴 요구사항이 한 줄에서 잘리지 않도록 내용 길이만큼 늘어나는 입력칸을 쓴다. */}
+                  <textarea
                     value={requirement}
                     disabled={!canEdit}
-                    onChange={event => updateRequirement(requirementIndex, event.target.value)}
+                    rows={1}
+                    onChange={event => updateRequirement(requirementIndex, event.target.value.replace(/\s*\n\s*/g, " "))}
                     aria-label={`${feature.name} 요구사항 ${requirementIndex + 1}`}
                     placeholder="완료 조건이나 필요한 동작을 입력하세요."
-                    style={{ ...scheduleInputStyle, flex: 1, fontSize: 12 }}
+                    className="feature-autosize"
+                    style={{ ...scheduleInputStyle, flex: 1, fontSize: 12, lineHeight: 1.5, padding: "6px 10px", resize: "none", minHeight: 30 }}
                   />
                   {canEdit && (
                     <button type="button" onClick={() => removeRequirement(requirementIndex)} aria-label="요구사항 삭제" style={{
