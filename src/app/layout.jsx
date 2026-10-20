@@ -23,6 +23,10 @@ export default function RootLayout({ children }) {
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
           crossOrigin="anonymous"
         />
+        {/* 코드·경로·컬럼명용 고정폭 글꼴. 컴퓨터마다 Consolas·Menlo 등으로 달라지지 않게 웹폰트로 불러온다. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
       </head>
       <body>
         <AuthProvider>

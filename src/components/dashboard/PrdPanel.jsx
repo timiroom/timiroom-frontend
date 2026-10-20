@@ -698,7 +698,7 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
 h1{font-size:22px;font-weight:900;margin:0 0 14px}h2{font-size:16px;font-weight:700;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.1)}
 h3{font-size:14px;font-weight:600;margin:20px 0 6px;color:#374151}p{margin:5px 0}ul{padding-left:22px;margin:6px 0}ol{padding-left:24px;margin:6px 0}li{margin:4px 0}
 blockquote{border-left:3px solid var(--text-2);margin:12px 0;padding:10px 16px;background:color-mix(in srgb, var(--text-2) 7%, transparent);color:var(--text-2);border-radius:0 6px 6px 0}
-pre{background:var(--db-bg-elevated);padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}
+pre{background:var(--db-bg-elevated);padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family: var(--font-mono);font-size:12px;white-space:pre-wrap}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
 <div class="doc-header"><div class="title">Product Requirements Document</div><h1>${projectName}</h1><div class="meta">생성일 ${now} · Timiroom AI</div></div>
 ${content}</body></html>`;

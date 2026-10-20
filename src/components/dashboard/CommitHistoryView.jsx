@@ -352,7 +352,7 @@ function GithubCommitItem({ commit, isLatest }) {
         <span style={{ fontSize: 11, color: C.sub, flexShrink: 0 }}>{time}</span>
       </div>
       <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8, background: "rgba(0,0,0,0.04)", borderRadius: 999, padding: "4px 8px" }}>
-        <span style={{ fontSize: 10, color: C.sub, fontFamily: "monospace" }}>{String(commit.sha ?? "").slice(0, 7)}</span>
+        <span style={{ fontSize: 10, color: C.sub, fontFamily: "var(--font-mono)" }}>{String(commit.sha ?? "").slice(0, 7)}</span>
       </div>
     </>
   );

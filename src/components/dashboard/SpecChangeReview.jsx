@@ -212,13 +212,13 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       .review-gate { flex-basis:100%; margin:0; font-size:13px; color:var(--text-2); }
       .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
       .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }
-      .review-field { margin:12px 0 18px; } .review-key { margin:0 0 6px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--text-1); }
+      .review-field { margin:12px 0 18px; } .review-key { margin:0 0 6px; font-family: var(--font-mono); font-size:12px; color:var(--text-1); }
       .review-before { background:color-mix(in srgb, var(--db-red) 4%, white); } .review-after { background:color-mix(in srgb, var(--db-green) 5%, white); }
       .review-before, .review-after { font-family:inherit; font-size:13px; }
       .review-full { margin-top:10px; font-size:13px; } .review-full summary { cursor:pointer; color:var(--text-2); }
       .review-pass { color:#0f7a53; } .review-note { color:var(--text-2); } .review-error { color:#b4413f; } .scope { display:inline-flex; align-items:center; gap:6px; margin:10px 18px 10px 0; font-size:13px; }
       fieldset { border:1px solid var(--border); border-radius:8px; } legend { font-size:13px; }
-      .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family:monospace; border:1px solid var(--border-2); border-radius:8px; }
+      .correction { display:block; margin:16px 0; font-size:13px; } textarea { display:block; width:100%; box-sizing:border-box; padding:12px; margin-top:8px; font-family: var(--font-mono); border:1px solid var(--border-2); border-radius:8px; }
       @media(max-width:700px) { .review-backdrop { padding:8px; } .review-columns { grid-template-columns:1fr; } header,footer,.review-body { padding:16px; } h2 { font-size:19px; } }
     `}</style>
   </div>;
