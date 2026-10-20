@@ -88,7 +88,12 @@ export function AiKeySettings() {
 
   return (
     <>
-      <SettingsHeader eyebrow="내 계정" title="내 AI 키" meta={<span>내 키로 쓰면 사용량 한도에 포함되지 않습니다.</span>} />
+      <SettingsHeader eyebrow="내 계정" title="내 AI 키" meta={<span>켜 둔 키로 쓴 만큼은 사용량 한도에 포함되지 않습니다.</span>} />
+      <p className="aikey-scope">
+        키를 켜 두면 <strong>AI 채팅, AI 문서 수정, 새 프로젝트 만들기와 문서 생성, QA 시나리오</strong>가 이 키로 돌아갑니다.
+        변경안 생성·문서 교차검증·PR 정합성 검사는 검사 결과를 일정하게 유지하려고 티미룸 AI로 돌고, 사용량 한도에 포함됩니다.
+        키를 끄면 바로 티미룸 AI와 고른 AI 품질로 돌아갑니다.
+      </p>
       {error && <div className="gh-error" role="alert">{error}</div>}
 
       <SettingsSection title="연결된 키">
