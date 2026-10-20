@@ -6,6 +6,7 @@ import { tint } from "@/lib/color";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { ConsistencyBadge } from "./ConsistencyBadge";
+import { ErdDiagram } from "./ErdDiagram";
 import { updateArtifact } from "@/lib/pipelineApi";
 
 const C = {
@@ -264,6 +265,14 @@ function normConstraints(raw = "") {
     .trim();
 }
 
+/* ── FK 참조 대상 ──
+   "FOREIGN_KEY REFERENCES users(id)"에서 users/id를 꺼낸다. AI가 REFERENCES를 두 번 쓰는
+   경우가 있어 한 번 더 건너뛴다 — 이게 없으면 "REFERENCES" 테이블이 없다는 가짜 경고가 뜬다. */
+function fkTarget(constraints = "") {
+  const m = String(constraints).match(/REFERENCES\s+(?:REFERENCES\s+)?([A-Za-z_][\w.]*)\s*(?:\(\s*(\w+)\s*\))?/i);
+  return m ? { table: m[1], column: m[2] || "id" } : null;
+}
+
 /* ── 컬럼 역할 판별 ── */
 function colRole(constraints = "") {
   const u = normConstraints(constraints);
@@ -336,9 +345,9 @@ function validateSchema(schema) {
 
     t.columns.forEach(c => {
       if (colRole(c.constraints) === "fk") {
-        const ref = (c.constraints || "").match(/references?\s+(\w+)/i);
-        if (ref && !tableNames.has(ref[1])) {
-          warnings.push({ type: "broken-fk", msg: `${t.name}.${c.name}: FK 참조 테이블 "${ref[1]}"이 없습니다` });
+        const ref = fkTarget(c.constraints);
+        if (ref && !tableNames.has(ref.table)) {
+          warnings.push({ type: "broken-fk", msg: `${t.name}.${c.name}: FK 참조 테이블 "${ref.table}"이 없습니다` });
         }
       }
     });
@@ -361,6 +370,36 @@ function parseRel(rel = "") {
   if (m) return { from: m[1].trim(), card: m[2].trim(), to: m[3].trim() };
   return { from: rel.trim(), card: null, to: null };
 }
+
+/* ── 부모 → 자식 관계 목록 ──
+   relationships 문자열과 컬럼 FK를 합친다. "N:1"은 앞쪽이 자식이므로 뒤집는다.
+   columns에는 자식 쪽 FK 컬럼 이름이 담긴다(관계도에서 선을 이을 줄). */
+function buildEdges(schema) {
+  const map = new Map();
+  const get = (parent, child) => {
+    const key = `${parent}->${child}`;
+    if (!map.has(key)) map.set(key, { parent, child, card: null, columns: [], index: [] });
+    return map.get(key);
+  };
+  (schema?.relationships || []).forEach((rel, i) => {
+    const { from, card, to } = parseRel(rel);
+    if (!card || !to) return;
+    const flip = /^N:1$/i.test(card);
+    const e = get(flip ? to : from, flip ? from : to);
+    e.card = flip ? "1:N" : card;
+    e.index.push(i);
+  });
+  (schema?.tables || []).forEach(t => {
+    (t.columns || []).forEach(c => {
+      if (colRole(c.constraints) !== "fk") return;
+      const ref = fkTarget(c.constraints);
+      if (ref && ref.table !== t.name) get(ref.table, t.name).columns.push(c.name);
+    });
+  });
+  return [...map.values()];
+}
+
+const roleOfColumn = (col) => colRole(col.constraints);
 
 /* ── 관계 테이블명 치환 (rename 시 사용) ── */
 function replaceTableInRelationships(relationships, oldName, newName) {
@@ -811,8 +850,21 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
 /* ══════════════════════════════════════
    테이블 카드 (편집/삭제 버튼 포함)
 ══════════════════════════════════════ */
-function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
+function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete, focusToken, parents = [], childTables = [], onJump }) {
   const [open, setOpen] = useState(defaultOpen);
+  const rootRef = useRef(null);
+
+  // 전체 펼치기/접기를 누르면 카드도 따라간다.
+  useEffect(() => { setOpen(defaultOpen); }, [defaultOpen]);
+
+  // 관계도나 관계 목록에서 이 테이블을 고르면 펼쳐서 보여 준다.
+  useEffect(() => {
+    if (!focusToken) return;
+    setOpen(true);
+    // 목록이 막 그려진 직후라 카드들이 펼쳐지며 높이가 바뀐다. 자리가 잡힌 뒤 이동한다.
+    const timer = setTimeout(() => rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    return () => clearTimeout(timer);
+  }, [focusToken]);
 
   const pkCols = (table.columns || []).filter(c => colRole(c.constraints) === "pk");
   const fkCount = (table.columns || []).filter(c => colRole(c.constraints) === "fk").length;
@@ -820,7 +872,8 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
   if (!pkCols.length && table.columns?.length > 0) warnings.push("PK 없음");
 
   return (
-    <div style={{
+    <div ref={rootRef} className={`erd-table${focusToken ? " is-focus" : ""}`} style={{
+      scrollMarginTop: 12,
       borderRadius: 12,
       border: `1px solid ${open ? "color-mix(in srgb, var(--text-2) 18%, transparent)" : C.border}`,
       background: C.card,
@@ -901,6 +954,28 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
           </div>
         )}
       </div>
+
+      {open && (table.description || parents.length > 0 || childTables.length > 0) && (
+        <div className="erd-table__meta">
+          {table.description && <p className="erd-table__desc">{table.description}</p>}
+          {(parents.length > 0 || childTables.length > 0) && (
+            <div className="erd-table__links">
+              {parents.length > 0 && (
+                <span className="erd-table__link-group">
+                  <span className="erd-table__link-label">참조</span>
+                  {parents.map(n => <button key={n} type="button" className="erd-link" onClick={() => onJump?.(n)}>{n}</button>)}
+                </span>
+              )}
+              {childTables.length > 0 && (
+                <span className="erd-table__link-group">
+                  <span className="erd-table__link-label">참조됨</span>
+                  {childTables.map(n => <button key={n} type="button" className="erd-link" onClick={() => onJump?.(n)}>{n}</button>)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 컬럼 목록 */}
       {open && (
@@ -991,9 +1066,23 @@ function cardColor(card = "") {
   return { bg: "color-mix(in srgb, var(--text-2) 8%, transparent)", bd: "color-mix(in srgb, var(--text-2) 20%, transparent)", c: "var(--text-2)" };
 }
 
-function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete }) {
-  const [collapsed,   setCollapsed]   = useState(false);
-  const [hoveredIdx,  setHoveredIdx]  = useState(null);
+function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete, onJump }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const list = useMemo(() => relationships || [], [relationships]);
+
+  // 같은 출발 테이블끼리 한 줄로 묶는다. 23개 관계가 23줄이 되면 테이블까지 한참 내려가야 한다.
+  const groups = useMemo(() => {
+    const map = new Map();
+    const loose = [];
+    list.forEach((rel, i) => {
+      const { from, card, to } = parseRel(rel);
+      if (!card || !to) { loose.push({ rel, i }); return; }
+      if (!map.has(from)) map.set(from, []);
+      map.get(from).push({ to, card, i });
+    });
+    const rows = [...map.entries()].sort((x, y) => y[1].length - x[1].length || x[0].localeCompare(y[0]));
+    return { rows, loose };
+  }, [list]);
 
   return (
     <div style={{
@@ -1001,34 +1090,26 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
       background: C.card, marginBottom: 16, overflow: "hidden",
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
     }}>
-      {/* 헤더 */}
       <div style={{ display: "flex", alignItems: "center" }}>
         <button
           onClick={() => setCollapsed(v => !v)}
+          aria-expanded={!collapsed}
           style={{
             flex: 1, display: "flex", alignItems: "center", gap: 10,
             padding: "12px 16px", background: "none", border: "none",
-            cursor: "pointer", textAlign: "left",
+            cursor: "pointer", textAlign: "left", fontFamily: "inherit",
             borderBottom: collapsed ? "none" : `1px solid ${C.border}`,
           }}
         >
           <div style={{
             width: 28, height: 28, borderRadius: 7, flexShrink: 0,
             background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 18%, transparent)",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
-          }}>⟷</div>
+            display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)",
+          }}><Icon name="link" size={14} /></div>
           <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>테이블 관계</span>
-          <div className="erd-rel-legend" style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {["1:1","1:N","N:M"].map(k => {
-              const { bg, bd, c } = cardColor(k);
-              return (
-                <span key={k} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: bg, border: `1px solid ${bd}`, color: c, fontWeight: 700 }}>{k}</span>
-              );
-            })}
-            <span style={{ fontSize: 10, color: C.muted, padding: "2px 8px", borderRadius: 10, background: "rgba(0,0,0,0.04)", fontWeight: 500 }}>
-              {(relationships || []).length}개
-            </span>
-          </div>
+          <span style={{ fontSize: 11, color: C.muted, padding: "2px 8px", borderRadius: 10, background: "rgba(0,0,0,0.04)", fontWeight: 600 }}>
+            {groups.rows.length}개 테이블 · {list.length}개 관계
+          </span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
             stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"
             style={{ flexShrink: 0, transition: "transform 0.15s", transform: collapsed ? "rotate(0deg)" : "rotate(180deg)" }}>
@@ -1041,66 +1122,42 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
       </div>
 
       {!collapsed && (
-        <div style={{ padding: "8px 16px 14px" }}>
-          {!(relationships || []).length && (
-            <div style={{ fontSize: 12, color: C.sub, padding: "4px 0" }}>관계 정보 없음</div>
-          )}
-          {(relationships || []).map((rel, i) => {
-            const { from, card, to } = parseRel(rel);
-            const cs      = cardColor(card || "");
-            const isHover = hoveredIdx === i;
-            return (
-              <div
-                key={i}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
-                className="erd-rel-row"
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 6px", borderRadius: 6,
-                  borderBottom: i < relationships.length - 1 ? `1px solid ${C.border}` : "none",
-                  background: isHover ? "rgba(0,0,0,0.025)" : "transparent",
-                  transition: "background 0.1s",
-                }}
-              >
-                {card ? (
-                  <>
-                    <code style={{
-                      fontSize: 12, fontWeight: 600, color: C.text,
-                      fontFamily: "var(--font-mono)", background: C.codeBg,
-                      padding: "2px 7px", borderRadius: 4,
-                    }}>{from}</code>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-                      background: cs.bg, border: `1px solid ${cs.bd}`, color: cs.c,
-                      whiteSpace: "nowrap",
-                    }}>{card}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2">
-                      <path d="M5 12h14M13 6l6 6-6 6"/>
-                    </svg>
-                    <code style={{
-                      fontSize: 12, fontWeight: 600, color: C.text,
-                      fontFamily: "var(--font-mono)", background: C.codeBg,
-                      padding: "2px 7px", borderRadius: 4, flex: 1,
-                    }}>{to}</code>
-                  </>
-                ) : (
-                  <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, flex: 1 }}>{rel}</span>
-                )}
-                {canEdit && (
-                  <div className="erd-rel-actions" style={{
-                    display: "flex", gap: 4, flexShrink: 0,
-                    opacity: isHover ? 1 : 0,
-                    transition: "opacity 0.15s",
-                    pointerEvents: isHover ? "auto" : "none",
-                  }}>
-                    <ActionButton size="sm" iconOnly onClick={() => onEdit(i)} title="관계 편집" aria-label="관계 편집"><Icon name="pencil" size={12} /></ActionButton>
-                    <ActionButton size="sm" iconOnly variant="danger" onClick={() => onDelete(i)} title="관계 삭제" aria-label="관계 삭제"><Icon name="trash" size={12} /></ActionButton>
-                  </div>
-                )}
+        <div className="erd-rel-groups">
+          {!list.length && <div style={{ fontSize: 12, color: C.sub, padding: "12px 0" }}>관계 정보 없음</div>}
+          {groups.rows.map(([from, items]) => (
+            <div key={from} className="erd-rel-group">
+              <button type="button" className="erd-link erd-link--strong" onClick={() => onJump?.(from)}>{from}</button>
+              <span className="erd-rel-group__arrow" aria-hidden="true">→</span>
+              <div className="erd-rel-group__targets">
+                {items.map(({ to, card, i }) => {
+                  const cs = cardColor(card);
+                  return (
+                    <span key={i} className="erd-rel-chip">
+                      <span className="erd-rel-chip__card" style={{ background: cs.bg, color: cs.c }}>{card}</span>
+                      <button type="button" className="erd-rel-chip__name" onClick={() => onJump?.(to)}>{to}</button>
+                      {canEdit && (
+                        <span className="erd-rel-chip__actions">
+                          <button type="button" onClick={() => onEdit(i)} aria-label={`${from} → ${to} 관계 편집`} title="편집"><Icon name="pencil" size={11} /></button>
+                          <button type="button" onClick={() => onDelete(i)} aria-label={`${from} → ${to} 관계 삭제`} title="삭제" className="is-danger"><Icon name="trash" size={11} /></button>
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
+          {groups.loose.map(({ rel, i }) => (
+            <div key={`loose-${i}`} className="erd-rel-group">
+              <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>{rel}</span>
+              {canEdit && (
+                <span className="erd-rel-chip__actions is-visible">
+                  <button type="button" onClick={() => onEdit(i)} aria-label="관계 편집" title="편집"><Icon name="pencil" size={11} /></button>
+                  <button type="button" onClick={() => onDelete(i)} aria-label="관계 삭제" title="삭제" className="is-danger"><Icon name="trash" size={11} /></button>
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1154,13 +1211,18 @@ function schemaToSql(schema) {
       if (u.includes("AUTO_INCREMENT")) tokens.push("AUTO_INCREMENT");
       const defMatch = u.match(/DEFAULT\s+(\S+)/);
       if (defMatch) tokens.push(`DEFAULT ${defMatch[1]}`);
-      const comment = isFk ? "  -- FK" : "";
+      const ref = isFk ? fkTarget(col.constraints) : null;
+      if (ref) tokens.push(`REFERENCES ${ref.table}(${ref.column})`);
       const comma = ci < cols.length - 1 ? "," : "";
-      lines.push(`  ${tokens.join(" ")}${comma}${comment}`);
+      lines.push(`  ${tokens.join(" ")}${comma}`);
     });
     lines.push(");");
     (table.indexes || []).forEach(idx => {
-      lines.push(`CREATE INDEX ${idx} ON ${table.name};`);
+      const text = String(idx).trim().replace(/;$/, "");
+      // AI는 "INDEX idx ON t(col)" 형태로 주므로 앞에 CREATE만 붙인다.
+      if (/^(UNIQUE\s+)?INDEX\s/i.test(text)) lines.push(`CREATE ${text};`);
+      else if (/^CREATE\s/i.test(text)) lines.push(`${text};`);
+      else lines.push(`-- ${text}`);
     });
   });
   if (schema.relationships?.length) {
@@ -1181,6 +1243,12 @@ function SqlModal({ sql, onClose }) {
     }
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   }, [sql]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div onClick={onClose} style={{
@@ -1248,8 +1316,24 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
   const [editingRelationship, setEditingRelationship] = useState(null); // null | { idx: number|"new", raw: string|null }
   const [opSaving,            setOpSaving]            = useState(false);
   const [saved,               setSaved]               = useState(false);
+  const [mode,                setMode]                = useState("diagram"); // diagram | list
+  const [focus,               setFocus]               = useState(null);      // { name, token }
 
   useEffect(() => { setLocalSchema(null); }, [project?.id]);
+
+  // 보던 방식(관계도/목록)은 다음에 열 때도 유지한다.
+  useEffect(() => {
+    try { const v = localStorage.getItem("timiroom.erdMode"); if (v === "list" || v === "diagram") setMode(v); } catch {}
+  }, []);
+  function changeMode(next) {
+    setMode(next);
+    try { localStorage.setItem("timiroom.erdMode", next); } catch {}
+  }
+  function jumpToTable(name) {
+    setSearch("");
+    changeMode("list");
+    setFocus({ name, token: Date.now() });
+  }
 
   const schema = useMemo(() => {
     const s = localSchema ?? project?.dbSchema;
@@ -1415,6 +1499,17 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
   }, [schema, search]);
 
   const tableNames     = useMemo(() => (schema?.tables || []).map(t => t.name), [schema]);
+  const edges          = useMemo(() => buildEdges(schema), [schema]);
+  const linksOf        = useMemo(() => {
+    const m = new Map();
+    const at = (n) => { if (!m.has(n)) m.set(n, { parents: [], children: [] }); return m.get(n); };
+    edges.forEach(e => {
+      if (e.parent === e.child) return;
+      at(e.child).parents.push(e.parent);
+      at(e.parent).children.push(e.child);
+    });
+    return m;
+  }, [edges]);
   const currentContent = useMemo(() => schemaToText(schema), [schema]);
   const sqlCode        = useMemo(() => schemaToSql(schema),  [schema]);
 
@@ -1463,7 +1558,9 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
           {schema && (
             <>
               <ActionButton onClick={() => setShowSql(true)}><Icon name="code" size={12} /> SQL 보기</ActionButton>
-              <ActionButton onClick={() => setExpandAll(v => v === true ? false : true)}>{expandAll === false ? "전체 펼치기" : "전체 접기"}</ActionButton>
+              {mode === "list" && (
+                <ActionButton onClick={() => setExpandAll(v => v === true ? false : true)}>{expandAll === true ? "전체 접기" : "전체 펼치기"}</ActionButton>
+              )}
             </>
           )}
           {canEdit && (
@@ -1473,8 +1570,13 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
 
         {/* 검색 */}
         {schema && (
-          <PanelToolbar>
-            <SearchInput value={search} onChange={setSearch} placeholder="테이블·컬럼 검색" />
+          <PanelToolbar end={
+            <div className="erd-mode" role="tablist" aria-label="보기 방식">
+              <button type="button" role="tab" aria-selected={mode === "diagram"} className={`ui-chip${mode === "diagram" ? " is-active" : ""}`} onClick={() => changeMode("diagram")}><Icon name="graph" size={12} /> 관계도</button>
+              <button type="button" role="tab" aria-selected={mode === "list"} className={`ui-chip${mode === "list" ? " is-active" : ""}`} onClick={() => changeMode("list")}><Icon name="list" size={12} /> 목록</button>
+            </div>
+          }>
+            <SearchInput value={search} onChange={(v) => { setSearch(v); if (v) changeMode("list"); }} placeholder="테이블·컬럼 검색" />
           </PanelToolbar>
         )}
 
@@ -1486,6 +1588,9 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
             <div className="panel-inner">
               <WarningBanner warnings={warnings} />
               {!search && <SchemaSummary schema={schema} />}
+              {mode === "diagram" && !search ? (
+                <ErdDiagram tables={schema.tables} edges={edges} roleOf={roleOfColumn} onSelect={jumpToTable} />
+              ) : (<>
               {!search && (
                 <RelationshipsSection
                   relationships={schema.relationships}
@@ -1493,6 +1598,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
                   onAdd={handleOpenAddRelationship}
                   onEdit={handleOpenEditRelationship}
                   onDelete={handleDeleteRelationship}
+                  onJump={jumpToTable}
                 />
               )}
               {filteredTables.length > 0
@@ -1504,6 +1610,10 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
                       canEdit={canEdit}
                       onEdit={handleEditTable}
                       onDelete={handleDeleteTable}
+                      focusToken={focus?.name === t.name ? focus.token : null}
+                      parents={linksOf.get(t.name)?.parents || []}
+                      childTables={linksOf.get(t.name)?.children || []}
+                      onJump={jumpToTable}
                     />
                   ))
                 : schema && search && (
@@ -1512,6 +1622,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
                   </div>
                 )
               }
+              </>)}
             </div>
           )}
         </div>
