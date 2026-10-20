@@ -28,6 +28,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test connection handoff
+        run: npm test
+
       - name: Build
         # NEXT_PUBLIC_* 는 넣지 않는다. 빌드 시점에 값이 박히는 변수라
         # 여기에 운영 주소를 적어 두면 실제 배포 인자와 어긋났을 때

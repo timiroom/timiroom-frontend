@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/ui";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -256,7 +257,7 @@ export function WorkspaceInviteLanding({ inviteCode }) {
                 minHeight: 300,
                 gap: 14,
               }}>
-                <div style={{ fontSize: 40 }}>⚠️</div>
+                <Icon name="warning" size={34} strokeWidth={1.6} style={{ color: "var(--text-2)" }} />
                 <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.03em" }}>
                   초대 링크를 찾을 수 없습니다
                 </div>

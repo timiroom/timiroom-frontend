@@ -1,14 +1,11 @@
-import { RAG_PIPELINE_URL } from "@/lib/authConfig";
+import { aiFetch } from "@/lib/aiGateway";
 
-const BASE = `${RAG_PIPELINE_URL}/api/v1/recommendation`;
+// 추천은 백엔드 AI 게이트웨이를 거친다(사용량 한도·기록). 실패하면 null을 돌려 화면이 추천 없이 진행한다.
+const BASE = "/recommendations";
 
-async function postJson(url, body) {
+async function postJson(path, body) {
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await aiFetch(path, { body });
     if (!res.ok) return null;
     const json = await res.json();
     return json.data ?? json;

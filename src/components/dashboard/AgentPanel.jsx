@@ -13,42 +13,58 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
+import { fetchModelTier } from "@/lib/usageApi";
+import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
 
-/* 모델은 EXAONE 하나로 고정 — API 키는 pipeline_py가 들고 있어
-   사용자가 프로바이더나 키를 설정할 필요가 없다 */
-const MODEL_LABEL = "EXAONE";
+/* 실제 모델은 사용자가 설정에서 고른 AI 품질(빠름·균형·정밀)과 서버 설정으로 정해진다.
+   모델 이름은 바뀔 수 있어 화면에는 고른 품질만 보여 준다. */
+function useTierLabel() {
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    let active = true;
+    fetchModelTier()
+      .then((data) => {
+        const tier = data?.effectiveTier ?? data?.tier;
+        const found = data?.options?.find((option) => option.tier === tier);
+        if (active && found?.label) setLabel(`AI 품질 · ${found.label}`);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  return label;
+}
 
 /* ══════════════════════════════════════
    디자인 토큰
 ══════════════════════════════════════ */
 const C = {
   bg:         "var(--surface)",
-  topbar:     "#f7f6f3",
+  topbar:     "var(--bg)",
   border:     "rgba(0,0,0,0.07)",
-  text:       "#1a1916",
+  text:       "var(--text-1)",
   muted:      "var(--text-3)",
   subtle:     "var(--text-2)",
   userBg:     "var(--bg)",
   inputBg:    "var(--bg)",
   inputBdr:   "rgba(0,0,0,0.10)",
   hover:      "rgba(0,0,0,0.05)",
-  accent:     "#6b6960",
-  accentBg:   "rgba(26,25,22,0.14)",
-  accentBdr:  "rgba(26,25,22,0.28)",
+  accent:     "var(--text-2)",
+  accentBg:   "color-mix(in srgb, var(--text-1) 14%, transparent)",
+  accentBdr:  "color-mix(in srgb, var(--text-1) 28%, transparent)",
   sendBg:     "var(--text-1)",
   sendHover:  "var(--text-2)",
 };
 
 const MAX_W = 680;
 
-/* ── 프리셋 제안 프롬프트 ── */
+/* ── 프리셋 제안 프롬프트 (icon은 ui/Icon 이름) ── */
 const SUGGESTIONS = [
-  { icon: "✏️", text: "PRD 초안을 작성해줘" },
-  { icon: "🔌", text: "API 엔드포인트 설계 검토해줘" },
-  { icon: "🗄️", text: "DB 스키마 개선점 알려줘" },
-  { icon: "🧪", text: "QA 테스트 케이스 만들어줘" },
-  { icon: "🕸", text: "정합성 이슈 분석해줘" },
-  { icon: "📐", text: "아키텍처 리뷰 해줘" },
+  { icon: "doc", text: "PRD 초안을 작성해줘" },
+  { icon: "code", text: "API 엔드포인트 설계 검토해줘" },
+  { icon: "database", text: "DB 스키마 개선점 알려줘" },
+  { icon: "checklist", text: "QA 테스트 케이스 만들어줘" },
+  { icon: "graph", text: "정합성 이슈 분석해줘" },
+  { icon: "box", text: "아키텍처 리뷰 해줘" },
 ];
 
 /* ── 시간 포맷 ── */
@@ -126,7 +142,7 @@ function MessageBubble({ msg }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 13, fontWeight: 900, color: "var(--bg)",
         flexShrink: 0, marginTop: 2,
-        boxShadow: "0 2px 8px rgba(26,25,22,0.3)",
+        boxShadow: "0 2px 8px color-mix(in srgb, var(--text-1) 30%, transparent)",
       }}>A</div>
 
       {/* 텍스트 */}
@@ -266,12 +282,13 @@ export function AgentPanel({ project, view }) {
     }
   };
 
+  const tierLabel = useTierLabel();
   const isEmpty = messages.length === 0 && !isLoading;
 
   return (
     <div style={{
       flex: 1, display: "flex", flexDirection: "column",
-      height: "100vh", background: C.bg, overflow: "hidden",
+      height: "100vh", background: "var(--content-bg)", overflow: "hidden",
       position: "relative",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
@@ -280,7 +297,7 @@ export function AgentPanel({ project, view }) {
       <TopBar
         project={project}
         view={view}
-        modelLabel={MODEL_LABEL}
+        modelLabel={tierLabel}
         hasMessages={messages.length > 0}
         onClear={() => { setMessages([]); setStreamText(""); }}
       />
@@ -340,93 +357,16 @@ export function AgentPanel({ project, view }) {
 
 /* ── 상단 바 ── */
 function TopBar({ project, view, modelLabel, hasMessages, onClear }) {
-  const viewLabel = view ? VIEW_LABELS[view] : null;
+  const viewLabel = (view ? VIEW_LABELS[view] : null) ?? "AI 채팅";
   return (
-    <div style={{
-      height: 52, flexShrink: 0,
-      borderBottom: `1px solid ${C.border}`,
-      display: "flex", alignItems: "center",
-      padding: "0 24px",
-      justifyContent: "space-between",
-      background: C.topbar,
-    }}>
-      {/* 왼쪽: 프로젝트명 + 브레드크럼 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {project ? (
-          <>
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `${project.color || "var(--text-1)"}22`,
-              border: `1px solid ${project.color || "var(--text-1)"}44`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-            }}>
-              {(project.name || "P").charAt(0).toUpperCase()}
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-
-            {/* 뷰 브레드크럼 */}
-            {viewLabel && (
-              <>
-                <span style={{ fontSize: 13, color: C.sub }}>›</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 500, color: C.accent,
-                  padding: "2px 8px", borderRadius: 6,
-                  background: "rgba(107,105,96,0.1)",
-                  border: "1px solid rgba(107,105,96,0.2)",
-                }}>
-                  {viewLabel}
-                </span>
-              </>
-            )}
-
-            {modelLabel && (
-              <span style={{
-                fontSize: 11, padding: "2px 8px", borderRadius: 20,
-                background: C.accentBg, border: `1px solid ${C.accentBdr}`,
-                color: C.accent, marginLeft: 2,
-              }}>
-                {modelLabel}
-              </span>
-            )}
-          </>
-        ) : (
-          <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>프로젝트를 선택하세요</span>
-        )}
-      </div>
-
-      {/* 오른쪽: 액션 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {hasMessages && (
-          <TopBarBtn onClick={onClear} title="대화 초기화">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
-            </svg>
-          </TopBarBtn>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TopBarBtn({ onClick, title, children }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick} title={title}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 32, height: 32, borderRadius: 7,
-        background: hovered ? C.hover : "transparent",
-        border: `1px solid ${hovered ? C.border : "transparent"}`,
-        cursor: "pointer", color: hovered ? C.text : C.muted,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.12s",
-      }}
-    >
-      {children}
-    </button>
+    <PanelHeader project={project} label={viewLabel}>
+      {modelLabel && <Badge>{modelLabel}</Badge>}
+      {hasMessages && (
+        <ActionButton variant="ghost" onClick={onClear} title="대화 초기화">
+          <Icon name="refresh" size={13} /> 대화 초기화
+        </ActionButton>
+      )}
+    </PanelHeader>
   );
 }
 
@@ -446,12 +386,12 @@ function EmptyState({ project, onSelectSuggestion }) {
         background: "var(--text-1)",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 24, fontWeight: 900, color: "var(--bg)",
-        boxShadow: "0 8px 28px rgba(26,25,22,0.35)",
+        boxShadow: "0 8px 28px color-mix(in srgb, var(--text-1) 35%, transparent)",
         marginBottom: 20,
       }}>A</div>
 
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: "0 0 8px", textAlign: "center" }}>
-        {project ? `${project.name}에 대해 물어보세요` : "안녕하세요 👋"}
+        {project ? `${project.name}에 대해 물어보세요` : "무엇을 도와드릴까요?"}
       </h2>
       <p style={{ fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 1.65, margin: "0 0 32px" }}>
         {project
@@ -499,7 +439,7 @@ function SuggestionChip({ icon, text, onClick }) {
         fontFamily: "inherit",
       }}
     >
-      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+      <Icon name={icon} size={15} strokeWidth={1.8} style={{ flexShrink: 0, color: "var(--text-3)" }} />
       <span style={{ lineHeight: 1.4 }}>{text}</span>
     </button>
   );
@@ -517,7 +457,7 @@ function ChatInput({ input, setInput, isLoading, onSend, onKeyDown, onInput, tex
       <div style={{
         maxWidth: MAX_W, margin: "0 auto",
         background: C.inputBg,
-        border: `1px solid ${focused ? "rgba(26,25,22,0.35)" : C.inputBdr}`,
+        border: `1px solid ${focused ? "color-mix(in srgb, var(--text-1) 35%, transparent)" : C.inputBdr}`,
         borderRadius: 14,
         transition: "border-color 0.15s",
         overflow: "hidden",
@@ -578,7 +518,7 @@ function SendButton({ onClick, disabled }) {
         border: "none", cursor: disabled ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "background 0.12s",
-        boxShadow: disabled ? "none" : "0 2px 8px rgba(26,25,22,0.3)",
+        boxShadow: disabled ? "none" : "0 2px 8px color-mix(in srgb, var(--text-1) 30%, transparent)",
       }}
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={disabled ? C.muted : "#fff"} strokeWidth="2.2" strokeLinecap="round">

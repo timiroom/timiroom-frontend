@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui";
+
 export function Card({ children, style }) {
   return (
     <div style={{
@@ -35,6 +37,7 @@ export function SectionTitle({ children, subtitle }) {
   );
 }
 
+/** icon은 ui/Icon의 이름(users, warning 등). 선 아이콘으로 그린다. */
 export function EmptyState({ icon, title, desc }) {
   return (
     <div style={{
@@ -42,7 +45,7 @@ export function EmptyState({ icon, title, desc }) {
       padding: "28px 12px",
       color: "var(--text-3)",
     }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
+      {icon && <Icon name={icon} size={26} strokeWidth={1.6} style={{ marginBottom: 8, color: "var(--text-3)" }} />}
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>
         {title}
       </div>

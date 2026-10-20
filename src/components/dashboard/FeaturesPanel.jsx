@@ -11,6 +11,8 @@
  *   3순위: 빈 상태 안내
  */
 
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, Icon, PanelHeader, PanelToolbar, SearchInput } from "@/components/ui";
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
@@ -35,14 +37,14 @@ import {
 
 const C = {
   bg:        "var(--surface)",
-  surface:   "#f7f6f3",
+  surface:   "var(--bg)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   sub:       "var(--text-3)",
-  accent:    "#6b6960",
-  accentBg:  "rgba(107,105,96,0.1)",
-  accentBdr: "rgba(107,105,96,0.25)",
+  accent:    "var(--text-2)",
+  accentBg:  "color-mix(in srgb, var(--text-2) 10%, transparent)",
+  accentBdr: "color-mix(in srgb, var(--text-2) 25%, transparent)",
   card:      "var(--surface)",
 };
 
@@ -183,8 +185,8 @@ const PRIORITY_META = {
 
 function PriorityBadge({ priority }) {
   const meta = PRIORITY_META[priority] || {
-    label: priority || "—", bg: "rgba(107,105,96,0.1)",
-    border: "rgba(107,105,96,0.3)", text: "#6b6960",
+    label: priority || "—", bg: "color-mix(in srgb, var(--text-2) 10%, transparent)",
+    border: "color-mix(in srgb, var(--text-2) 30%, transparent)", text: "var(--text-2)",
   };
   return (
     <span style={{
@@ -225,10 +227,10 @@ function FeatureCard({ feature, index, onUpdate }) {
           onChange={e => update(field, e.target.value)}
           onBlur={() => setEditing(null)}
           style={{
-            width: "100%", resize: "vertical", border: `1px solid rgba(107,105,96,0.3)`,
+            width: "100%", resize: "vertical", border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`,
             borderRadius: 5, padding: "6px 8px", fontSize: style?.fontSize || 13,
             fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
-            background: "rgba(107,105,96,0.04)", outline: "none", color: C.text,
+            background: "color-mix(in srgb, var(--text-2) 4%, transparent)", outline: "none", color: C.text,
           }}
           rows={3}
         />
@@ -242,10 +244,10 @@ function FeatureCard({ feature, index, onUpdate }) {
         onBlur={() => setEditing(null)}
         onKeyDown={e => e.key === "Enter" && setEditing(null)}
         style={{
-          border: `1px solid rgba(107,105,96,0.3)`,
+          border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`,
           borderRadius: 5, padding: "4px 8px",
           fontSize: style?.fontSize || 14, fontWeight: style?.fontWeight || 600,
-          fontFamily: "inherit", background: "rgba(107,105,96,0.04)",
+          fontFamily: "inherit", background: "color-mix(in srgb, var(--text-2) 4%, transparent)",
           outline: "none", color: C.text, width: "100%",
         }}
       />
@@ -255,7 +257,7 @@ function FeatureCard({ feature, index, onUpdate }) {
   return (
     <div style={{
       borderRadius: 10,
-      border: `1px solid ${open ? "rgba(107,105,96,0.2)" : C.border}`,
+      border: `1px solid ${open ? "color-mix(in srgb, var(--text-2) 20%, transparent)" : C.border}`,
       background: open ? C.surface : C.card,
       marginBottom: 8, overflow: "hidden", transition: "all 0.15s",
     }}>
@@ -270,7 +272,7 @@ function FeatureCard({ feature, index, onUpdate }) {
       >
         <span style={{
           width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-          background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.2)",
+          background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 700, color: C.accent,
         }}>
@@ -385,7 +387,7 @@ function SimpleFeatureRow({ name, index, onUpdate }) {
     }}>
       <span style={{
         width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-        background: "rgba(107,105,96,0.1)", border: "1px solid rgba(107,105,96,0.2)",
+        background: "color-mix(in srgb, var(--text-2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 20%, transparent)",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 11, fontWeight: 700, color: C.accent,
       }}>
@@ -399,9 +401,9 @@ function SimpleFeatureRow({ name, index, onUpdate }) {
           onBlur={() => { setEditing(false); onUpdate(index, draft); }}
           onKeyDown={e => { if (e.key === "Enter") { setEditing(false); onUpdate(index, draft); } }}
           style={{
-            flex: 1, border: `1px solid rgba(107,105,96,0.3)`, borderRadius: 5,
+            flex: 1, border: `1px solid color-mix(in srgb, var(--text-2) 30%, transparent)`, borderRadius: 5,
             padding: "3px 8px", fontSize: 14, fontFamily: "inherit",
-            background: "rgba(107,105,96,0.04)", outline: "none", color: C.text,
+            background: "color-mix(in srgb, var(--text-2) 4%, transparent)", outline: "none", color: C.text,
           }}
         />
       ) : (
@@ -658,7 +660,7 @@ function FeaturePlanningCard({
     }}>
       <div className="feature-card-header" style={{
         display: "flex", alignItems: "center", gap: 14, padding: "18px 20px",
-        borderBottom: `1px solid ${C.border}`, background: "linear-gradient(135deg, #fbfcfe 0%, #f7f6f3 100%)",
+        borderBottom: `1px solid ${C.border}`, background: "linear-gradient(135deg, #fbfcfe 0%, var(--bg) 100%)",
       }}>
         <div style={{
           width: 42, height: 42, borderRadius: 12, flexShrink: 0,
@@ -966,7 +968,7 @@ function featuresToText(coreFeatures, simpleList) {
 /* ══════════════════════════════════════
    FEATURES PANEL (exported)
 ══════════════════════════════════════ */
-export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange }) {
+export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
   const { user } = useAuth();
   const [search,          setSearch]          = useState("");
   const [saving,          setSaving]          = useState(false);
@@ -1191,9 +1193,21 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
     await saveProjectDocument(project.id, "FEATURE_LIST", JSON.stringify(features));
   }
 
+  async function proposeFeatures(features, { deferReview = false } = {}) {
+    if (!onProposeDocument) return false;
+    const payload = buildSavePayload(features);
+    if (!payload) throw new Error("저장 대상 문서를 찾을 수 없습니다.");
+    return onProposeDocument({
+      sourceType: project?.artifactIds?.FEATURE_LIST ? "FEATURE_LIST" : "PRD",
+      document: JSON.parse(payload.content),
+      deferReview,
+    });
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
+      if (await proposeFeatures(editedFeatures)) return;
       const updatedIssues = await syncLinkedIssues(editedFeatures);
       await persistFeatures(editedFeatures);
       if (updatedIssues.length > 0) {
@@ -1209,7 +1223,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       onDocumentSaved?.({ sourceType: "FEATURE_LIST", document: editedFeatures });
       markSaved();
     } catch (e) {
-      alert("저장 실패: " + e.message);
+      toast.error("저장 실패: " + e.message);
     } finally {
       setSaving(false);
     }
@@ -1232,6 +1246,8 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       throw new Error("저장 대상 기능 명세서를 찾을 수 없습니다. 파이프라인을 먼저 실행해 주세요.");
     }
 
+    const review = await proposeFeatures(next, { deferReview: true });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
     await updateArtifact(payload.artifactId, payload.content);
     savedFeaturesRef.current = cloneFeatures(next);
     setEditedFeatures(next.map(normalizeFeature));
@@ -1436,98 +1452,25 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
   return (
     <div className="features-panel-shell" style={{
       flex: 1, display: "flex", height: "100vh", overflow: "hidden",
-      background: C.bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
+      background: "var(--content-bg)", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       position: "relative", minWidth: 0, containerType: "inline-size", containerName: "features-panel",
     }}>
       {/* ── 왼쪽: 기능 목록 ── */}
       <div className="features-panel-main" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* 헤더 */}
-        <div className="features-panel-header" style={{
-          height: 52, flexShrink: 0, borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", padding: "0 24px",
-          justifyContent: "space-between", background: C.surface,
-        }}>
-          <div className="features-panel-title" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            {project && (
-              <>
-                <div style={{
-                  width: 22, height: 22, borderRadius: 6,
-                  background: `${project.color || "var(--text-1)"}22`,
-                  border: `1px solid ${project.color || "var(--text-1)"}44`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-                }}>
-                  {(project.name || "P").charAt(0).toUpperCase()}
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{project.name}</span>
-                <span style={{ fontSize: 13, color: C.sub }}>›</span>
-              </>
-            )}
-            <span style={{
-              fontSize: 13, fontWeight: 500, color: "#a78bfa",
-              padding: "2px 8px", borderRadius: 6,
-              background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)",
-            }}>기능 명세서</span>
-            {total > 0 && (
-              <span style={{
-                fontSize: 11, color: C.muted, padding: "2px 8px", borderRadius: 10,
-                background: "rgba(0,0,0,0.05)",
-              }}>{total}개</span>
-            )}
-          </div>
+        <PanelHeader project={project} label="기능 명세서" docType={["FEATURE_SPEC", "FEATURE_LIST"]}>
+          {total > 0 && <Badge>{total}개</Badge>}
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
+          {total > 0 && (
+            <ActionButton variant="primary" onClick={handleSave} disabled={saving || !canSave} title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}>
+              <Icon name="save" size={12} /> {saving ? "저장 중..." : "저장"}
+            </ActionButton>
+          )}
+        </PanelHeader>
 
-          <div className="features-panel-actions" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {saved && (
-              <span style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 5,
-                background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)",
-                color: "#34d399", fontWeight: 600,
-              }}>✓ 저장됨</span>
-            )}
-
-            {/* 저장 버튼 */}
-            {total > 0 && (
-              <button
-                onClick={handleSave}
-                disabled={saving || !canSave}
-                title={!canSave ? "현재 역할에서는 기능 명세를 저장할 수 없습니다" : ""}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                  background: canSave ? "rgba(96,165,250,0.12)" : "rgba(0,0,0,0.04)",
-                  border: `1px solid ${canSave ? "rgba(96,165,250,0.35)" : "rgba(0,0,0,0.08)"}`,
-                  color: canSave ? "#60a5fa" : "#9ca3af",
-                  cursor: saving || !canSave ? "not-allowed" : "pointer",
-                  opacity: saving ? 0.7 : 1, transition: "all 0.15s",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/>
-                  <polyline points="7 3 7 8 15 8"/>
-                </svg>
-                {saving ? "저장 중..." : "저장"}
-              </button>
-            )}
-
-            {/* 검색 */}
-            <div className="features-panel-search" style={{ position: "relative" }}>
-              <svg style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-                width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="기능 검색..."
-                style={{
-                  padding: "7px 12px 7px 28px", width: 200,
-                  background: C.bg, border: `1px solid ${C.border}`,
-                  borderRadius: 8, fontSize: 12, color: C.text, outline: "none",
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        {/* 검색 */}
+        <PanelToolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="기능 검색" />
+        </PanelToolbar>
 
         {/* 본문 */}
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1602,17 +1545,6 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
       />
       <style>{`
         @container features-panel (max-width: 640px) {
-          .features-panel-header {
-            height: auto !important;
-            min-height: 52px;
-            padding: 9px 14px !important;
-            align-items: center !important;
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-          .features-panel-title { flex: 1; overflow: hidden; }
-          .features-panel-title > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          .features-panel-actions { width: 100%; }
           .features-panel-search { flex: 1; min-width: 100px; }
           .features-panel-search input { width: 100% !important; box-sizing: border-box; }
           .features-panel-content { padding: 14px 12px 44px !important; }
@@ -1667,9 +1599,9 @@ function EmptyState() {
         width: 56, height: 56, borderRadius: 16,
         background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)",
         display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-      }}>⚡</div>
+      }}><Icon name="list" size={26} strokeWidth={1.6} /></div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1916", marginBottom: 6 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>
           기능 명세가 없습니다
         </div>
         <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.6 }}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/ui";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
@@ -16,15 +17,15 @@ import { createProject } from "@/lib/projectApi";
    — Collaborative 멀티 에이전트 모드 기준
 ════════════════════════════════════════════ */
 const PIPELINE_STEPS = [
-  { key: "PHASE1",  label: "RAG 준비",    icon: "📚", agents: null },
-  { key: "SEARCH",  label: "시장 조사",    icon: "🔍", agents: null },
-  { key: "PM",      label: "기능 분석",    icon: "📋", agents: null },
-  { key: "PRD",     label: "PRD 작성",    icon: "📝", agents: null },
-  { key: "FEATURE_SPEC", label: "기능명세", icon: "🧩", agents: null },
-  { key: "DBA_API", label: "DB · API 설계", icon: "🔌", agents: "DBA · API 병렬" },
-  { key: "QA",      label: "QA 검수",      icon: "🧪", agents: null },
-  { key: "PHASE3",  label: "최종 검증",    icon: "✅", agents: null },
-  { key: "PHASE4",  label: "결과 저장",    icon: "💾", agents: null },
+  { key: "PHASE1",  label: "RAG 준비",    icon: "database", agents: null },
+  { key: "SEARCH",  label: "시장 조사",    icon: "search", agents: null },
+  { key: "PM",      label: "기능 분석",    icon: "list", agents: null },
+  { key: "PRD",     label: "PRD 작성",    icon: "doc", agents: null },
+  { key: "FEATURE_SPEC", label: "기능명세", icon: "checklist", agents: null },
+  { key: "DBA_API", label: "DB · API 설계", icon: "server", agents: "DBA · API 병렬" },
+  { key: "QA",      label: "QA 검수",      icon: "check", agents: null },
+  { key: "PHASE3",  label: "최종 검증",    icon: "target", agents: null },
+  { key: "PHASE4",  label: "결과 저장",    icon: "save", agents: null },
 ];
 
 const SSE_TO_STEP = {
@@ -114,7 +115,7 @@ function FlowNode({ step, status }) {
             </svg>
           </div>
         )}
-        <span style={{ fontSize: 22, opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s", marginTop: isParallel ? 4 : 0 }}>{step.icon}</span>
+        <Icon name={step.icon} size={20} strokeWidth={1.7} style={{ flexShrink: 0, color: "var(--text-1)", opacity: isDone ? 0.6 : isRunning ? 1 : 0.3, transition: "opacity 0.3s", marginTop: isParallel ? 4 : 0 }} />
         <span style={{ fontSize: 10, fontWeight: 700, textAlign: "center", lineHeight: 1.35, color: isDone ? "var(--text-2)" : isRunning ? "var(--text-1)" : "var(--text-3)", transition: "color 0.3s" }}>{step.label}</span>
         {step.agents && (
           <span style={{
@@ -136,7 +137,7 @@ function FlowNode({ step, status }) {
 /* ═══════════════════════════════════════════
    ProgressScreen
 ════════════════════════════════════════════ */
-export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel, onToggleSidebar }) {
+export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCancel, onLeave, onToggleSidebar }) {
   const [pipelineId,  setPipelineId]  = useState(initialPipelineId);
   const [percent,     setPercent]     = useState(5);
   const [phase,       setPhase]       = useState("running");
@@ -148,6 +149,9 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const [restarting,  setRestarting]  = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [eventLog, setEventLog] = useState([]);
+  // 연결이 잠깐 끊기면 자동으로 다시 붙는다. 생성은 서버에서 계속되므로 끊김을 실패로 보지 않는다.
+  const [reconnecting, setReconnecting] = useState(false);
+  const [connectKey, setConnectKey] = useState(0);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
@@ -165,77 +169,105 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
     setEventLog([]);
     currentKeyRef.current = null;
     doneRef.current = false;
-    const startedAt = Date.now();
+    // 새로고침 뒤 다시 붙으면 서버가 처음 진행 이벤트부터 다시 보낸다. 그 시각을 시작 시각으로 쓴다.
+    let startedAt = Date.now();
     const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
     }, 1000);
 
-    const es = new EventSource(
-      `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
-      { withCredentials: true }
-    );
-    es.addEventListener("progress", (e) => {
-      const d      = JSON.parse(e.data);
-      const newKey = SSE_TO_STEP[d.step];
-      setPercent(d.percent || 0);
-      setEventLog(prev => [
-        ...prev,
-        { step: d.step, message: d.message || "", percent: d.percent || 0 },
-      ].slice(-8));
-      if (newKey && newKey !== currentKeyRef.current) {
-        const prevKey = currentKeyRef.current;
-        currentKeyRef.current = newKey;
+    let source = null;
+    let attempt = 0;
+    let retryTimer = null;
+    let stopped = false;
+
+    const connect = () => {
+      const es = new EventSource(
+        `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
+        { withCredentials: true }
+      );
+      source = es;
+      // 다시 붙으면 서버가 처음부터 진행 이벤트를 다시 보내므로 기록을 비우고 받는다.
+      if (attempt > 0) setEventLog([]);
+      es.addEventListener("progress", (e) => {
+        attempt = 0;
+        setReconnecting(false);
+        const d      = JSON.parse(e.data);
+        const eventAt = d.timestamp ? Date.parse(d.timestamp) : NaN;
+        if (!Number.isNaN(eventAt) && eventAt < startedAt) startedAt = eventAt;
+        const newKey = SSE_TO_STEP[d.step];
+        setPercent(d.percent || 0);
+        setEventLog(prev => [
+          ...prev,
+          { step: d.step, message: d.message || "", percent: d.percent || 0 },
+        ].slice(-8));
+        if (newKey && newKey !== currentKeyRef.current) {
+          const prevKey = currentKeyRef.current;
+          currentKeyRef.current = newKey;
+          setStatuses(prev => {
+            const next = { ...prev };
+            if (prevKey) next[prevKey] = "done";
+            next[newKey] = "running";
+            return next;
+          });
+        }
+      });
+      es.addEventListener("complete", (e) => {
+        doneRef.current = true;
+        setReconnecting(false);
+        const d = JSON.parse(e.data);
+        setPercent(100);
+        setPhase("done");
+        setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
+        es.close();
+        setTimeout(() => onComplete(d.result), 1500);
+      });
+      es.addEventListener("error", (e) => {
+        // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
+        // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
+        if (doneRef.current || !e.data) return;
+        doneRef.current = true;
+        setReconnecting(false);
         setStatuses(prev => {
           const next = { ...prev };
-          if (prevKey) next[prevKey] = "done";
-          next[newKey] = "running";
+          if (currentKeyRef.current) next[currentKeyRef.current] = "error";
           return next;
         });
-      }
-    });
-    es.addEventListener("complete", (e) => {
-      doneRef.current = true;
-      const d = JSON.parse(e.data);
-      setPercent(100);
-      setPhase("done");
-      setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
-      es.close();
-      setTimeout(() => onComplete(d.result), 1500);
-    });
-    es.addEventListener("error", (e) => {
-      // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
-      // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
-      if (doneRef.current || !e.data) return;
-      doneRef.current = true;
-      setStatuses(prev => {
-        const next = { ...prev };
-        if (currentKeyRef.current) next[currentKeyRef.current] = "error";
-        return next;
+        try {
+          const error = JSON.parse(e.data);
+          const details = [
+            ...(error.validationBlockers || []),
+            ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
+            ...Object.values(error.qa?.blockingIssues || {}).flat(),
+          ].filter(Boolean).map(String);
+          setErrMsg(error.message === "타임아웃" ? "생성이 중간에 멈췄습니다. 다시 시도해 주세요." : (error.message || "파이프라인 오류가 발생했습니다"));
+          setErrorDetails([...new Set(details)].slice(0, 12));
+        } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
+        setPhase("error");
+        es.close();
       });
-      try {
-        const error = JSON.parse(e.data);
-        const details = [
-          ...(error.validationBlockers || []),
-          ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
-          ...Object.values(error.qa?.blockingIssues || {}).flat(),
-        ].filter(Boolean).map(String);
-        setErrMsg(error.message || "파이프라인 오류가 발생했습니다");
-        setErrorDetails([...new Set(details)].slice(0, 12));
-      } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
-      setPhase("error");
-      es.close();
-    });
-    es.onerror = () => {
-      if (doneRef.current || es.readyState === EventSource.CLOSED) return;
-      setErrMsg("서버 연결이 끊어졌습니다.");
-      setPhase("error");
-      es.close();
+      es.onerror = () => {
+        if (doneRef.current || stopped) return;
+        es.close();
+        // 연결만 끊긴 경우: 생성은 서버에서 계속된다. 잠시 뒤 다시 붙는다(최대 6번, 점점 길게).
+        if (attempt < 6) {
+          attempt += 1;
+          setReconnecting(true);
+          retryTimer = window.setTimeout(connect, Math.min(15000, 1000 * 2 ** attempt));
+          return;
+        }
+        setReconnecting(false);
+        setPhase("disconnected");
+      };
     };
+    connect();
+
     return () => {
+      stopped = true;
       window.clearInterval(timer);
-      es.close();
+      window.clearTimeout(retryTimer);
+      source?.close();
     };
-  }, [pipelineId, onComplete]);
+  }, [pipelineId, onComplete, connectKey]);
 
   async function handleRestart() {
     setRestarting(true);
@@ -294,7 +326,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                {phase === "done" ? "✅ 생성 완료! 잠시 후 이동합니다..." : phase === "error" ? "❌ 생성 실패" : "파이프라인 실행 중..."}
+                {phase === "done" ? "생성을 마쳤습니다. 잠시 후 이동합니다." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
                 <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{elapsedLabel}</span>
@@ -341,6 +373,28 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                     <span style={{ marginLeft: "auto", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{item.percent}%</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+          {reconnecting && phase === "running" && (
+            <div role="status" style={{ textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
+              연결이 잠시 끊겨 다시 연결하는 중입니다. 생성은 서버에서 계속됩니다.
+            </div>
+          )}
+          {phase === "disconnected" && (
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 14px", fontSize: 13, lineHeight: 1.6, color: "var(--text-2)" }}>
+                서버와 연결이 끊겼습니다. 생성은 서버에서 계속되며, 끝나면 알림으로 알려 드립니다.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button onClick={onLeave ?? onCancel}
+                  style={{ padding: "10px 24px", borderRadius: 8, background: "var(--border)", border: "none", color: "var(--text-2)", fontSize: 13, cursor: "pointer" }}>
+                  나중에 보기
+                </button>
+                <button onClick={() => { setPhase("running"); setConnectKey((k) => k + 1); }}
+                  style={{ padding: "10px 24px", borderRadius: 8, background: "var(--text-1)", border: "none", color: "var(--surface)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  다시 연결
+                </button>
               </div>
             </div>
           )}
@@ -425,7 +479,7 @@ function FileChip({ file, preview, onRemove }) {
           style={{ borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
       ) : (
         <span style={{ fontSize: 14, flexShrink: 0 }}>
-          {ALLOWED_EXTENSIONS[file.type]?.icon ?? "📎"}
+          <Icon name="doc" size={14} />
         </span>
       )}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
@@ -455,7 +509,7 @@ function MessageBubble({ role, content, files }) {
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 8 }}>
       {!isUser && (
-        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", marginRight: 10, alignSelf: "flex-end", boxShadow: "var(--db-glow-sm)" }}>A</div>
       )}
       <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", gap: 6 }}>
         {files && files.length > 0 && (
@@ -537,7 +591,7 @@ function SuggestionChips({ suggestions, onSelect, disabled }) {
 function TypingIndicator() {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16, gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
       <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px 18px 18px 4px", display: "flex", gap: 5, alignItems: "center" }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", animation: `dot-bounce 1.2s ${i * 0.2}s infinite ease-in-out` }}/>
@@ -742,12 +796,14 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               <IconPanelToggle />
             </button>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--db-purple-400)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
-            <span style={{ fontSize: 14 }}>✦</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--text-1)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-1)" }}>
+            <Icon name="plus" size={13} />
             새 프로젝트 만들기
           </div>
         </div>
-        <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", fontSize: 16, cursor: "pointer", padding: "4px 8px", borderRadius: 4 }} title="닫기">✕</button>
+        <button type="button" onClick={onCancel} style={{ display: "flex", background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", padding: 6, borderRadius: 6 }} title="닫기" aria-label="새 프로젝트 만들기 닫기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
       </div>
 
       {sessionError && (
@@ -760,7 +816,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
 
           {messages.length <= 1 && (
             <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>💡</div>
+              <Icon name="chat" size={30} strokeWidth={1.6} style={{ marginBottom: 12, color: "var(--text-2)" }} />
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-1)", marginBottom: 8 }}>
                 어떤 문제를 해결하고 싶으신가요?
               </div>
@@ -791,31 +847,10 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               {currentSuggestions.map((s, i) => (
                 <button
                   key={i}
+                  type="button"
+                  className="wizard-suggestion"
                   onClick={() => sendText(s)}
                   disabled={isLoading || isSubmitting}
-                  style={{
-                    width: "100%", padding: "9px 14px",
-                    borderRadius: 10, textAlign: "left",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.06)",
-                    color: "var(--text-2)",
-                    fontSize: 13, lineHeight: 1.5,
-                    cursor: isLoading || isSubmitting ? "not-allowed" : "pointer",
-                    transition: "all 0.15s",
-                    opacity: isLoading || isSubmitting ? 0.5 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    if (!isLoading && !isSubmitting) {
-                      e.currentTarget.style.borderColor = "rgba(107,85,220,0.45)";
-                      e.currentTarget.style.color = "var(--db-purple-300)";
-                      e.currentTarget.style.background = "rgba(107,85,220,0.1)";
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-                    e.currentTarget.style.color = "var(--text-2)";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                  }}
                 >
                   {s}
                 </button>
@@ -890,7 +925,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               value={inputText}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="위에서 선택하거나 직접 입력하세요... (Enter 전송, Shift+Enter 줄바꿈)"
+              placeholder={currentSuggestions.length > 0 ? "위에서 고르거나 직접 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)" : "만들고 싶은 서비스를 설명해 주세요 (Enter 전송, Shift+Enter 줄바꿈)"}
               disabled={isLoading || isSubmitting || !!sessionError}
               rows={1}
               className="chat-textarea"

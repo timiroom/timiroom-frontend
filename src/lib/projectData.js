@@ -36,7 +36,7 @@ export const MOCK_PROJECTS = [
     prdCount: 18,
     issueCount: 0,
     specCount: 62,
-    color: "#6b6960",
+    color: "var(--text-2)",
   },
   {
     id: "proj-003",
@@ -52,7 +52,7 @@ export const MOCK_PROJECTS = [
     prdCount: 15,
     issueCount: 7,
     specCount: 21,
-    color: "#a8a69f",
+    color: "var(--text-3)",
   },
   {
     id: "proj-004",
@@ -68,7 +68,7 @@ export const MOCK_PROJECTS = [
     prdCount: 8,
     issueCount: 2,
     specCount: 5,
-    color: "#1a1916",
+    color: "var(--text-1)",
   },
   {
     id: "proj-005",
@@ -84,7 +84,7 @@ export const MOCK_PROJECTS = [
     prdCount: 11,
     issueCount: 1,
     specCount: 33,
-    color: "#6b6960",
+    color: "var(--text-2)",
   },
 ];
 
@@ -97,6 +97,6 @@ export const STATUS_META = {
 
 /** 유저 이니셜 → 색 매핑 */
 export const MEMBER_COLORS = {
-  M: "var(--text-1)", J: "#a8a69f", S: "#6b6960",
-  K: "#1a1916", P: "#a8a69f", L: "#1a1916",
+  M: "var(--text-1)", J: "var(--text-3)", S: "var(--text-2)",
+  K: "var(--text-1)", P: "var(--text-3)", L: "var(--text-1)",
 };

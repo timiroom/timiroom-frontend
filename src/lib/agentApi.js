@@ -1,12 +1,13 @@
 /**
  * agentApi.js
  * -----------
- * 문서 어시스턴트 통신 레이어. 모델은 EXAONE 하나로 고정돼 있습니다.
+ * 문서 어시스턴트 통신 레이어. 실제 모델은 pipeline_py 런타임 설정을 따릅니다.
  *
  * ┌─ 아키텍처 ───────────────────────────────────────────────────────┐
- * │  Browser  →  pipeline_py  →  EXAONE (Friendli.ai)               │
+ * │  Browser  →  backend(/api/v1/ai)  →  pipeline_py  →  LLM          │
  * │                                                                  │
- * │  API 키는 pipeline_py의 .env에만 있고 브라우저로 나오지 않습니다.│
+ * │  백엔드가 사용량 한도를 확인·기록하고, 사용자가 등록한 AI 키가   │
+ * │  있으면 그 키로 부릅니다. API 키는 브라우저로 나오지 않습니다.  │
  * └──────────────────────────────────────────────────────────────────┘
  *
  * 두 가지 경로가 있습니다:
@@ -14,7 +15,7 @@
  *   requestDocumentEdit  문서 수정 제안. 제안문 + 섹션별 diff를 받아 사용자 승인 후 적용.
  */
 
-import { RAG_PIPELINE_URL } from "@/lib/authConfig";
+import { aiFetch, notifyUsageChanged } from "@/lib/aiGateway";
 
 /* ── 시스템 프롬프트 생성 ── */
 export function buildSystemPrompt(projectContext) {
@@ -43,15 +44,13 @@ Align-it은 LLM과 지식 그래프를 활용해 PRD·API 명세·DB 스키마·
 }
 
 /* ── 일반 응답 전송 ── */
-export async function sendMessage({ messages, projectContext, systemPrompt }) {
-  const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/chat`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+export async function sendMessage({ messages, projectContext, systemPrompt, projectId }) {
+  const res = await aiFetch("/chat", {
+    projectId: projectId ?? projectContext?.id,
+    body: {
       messages,
       system_prompt: systemPrompt || buildSystemPrompt(projectContext),
-    }),
+    },
   });
 
   if (!res.ok) {
@@ -74,21 +73,16 @@ export async function sendMessage({ messages, projectContext, systemPrompt }) {
  * @param {AbortSignal} [opts.signal]       - 취소 신호
  */
 export async function sendMessageStream({
-  messages, projectContext, systemPrompt, onChunk, onDone, onError, signal,
+  messages, projectContext, systemPrompt, projectId, onChunk, onDone, onError, signal,
 }) {
   try {
-    const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/chat/stream`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type":  "application/json",
-        "Accept":        "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
-      body: JSON.stringify({
+    const res = await aiFetch("/chat/stream", {
+      projectId: projectId ?? projectContext?.id,
+      accept: "text/event-stream",
+      body: {
         messages,
         system_prompt: systemPrompt || buildSystemPrompt(projectContext),
-      }),
+      },
       signal,
     });
 
@@ -112,7 +106,7 @@ export async function sendMessageStream({
       for (const line of lines) {
         if (!line.startsWith("data:")) continue;
         const data = line.slice(5).trim();
-        if (data === "[DONE]") { onDone?.(); return; }
+        if (data === "[DONE]") { notifyUsageChanged(); onDone?.(); return; }
         try {
           const parsed = JSON.parse(data);
           // 서버가 스트림 도중 오류를 만나면 error 필드를 실어 보낸다
@@ -140,7 +134,7 @@ export const DOC_TYPES = {
 };
 
 /**
- * EXAONE이 현재 문서를 읽고 섹션/항목 단위 수정안을 만듭니다.
+ * 문서 편집 모델이 현재 문서를 읽고 섹션/항목 단위 수정안을 만듭니다.
  * 문서를 저장하지는 않습니다 — 사용자가 제안문과 diff를 보고 승인해야 적용됩니다.
  *
  * @param {object}   opts
@@ -149,15 +143,13 @@ export const DOC_TYPES = {
  * @param {string}   opts.instruction - 사용자의 수정 요청
  * @param {object[]} [opts.history]   - 직전 대화 [{role, content}]
  * @param {AbortSignal} [opts.signal]
- * @returns {Promise<{intent: "edit"|"chat", reply: string, edits: object[]}>}
+ * @returns {Promise<{intent: "edit"|"chat", reply: string, analysis?: object, edits: object[]}>}
  *   edits[]: { section, label, before, after, diff: [{type:"same"|"add"|"del", text}] }
  */
-export async function requestDocumentEdit({ docType, document, instruction, history = [], signal }) {
-  const res = await fetch(`${RAG_PIPELINE_URL}/api/v1/document/${docType}/edit`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ document: document || {}, instruction, history }),
+export async function requestDocumentEdit({ docType, document, instruction, history = [], projectId, signal }) {
+  const res = await aiFetch(`/documents/${encodeURIComponent(docType)}/edit`, {
+    projectId,
+    body: { document: document || {}, instruction, history },
     signal,
   });
 
@@ -173,11 +165,7 @@ export async function requestDocumentEdit({ docType, document, instruction, hist
 
 /* ── 백엔드 연결 테스트 ── */
 export async function testConnection() {
-  const res = await fetch(`${RAG_PIPELINE_URL}/api/agent/test`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-  });
+  const res = await aiFetch("/test");
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || err.message || "연결 실패");

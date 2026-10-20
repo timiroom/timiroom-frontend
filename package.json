@@ -6,18 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test src/lib/aiConnectionLinks.test.mjs src/lib/specPresentation.test.mjs src/lib/prdMarkdown.test.mjs src/lib/techStack.test.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.7",
+    "@portone/browser-sdk": "0.1.13",
     "cytoscape": "^3.34.1",
     "cytoscape-fcose": "^2.2.0",
-    "next": "14.2.3",
+    "dompurify": "3.4.16",
+    "marked": "18.0.14",
+    "next": "14.2.35",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "turndown": "7.2.4"
   },
   "devDependencies": {
     "eslint": "^8",
-    "eslint-config-next": "14.2.3"
+    "eslint-config-next": "14.2.35"
   }
 }

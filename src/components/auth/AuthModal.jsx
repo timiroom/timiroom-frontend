@@ -22,11 +22,11 @@ const PROVIDERS = [
     subLabel: "Google 계정으로 로그인",
     Icon:     GoogleIcon,
     style: {
-      background: "#fff",
-      color:      "#1F1F1F",
-      border:     "1.5px solid #E5E7EB",
+      background: "var(--surface)",
+      color:      "var(--text-1)",
+      border:     "1.5px solid var(--border)",
     },
-    hoverStyle: { background: "#F9FAFB", borderColor: "#D1D5DB" },
+    hoverStyle: { background: "var(--bg)", borderColor: "var(--border-2)" },
   },
   {
     key:      "github",
@@ -149,7 +149,7 @@ export function AuthModal() {
         style={{
           position:   "fixed",
           inset:      0,
-          background: "rgba(26,25,22, 0.4)",
+          background: "color-mix(in srgb, var(--text-1) 40%, transparent)",
           backdropFilter: "blur(6px)",
           zIndex:     9000,
           display:    "flex",
@@ -163,13 +163,13 @@ export function AuthModal() {
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
-            background:   "#fff",
+            background:   "var(--surface)",
             borderRadius: 24,
             padding:      "40px 36px 36px",
             width:        "100%",
             maxWidth:     420,
             position:     "relative",
-            boxShadow:    "0 32px 80px rgba(26,25,22, 0.1), 0 8px 32px rgba(0,0,0,0.12)",
+            boxShadow:    "0 32px 80px color-mix(in srgb, var(--text-1) 10%, transparent), 0 8px 32px rgba(0,0,0,0.12)",
             animation:    "auth-slide-up 0.2s cubic-bezier(0.34,1.56,0.64,1)",
           }}
         >
@@ -184,17 +184,17 @@ export function AuthModal() {
               height:     32,
               borderRadius: "50%",
               border:     "none",
-              background: "#F3F4F6",
+              background: "var(--bg)",
               cursor:     "pointer",
               display:    "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize:   18,
-              color:      "#6B7280",
+              color:      "var(--text-2)",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#E5E7EB")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#F3F4F6")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg)")}
           >
             ×
           </button>
@@ -211,9 +211,9 @@ export function AuthModal() {
               justifyContent: "center",
               fontSize:       22,
               fontWeight:     900,
-              color:          "#fff",
+              color:          "var(--surface)",
               margin:         "0 auto 16px",
-              boxShadow:      "0 6px 20px rgba(26,25,22, 0.15)",
+              boxShadow:      "0 6px 20px color-mix(in srgb, var(--text-1) 15%, transparent)",
             }}>
               A
             </div>
@@ -225,7 +225,7 @@ export function AuthModal() {
             }}>
               Align-it 시작하기
             </h2>
-            <p style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>
               소셜 계정으로 간편하게 로그인하고<br />
               기획·개발 정합성을 AI로 완성하세요.
             </p>
@@ -251,18 +251,18 @@ export function AuthModal() {
             gap:        12,
             margin:     "20px 0",
           }}>
-            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-            <span style={{ fontSize: 12, color: "#9CA3AF", whiteSpace: "nowrap" }}>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span style={{ fontSize: 12, color: "var(--text-3)", whiteSpace: "nowrap" }}>
               계속하면 다음에 동의하는 것입니다
             </span>
-            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
 
           {/* 약관 */}
           <p style={{
             textAlign: "center",
             fontSize:  12,
-            color:     "#9CA3AF",
+            color:     "var(--text-3)",
             lineHeight: 1.6,
           }}>
             <a href="/terms" style={{ color: "var(--text-2)", textDecoration: "underline" }}>

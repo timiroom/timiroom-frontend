@@ -1,30 +1,35 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { confirmDialog, toast } from "@/lib/feedback";
+import { ActionButton, Badge, EmptyState, Icon, MarkdownEditor, PanelHeader } from "@/components/ui";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { updateArtifact } from "@/lib/pipelineApi";
+import { htmlToMarkdown, renderMarkdown, sanitizeHtml } from "@/lib/markdownRender";
+import { extraSections, markdownToPrd, prdToMarkdownWithExtras } from "@/lib/prdMarkdown.mjs";
+import { isLightColor, techStackCards } from "@/lib/techStack.mjs";
 
 const C = {
   bg:        "var(--surface)",
-  surface:   "#f7f6f3",
+  surface:   "var(--bg)",
   border:    "rgba(0,0,0,0.07)",
-  text:      "#1a1916",
+  text:      "var(--text-1)",
   muted:     "var(--text-3)",
   sub:       "var(--text-3)",
-  accent:    "#6b6960",
-  accentBg:  "rgba(107,105,96,0.1)",
-  accentBdr: "rgba(107,105,96,0.25)",
+  accent:    "var(--text-2)",
+  accentBg:  "color-mix(in srgb, var(--text-2) 10%, transparent)",
+  accentBdr: "color-mix(in srgb, var(--text-2) 25%, transparent)",
   card:      "#ffffff",
 };
 
 const PRD_SECTIONS = [
-  { key: "overview",  label: "프로젝트 개요",   icon: "📋", fields: ["projectOverview","background"] },
-  { key: "goals",     label: "목표 & KPI",      icon: "🎯", fields: ["goals","kpi"] },
-  { key: "features",  label: "핵심 기능",        icon: "✨",     fields: ["coreFeatures"] },
-  { key: "personas",  label: "사용자 페르소나",  icon: "👥", fields: ["userPersonas"] },
-  { key: "mvp",       label: "MVP 범위",         icon: "📦", fields: ["mvpScope"] },
-  { key: "techstack", label: "기술 스택",        icon: "🛠️", fields: ["techStack"] },
-  { key: "schedule",  label: "릴리즈 일정",      icon: "📅", fields: ["releaseSchedule"] },
+  { key: "overview",  label: "프로젝트 개요",   icon: "overview", fields: ["projectOverview","background"] },
+  { key: "goals",     label: "목표 & KPI",      icon: "target", fields: ["goals","kpi"] },
+  { key: "features",  label: "핵심 기능",        icon: "star",     fields: ["coreFeatures"] },
+  { key: "personas",  label: "사용자 페르소나",  icon: "users", fields: ["userPersonas"] },
+  { key: "mvp",       label: "MVP 범위",         icon: "box", fields: ["mvpScope"] },
+  { key: "techstack", label: "기술 스택",        icon: "wrench", fields: ["techStack"] },
+  { key: "schedule",  label: "릴리즈 일정",      icon: "calendar", fields: ["releaseSchedule"] },
 ];
 
 const PRIORITY_COLOR = {
@@ -70,6 +75,27 @@ function sectionHasData(doc, key) {
   });
 }
 
+/** 문서 제목(h2)의 낱말로 섹션 아이콘을 고른다. 맞는 낱말이 없으면 문서 아이콘. */
+const SECTION_ICON_RULES = [
+  [/개요|소개|요약|overview/i, "overview"],
+  [/배경|문제|background/i, "flag"],
+  [/목표|목적|kpi|goal/i, "target"],
+  [/요구사항|요건|requirement/i, "checklist"],
+  [/스토리|페르소나|사용자|user/i, "users"],
+  [/기능|feature/i, "star"],
+  [/범위|mvp|scope/i, "box"],
+  [/기술|스택|아키텍처|tech/i, "wrench"],
+  [/일정|릴리즈|마일스톤|schedule/i, "calendar"],
+];
+function sectionIcon(label) {
+  return SECTION_ICON_RULES.find(([pattern]) => pattern.test(label || ""))?.[1] ?? "doc";
+}
+
+/** 섹션 아이콘. 색은 쓰지 않고 모양으로만 섹션을 구분한다. */
+function SectionIcon({ name, size }) {
+  return <Icon name={name} size={size} strokeWidth={1.8} style={{ flexShrink: 0, color: "var(--text-1)" }} />;
+}
+
 function parseSectionsFromHtml(html) {
   if (typeof document === "undefined" || !html) return [];
   const div = document.createElement("div");
@@ -80,13 +106,13 @@ function parseSectionsFromHtml(html) {
     const tag = node.tagName?.toUpperCase();
     if (tag === "H2") {
       if (current) sections.push(current);
-      current = { key: node.textContent, label: node.textContent, icon: "📄", html: node.outerHTML };
+      current = { key: node.textContent, label: node.textContent, icon: sectionIcon(node.textContent), html: node.outerHTML };
     } else if (tag === "H1" && !current) {
-      current = { key: "__overview__", label: "개요", icon: "📋", html: node.outerHTML };
+      current = { key: "__overview__", label: "개요", icon: "overview", html: node.outerHTML };
     } else if (current) {
       current.html += node.outerHTML || "";
     } else {
-      if (!current) current = { key: "__overview__", label: "개요", icon: "📋", html: "" };
+      if (!current) current = { key: "__overview__", label: "개요", icon: "overview", html: "" };
       current.html += node.outerHTML || node.textContent || "";
     }
   });
@@ -163,7 +189,7 @@ function SectionTitle({ icon, title }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-        <span style={{ fontSize:22 }}>{icon}</span>
+        <SectionIcon name={icon} size={22} />
         <h1 style={{ margin:0, fontSize:24, fontWeight:800, color:C.text }}>{title}</h1>
       </div>
       <div style={{ height:2, background:"rgba(0,0,0,0.06)", borderRadius:1 }} />
@@ -174,7 +200,7 @@ function SectionTitle({ icon, title }) {
 function EmptySectionState({ label }) {
   return (
     <div style={{ textAlign:"center", padding:"60px 0", color:C.muted }}>
-      <div style={{ fontSize:32, marginBottom:12 }}>{"📄"}</div>
+      <div style={{ marginBottom:12, color:C.muted }}><Icon name="doc" size={30} strokeWidth={1.6} /></div>
       <div style={{ fontSize:14, fontWeight:600 }}>{label} {"정보가 없습니다"}</div>
       <div style={{ fontSize:12, marginTop:4 }}>{"파이프라인을 실행하거나 편집 모드에서 추가하세요"}</div>
     </div>
@@ -184,7 +210,7 @@ function EmptySectionState({ label }) {
 function OverviewView({ doc }) {
   return (
     <div>
-      <SectionTitle icon={"📋"} title={"프로젝트 개요"} />
+      <SectionTitle icon="overview" title={"프로젝트 개요"} />
       {doc.projectOverview ? (
         <div style={{ padding:"20px 24px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, marginBottom:16, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
           <h2 style={{ margin:"0 0 12px", fontSize:20, fontWeight:700, color:C.text, whiteSpace:"pre-wrap" }}>{doc.projectOverview}</h2>
@@ -200,14 +226,14 @@ function GoalsView({ doc }) {
   const kpi = asList(doc.kpi);
   return (
     <div>
-      <SectionTitle icon={"🎯"} title={"목표 & KPI"} />
+      <SectionTitle icon="target" title={"목표 & KPI"} />
       {goals.length > 0 && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:10 }}>{"목표"}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {goals.map((g,i) => (
               <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"12px 16px", borderRadius:10, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.03)" }}>
-                <span style={{ fontSize:11, fontWeight:800, color:"#6b6960", background:"rgba(107,105,96,0.1)", border:"1px solid rgba(107,105,96,0.2)", padding:"2px 7px", borderRadius:5, flexShrink:0, marginTop:1 }}>{i+1}</span>
+                <span style={{ fontSize:11, fontWeight:800, color:"var(--text-2)", background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", padding:"2px 7px", borderRadius:5, flexShrink:0, marginTop:1 }}>{i+1}</span>
                 <span style={{ fontSize:14, color:C.text, lineHeight:1.7 }}><SourceText text={g} /></span>
               </div>
             ))}
@@ -253,11 +279,11 @@ function FeaturesView({ doc }) {
   ].filter(g=>g.items.length>0);
 
   if (!features.length) return (
-    <div><SectionTitle icon={"✨"} title={"핵심 기능"} /><EmptySectionState label={"핵심 기능"} /></div>
+    <div><SectionTitle icon="star" title={"핵심 기능"} /><EmptySectionState label={"핵심 기능"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"✨"} title={"핵심 기능"} />
+      <SectionTitle icon="star" title={"핵심 기능"} />
       {groups.map(group => {
         const pc = PRIORITY_COLOR[group.key] || { bg:"#f9fafb", border:"#e5e7eb", text:"#6b7280" };
         return (
@@ -289,16 +315,16 @@ function FeaturesView({ doc }) {
 function PersonasView({ doc }) {
   const personas = asList(doc.userPersonas);
   if (!personas.length) return (
-    <div><SectionTitle icon={"👥"} title={"사용자 페르소나"} /><EmptySectionState label={"사용자 페르소나"} /></div>
+    <div><SectionTitle icon="users" title={"사용자 페르소나"} /><EmptySectionState label={"사용자 페르소나"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"👥"} title={"사용자 페르소나"} />
+      <SectionTitle icon="users" title={"사용자 페르소나"} />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
         {personas.map((p,i) => (
           <div key={i} style={{ padding:"18px 20px", borderRadius:14, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 6px rgba(0,0,0,0.05)" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"rgba(107,105,96,0.1)", border:"1px solid rgba(107,105,96,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{"👤"}</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}><Icon name="users" size={18} strokeWidth={1.7} /></div>
               <div>
                 <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{p.name}</div>
                 <div style={{ fontSize:12, color:C.muted }}>{[p.age,p.job].filter(Boolean).join(" · ")}</div>
@@ -326,17 +352,17 @@ function PersonasView({ doc }) {
 function MvpView({ doc }) {
   const mvp = doc.mvpScope;
   if (!mvp) return (
-    <div><SectionTitle icon={"📦"} title={"MVP 범위"} /><EmptySectionState label={"MVP 범위"} /></div>
+    <div><SectionTitle icon="box" title={"MVP 범위"} /><EmptySectionState label={"MVP 범위"} /></div>
   );
   const included = asList(mvp.included);
   const excluded = asList(mvp.excluded);
   return (
     <div>
-      <SectionTitle icon={"📦"} title={"MVP 범위"} />
+      <SectionTitle icon="box" title={"MVP 범위"} />
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
         {included.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#f0fdf4", border:"1px solid #bbf7d0" }}>
-            <div style={{ fontSize:12, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"✅ 포함"}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"포함"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
               {included.map((item,i)=><li key={i} style={{ fontSize:13, color:"#166534", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
@@ -344,7 +370,7 @@ function MvpView({ doc }) {
         )}
         {excluded.length>0 && (
           <div style={{ padding:"16px 18px", borderRadius:12, background:"#fef2f2", border:"1px solid #fecaca" }}>
-            <div style={{ fontSize:12, fontWeight:700, color:"#dc2626", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"❌ 제외"}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#dc2626", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>{"제외"}</div>
             <ul style={{ margin:0, paddingLeft:16 }}>
               {excluded.map((item,i)=><li key={i} style={{ fontSize:13, color:"#991b1b", lineHeight:1.7, marginBottom:3 }}>{item}</li>)}
             </ul>
@@ -361,27 +387,57 @@ function MvpView({ doc }) {
   );
 }
 
-const TECH_COLOR = { frontend:"#3b82f6",backend:"#10b981",database:"#f59e0b",infra:"#8b5cf6",devops:"#06b6d4",mobile:"#ec4899",cloud:"#f97316","api":"#6366f1" };
+/**
+ * 기술 로고 타일. 화면은 모노크롬이고 색은 로고에만 둔다. 밝은 브랜드색(JavaScript 노랑)은 어두운 타일에 올린다.
+ * logos가 아직 없으면(불러오는 중) 빈 타일만 그려 대체 아이콘이 깜빡이지 않게 한다.
+ */
+function TechLogo({ tech, logos, fallbackIcon }) {
+  const logo = tech?.slug && logos ? logos[tech.slug] : null;
+  const loading = tech?.slug && !logos;
+  const dark = logo && isLightColor(logo.hex);
+  return (
+    <div title={tech?.name} style={{ width:36, height:36, borderRadius:10, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", background:dark?"var(--text-1)":"var(--bg)", border:`1px solid ${C.border}` }}>
+      {logo
+        ? <svg width={20} height={20} viewBox="0 0 24 24" fill={logo.hex} aria-hidden="true"><path d={logo.path} /></svg>
+        : !loading && <Icon name={fallbackIcon} size={18} strokeWidth={1.7} style={{ color:"var(--text-2)" }} />}
+    </div>
+  );
+}
 
 function TechStackView({ doc }) {
-  const stack = doc.techStack;
-  if (!stack||typeof stack!=="object"||!Object.keys(stack).length) return (
-    <div><SectionTitle icon={"🛠️"} title={"기술 스택"} /><EmptySectionState label={"기술 스택"} /></div>
+  const cards = useMemo(() => techStackCards(doc.techStack), [doc.techStack]);
+  const [logos, setLogos] = useState(null);
+  // 로고 데이터는 커서 이 화면을 열 때만 따로 받는다.
+  useEffect(() => {
+    let alive = true;
+    import("@/lib/techLogos.mjs").then(m => { if (alive) setLogos(m.TECH_LOGOS); }).catch(() => { if (alive) setLogos({}); });
+    return () => { alive = false; };
+  }, []);
+  if (!cards.length) return (
+    <div><SectionTitle icon="wrench" title={"기술 스택"} /><EmptySectionState label={"기술 스택"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"🛠️"} title={"기술 스택"} />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
-        {Object.entries(stack).map(([key,value]) => {
-          const ck = Object.keys(TECH_COLOR).find(k=>key.toLowerCase().includes(k));
-          const color = TECH_COLOR[ck]||"#6b7280";
-          return (
-            <div key={key} style={{ padding:"14px 16px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", borderLeft:`3px solid ${color}` }}>
-              <div style={{ fontSize:11, fontWeight:700, color, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:5 }}>{key}</div>
-              <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{String(value)}</div>
+      <SectionTitle icon="wrench" title={"기술 스택"} />
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:12 }}>
+        {cards.map(card => (
+          <div key={card.key} style={{ padding:"16px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column", gap:10 }}>
+            {/* 로고 3개 + 긴 라벨이 한 줄에 안 들어가면 라벨이 다음 줄 오른쪽으로 내려간다 */}
+            <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", gap:6 }}>
+              {card.techs.length
+                ? card.techs.map(t => <TechLogo key={t.name} tech={t} logos={logos} fallbackIcon={card.icon} />)
+                : <TechLogo fallbackIcon={card.icon} />}
+              <span style={{ marginLeft:"auto", fontSize:11, fontWeight:700, letterSpacing:"0.03em", color:"var(--text-2)", background:"rgba(0,0,0,0.04)", padding:"3px 10px", borderRadius:100, flexShrink:0 }}>{card.label}</span>
             </div>
-          );
-        })}
+            <div style={{ fontSize:15, fontWeight:700, color:C.text, lineHeight:1.4 }}>{card.title}</div>
+            {/* 설명은 첫 문장 두 줄까지. 전체 문장은 마우스를 올리면 보이고, 편집 모드에 그대로 있다. */}
+            {card.summary && (
+              <p title={card.full} style={{ margin:0, fontSize:13, color:"var(--text-2)", lineHeight:1.6, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                <SourceText text={card.summary} />
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -390,16 +446,16 @@ function TechStackView({ doc }) {
 function ScheduleView({ doc }) {
   const schedule = asList(doc.releaseSchedule);
   if (!schedule?.length) return (
-    <div><SectionTitle icon={"📅"} title={"릴리즈 일정"} /><EmptySectionState label={"릴리즈 일정"} /></div>
+    <div><SectionTitle icon="calendar" title={"릴리즈 일정"} /><EmptySectionState label={"릴리즈 일정"} /></div>
   );
   return (
     <div>
-      <SectionTitle icon={"📅"} title={"릴리즈 일정"} />
+      <SectionTitle icon="calendar" title={"릴리즈 일정"} />
       <div style={{ position:"relative", paddingLeft:28 }}>
         <div style={{ position:"absolute", left:8, top:8, bottom:8, width:2, background:"rgba(0,0,0,0.08)", borderRadius:1 }} />
         {schedule.map((r,i) => (
           <div key={i} style={{ position:"relative", marginBottom:20 }}>
-            <div style={{ position:"absolute", left:-24, top:14, width:10, height:10, borderRadius:"50%", background:"#6b6960", border:"2px solid white", boxShadow:"0 0 0 2px rgba(107,105,96,0.3)" }} />
+            <div style={{ position:"absolute", left:-24, top:14, width:10, height:10, borderRadius:"50%", background:"var(--text-2)", border:"2px solid white", boxShadow:"0 0 0 2px color-mix(in srgb, var(--text-2) 30%, transparent)" }} />
             <div style={{ padding:"14px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
                 <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{r.milestone}</span>
@@ -419,18 +475,17 @@ function ScheduleView({ doc }) {
   );
 }
 
+// 저장된 HTML은 사용자가 쓴 글이라 반드시 걸러서 넣는다.
 function HtmlSectionView({ html }) {
-  return (
-    <div
-      className="notion-block-editor"
-      dangerouslySetInnerHTML={{ __html: html || `<p style='color:#9ca3af'>내용이 없습니다</p>` }}
-      style={{ fontSize:14, lineHeight:1.85, color:C.text }}
-    />
-  );
+  const safe = sanitizeHtml(html);
+  if (!safe) return <p style={{ color:C.muted, fontSize:14 }}>내용이 없습니다</p>;
+  return <div className="md-preview" dangerouslySetInnerHTML={{ __html: safe }} />;
 }
 
-function SectionContent({ doc, sectionKey, htmlSections }) {
+function SectionContent({ doc, sectionKey, htmlSections, extras = [] }) {
   if (!doc) return <EmptySectionState label="PRD" />;
+  const extra = extras.find((section) => section.key === sectionKey);
+  if (extra) return <HtmlSectionView html={renderMarkdown(extra.markdown)} />;
   if (doc.type === "html") {
     const sec = htmlSections.find(s=>s.key===sectionKey);
     return <HtmlSectionView html={sec?.html||""} />;
@@ -452,29 +507,29 @@ function SectionContent({ doc, sectionKey, htmlSections }) {
 ══════════════════════════════════════ */
 function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
   return (
-    <div style={{ width:210, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"16px 14px 10px" }}>
+    <div className="prd-side" style={{ width:210, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div className="prd-side__title" style={{ padding:"16px 14px 10px" }}>
         <div style={{ fontSize:11, fontWeight:700, color:C.sub, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:3 }}>PRD</div>
         <div style={{ fontSize:14, fontWeight:700, color:C.text, lineHeight:1.35, wordBreak:"break-word" }}>{projectName || "제품 요구사항 문서"}</div>
       </div>
-      <div style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
+      <div className="prd-side__list" style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
         {sections.map(sec => {
           const isActive = activeKey===sec.key;
           return (
             <button
               key={sec.key}
               onClick={()=>onSelect(sec.key)}
-              style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:7, marginBottom:1, background:isActive?"rgba(107,105,96,0.12)":"transparent", border:"none", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:7, marginBottom:1, background:isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent", border:"none", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
               onMouseEnter={e=>{ if(!isActive) e.currentTarget.style.background="rgba(0,0,0,0.04)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background=isActive?"rgba(107,105,96,0.12)":"transparent"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background=isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent"; }}
             >
-              <span style={{ fontSize:13, flexShrink:0 }}>{sec.icon}</span>
+              <SectionIcon name={sec.icon} size={15} />
               <span style={{ fontSize:13, color:isActive?C.text:C.muted, fontWeight:isActive?600:400 }}>{sec.label}</span>
             </button>
           );
         })}
       </div>
-      <div style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
+      <div className="prd-side__foot" style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
         <button
           onClick={onEditAll}
           style={{ width:"100%", padding:"7px 12px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, display:"flex", alignItems:"center", gap:6 }}
@@ -491,206 +546,11 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
 }
 
 /* ══════════════════════════════════════
-   Notion 에디터 (contentEditable 기반)
-══════════════════════════════════════ */
-const BLOCK_OPTS = [
-  { value: "p",          label: "본문" },
-  { value: "h1",         label: "제목 1" },
-  { value: "h2",         label: "제목 2" },
-  { value: "h3",         label: "제목 3" },
-  { value: "blockquote", label: "인용" },
-  { value: "pre",        label: "코드" },
-];
-const FONT_SIZES = [12,13,14,15,16,18,20,24,28,32];
-const TEXT_COLORS = [
-  { label: "기본", value: "#1a1916" }, { label: "회색", value: "#9ca3af" },
-  { label: "빨강", value: "#ef4444" }, { label: "주황", value: "#f97316" },
-  { label: "노랑", value: "#ca8a04" }, { label: "초록", value: "#16a34a" },
-  { label: "파랑", value: "#2563eb" }, { label: "보라", value: "#7c3aed" },
-  { label: "분홍", value: "#db2777" },
-];
-const HL_COLORS = [
-  { label: "없음",  value: "transparent" }, { label: "노랑", value: "#fef9c3" },
-  { label: "초록",  value: "#dcfce7"     }, { label: "파랑", value: "#dbeafe" },
-  { label: "보라",  value: "#ede9fe"     }, { label: "분홍", value: "#fce7f3" },
-  { label: "주황",  value: "#ffedd5"     }, { label: "빨강", value: "#fee2e2" },
-  { label: "회색",  value: "#f3f4f6"     },
-];
-
-function NotionEditor({ editorRef, onTextChange }) {
-  const [blockType, setBlockType] = useState("p");
-  const [fontSize,  setFontSize]  = useState(14);
-  const [textColor, setTextColor] = useState("#1a1916");
-  const [hlColor,   setHlColor]   = useState("transparent");
-  const [isBold,    setIsBold]    = useState(false);
-  const [isItalic,  setIsItalic]  = useState(false);
-  const [colorMenu, setColorMenu] = useState(null);
-
-  function exec(cmd, val = null) { editorRef.current?.focus(); document.execCommand(cmd, false, val); syncState(true); }
-  function syncState(contentChanged = false) {
-    if (!editorRef.current) return;
-    try { setIsBold(document.queryCommandState("bold")); setIsItalic(document.queryCommandState("italic")); } catch {}
-    if (contentChanged && onTextChange) onTextChange(editorRef.current.innerText || "");
-    const sel = window.getSelection();
-    if (sel?.rangeCount) {
-      let el = sel.getRangeAt(0).startContainer;
-      if (el.nodeType === 3) el = el.parentElement;
-      while (el && el !== editorRef.current) {
-        const tag = el.tagName?.toLowerCase();
-        if (BLOCK_OPTS.some(o => o.value === tag)) { setBlockType(tag); break; }
-        el = el.parentElement;
-      }
-    }
-  }
-  function setBlock(tag) { editorRef.current?.focus(); document.execCommand("formatBlock", false, tag); setBlockType(tag); syncState(true); }
-  function applyFontSize(size) {
-    setFontSize(size);
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !editorRef.current) return;
-    const range = sel.getRangeAt(0);
-    const span = document.createElement("span");
-    span.style.fontSize = size + "px";
-    try { range.surroundContents(span); } catch { const f = range.extractContents(); span.appendChild(f); range.insertNode(span); }
-    syncState(true);
-  }
-  function applyTextColor(color) { setTextColor(color); exec("foreColor", color); setColorMenu(null); }
-  function applyHL(color) {
-    setHlColor(color); editorRef.current?.focus();
-    document.execCommand("styleWithCSS", false, true);
-    document.execCommand(color === "transparent" ? "removeFormat" : "hiliteColor", false, color === "transparent" ? null : color);
-    setColorMenu(null); syncState(true);
-  }
-  function handleKeyDown(e) {
-    if (e.metaKey || e.ctrlKey) {
-      if (e.key === "b") { e.preventDefault(); exec("bold"); }
-      else if (e.key === "i") { e.preventDefault(); exec("italic"); }
-      else if (e.key === "u") { e.preventDefault(); exec("underline"); }
-    }
-    if (e.key === "Tab") { e.preventDefault(); exec("insertHTML", "&nbsp;&nbsp;&nbsp;&nbsp;"); }
-  }
-
-  const Btn = ({ label, active, onClick, title, xs }) => (
-    <button onMouseDown={e => { e.preventDefault(); onClick(); }} title={title} style={{
-      minWidth: 28, height: 26, borderRadius: 5, border: "none", cursor: "pointer",
-      background: active ? "rgba(107,105,96,0.15)" : "none",
-      color: active ? C.text : C.muted, fontSize: 12, fontWeight: 600,
-      padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center",
-      transition: "all 0.1s", ...xs,
-    }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(0,0,0,0.06)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? "rgba(107,105,96,0.15)" : "none"; }}
-    >{label}</button>
-  );
-  const Sep = () => <div style={{ width: 1, height: 18, background: C.border, margin: "0 3px", flexShrink: 0 }} />;
-
-  return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* 툴바 */}
-      <div style={{ height: 42, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 14px", gap: 2, borderBottom: `1px solid ${C.border}`, background: "#f7f6f3", overflowX: "auto" }}>
-        <select value={blockType} onChange={e => setBlock(e.target.value)} style={{ height: 26, padding: "0 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "#f7f6f3", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer", outline: "none", marginRight: 2 }}>
-          {BLOCK_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <Sep />
-        <Btn label="B" active={isBold}   onClick={() => exec("bold")}          title="굵게 (Ctrl+B)"   xs={{ fontWeight: 800 }} />
-        <Btn label="I" active={isItalic} onClick={() => exec("italic")}        title="기울임 (Ctrl+I)" xs={{ fontStyle: "italic" }} />
-        <Btn label="U" active={false}    onClick={() => exec("underline")}     title="밑줄 (Ctrl+U)"   xs={{ textDecoration: "underline" }} />
-        <Btn label="S" active={false}    onClick={() => exec("strikeThrough")} title="취소선"           xs={{ textDecoration: "line-through" }} />
-        <Sep />
-        <select value={fontSize} onChange={e => applyFontSize(Number(e.target.value))} style={{ height: 26, padding: "0 4px", borderRadius: 6, border: `1px solid ${C.border}`, background: "#f7f6f3", fontSize: 11, color: C.text, cursor: "pointer", outline: "none" }}>
-          {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
-        </select>
-        <Sep />
-        {/* 글자 색상 */}
-        <div style={{ position: "relative" }}>
-          <button onMouseDown={e => { e.preventDefault(); setColorMenu(colorMenu === "text" ? null : "text"); }} title="글자 색상"
-            style={{ width: 30, height: 26, borderRadius: 5, border: "none", cursor: "pointer", background: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: textColor, lineHeight: 1 }}>A</span>
-            <div style={{ width: 16, height: 3, borderRadius: 2, background: textColor }} />
-          </button>
-          {colorMenu === "text" && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onMouseDown={() => setColorMenu(null)} />
-              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
-                {TEXT_COLORS.map(col => (
-                  <button key={col.value} onMouseDown={e => { e.preventDefault(); applyTextColor(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value, border: textColor === col.value ? "2px solid #6b6960" : "1px solid rgba(0,0,0,0.1)", color: ["#1a1916","#7c3aed","#2563eb","#db2777"].includes(col.value) ? "white" : "#1a1916", fontSize: 9, fontWeight: 700 }}>
-                    {col.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-        {/* 형광펜 */}
-        <div style={{ position: "relative" }}>
-          <button onMouseDown={e => { e.preventDefault(); setColorMenu(colorMenu === "hl" ? null : "hl"); }} title="형광펜"
-            style={{ width: 30, height: 26, borderRadius: 5, border: "none", cursor: "pointer", background: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.text, lineHeight: 1, background: hlColor !== "transparent" ? hlColor : "none", padding: "0 2px", borderRadius: 2 }}>H</span>
-            <div style={{ width: 16, height: 3, borderRadius: 2, background: hlColor !== "transparent" ? hlColor : C.border }} />
-          </button>
-          {colorMenu === "hl" && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onMouseDown={() => setColorMenu(null)} />
-              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100, background: "white", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, width: 132 }}>
-                {HL_COLORS.map(col => (
-                  <button key={col.value} onMouseDown={e => { e.preventDefault(); applyHL(col.value); }} title={col.label}
-                    style={{ height: 28, borderRadius: 6, cursor: "pointer", background: col.value === "transparent" ? "repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 2px,white 2px,white 8px)" : col.value, border: hlColor === col.value ? "2px solid #6b6960" : "1px solid rgba(0,0,0,0.1)", color: "#1a1916", fontSize: 9, fontWeight: 700 }}>
-                    {col.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-        <Sep />
-        <Btn label="• ≡"  active={false} onClick={() => exec("insertUnorderedList")} title="글머리 기호" />
-        <Btn label="1. ≡" active={false} onClick={() => exec("insertOrderedList")}   title="번호 목록" />
-        <Sep />
-        <Btn label="→" active={false} onClick={() => exec("indent")}  title="들여쓰기" />
-        <Btn label="←" active={false} onClick={() => exec("outdent")} title="내어쓰기" />
-        <Sep />
-        <Btn label="🔗" active={false} onClick={() => { const url = prompt("링크 URL:"); if (url) exec("createLink", url); }} title="링크 삽입" />
-        <Btn label="⎯"  active={false} onClick={() => exec("insertHorizontalRule")} title="구분선" />
-      </div>
-
-      {/* 편집 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", background: C.bg }}>
-        <div
-          ref={editorRef}
-          contentEditable suppressContentEditableWarning
-          onInput={() => syncState(true)} onKeyDown={handleKeyDown} onMouseUp={() => syncState(false)} onKeyUp={() => syncState(false)}
-          data-placeholder="PRD를 작성하세요..."
-          className="prd-notion-editor"
-          style={{ minHeight: "100%", maxWidth: 720, margin: "0 auto", padding: "48px 56px 120px", outline: "none", fontSize: 14, lineHeight: 1.85, color: C.text, fontFamily: "'Pretendard','Noto Sans KR',sans-serif" }}
-        />
-      </div>
-
-      <style>{`
-        .prd-notion-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--text-3); pointer-events: none; display: block; }
-        .prd-notion-editor h1 { font-size: 28px; font-weight: 900; color: #1a1916; margin: 0 0 16px; line-height: 1.25; }
-        .prd-notion-editor h2 { font-size: 20px; font-weight: 700; color: #1a1916; margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.08); }
-        .prd-notion-editor h3 { font-size: 16px; font-weight: 600; color: #1a1916; margin: 22px 0 6px; }
-        .prd-notion-editor p  { margin: 5px 0; }
-        .prd-notion-editor ul { padding-left: 24px; margin: 6px 0; }
-        .prd-notion-editor ol { padding-left: 26px; margin: 6px 0; }
-        .prd-notion-editor li { margin: 4px 0; line-height: 1.7; }
-        .prd-notion-editor blockquote { border-left: 3px solid #6b6960; margin: 12px 0; padding: 10px 18px; background: rgba(107,105,96,0.07); border-radius: 0 8px 8px 0; color: #6b6960; font-style: italic; }
-        .prd-notion-editor pre { background: #f0eeeb; padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); overflow-x: auto; margin: 12px 0; font-family: 'JetBrains Mono','Fira Code',monospace; font-size: 13px; color: #6b6960; white-space: pre; }
-        .prd-notion-editor code { background: rgba(107,105,96,0.12); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.88em; color: #6b6960; }
-        .prd-notion-editor a { color: #6b6960; text-decoration: underline; }
-        .prd-notion-editor hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 20px 0; }
-        .prd-notion-editor:focus { outline: none; }
-      `}</style>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════
    PRD PANEL
 ══════════════════════════════════════ */
-export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocumentSaved, onDocumentEditingChange }) {
-  const editorRef      = useRef(null);
-  const [text,          setText]         = useState("");
+export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
+  const [markdown,      setMarkdown]     = useState("");
+  const dirtyRef = useRef(false); // 저장하지 않은 편집이 있으면 문서를 다시 받아도 편집기를 덮어쓰지 않는다
   const [hasDraft,      setHasDraft]     = useState(false);
   const [saving,        setSaving]       = useState(false);
   const [saved,         setSaved]        = useState(false);
@@ -705,11 +565,21 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     return parseSectionsFromHtml(doc?.htmlContent || "");
   }, [isHtmlDoc, doc?.htmlContent]);
 
+  // 마크다운 편집에서 정해진 PRD 항목 밖에 쓴 섹션. 구조화 문서에는 없으니 따로 보여 준다.
+  const extras = useMemo(() => (
+    !isHtmlDoc && doc?.markdown ? extraSections(doc.markdown).map((section) => ({ key:`extra:${section.title}`, label:section.title, icon:"doc", markdown:section.markdown })) : []
+  ), [isHtmlDoc, doc?.markdown]);
+
   const availableSections = useMemo(() => {
     if (!doc) return [];
-    if (isHtmlDoc) return htmlSections.length>0 ? htmlSections : [{ key:"__all__", label:"전체", icon:"📄" }];
-    return PRD_SECTIONS.filter(s=>sectionHasData(doc, s.key));
-  }, [doc, isHtmlDoc, htmlSections]);
+    if (isHtmlDoc) return htmlSections.length>0 ? htmlSections : [{ key:"__all__", label:"전체", icon:"doc" }];
+    return [...PRD_SECTIONS.filter(s=>sectionHasData(doc, s.key)), ...extras];
+  }, [doc, isHtmlDoc, htmlSections, extras]);
+
+  // 편집 중 틀 밖 섹션이 생기면 저장 전에 알려 준다.
+  const unknownSections = useMemo(() => (
+    editMode && doc && !isHtmlDoc ? markdownToPrd(markdown, doc).unknownSections : []
+  ), [editMode, doc, isHtmlDoc, markdown]);
 
   useEffect(() => {
     if (availableSections.length>0) {
@@ -719,38 +589,55 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableSections]);
 
-  /* contentEditable 에디터 초기화 */
+  /* 편집기 원문: 구조화 PRD는 정해진 틀의 마크다운으로, HTML 문서는 마크다운으로 옮겨 연다 */
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (dirtyRef.current) return;
     if (doc && typeof doc === "object") {
-      const html = doc.htmlContent || (doc.type === "html" ? "<p><br></p>" : prdJsonToHtml(doc));
-      editorRef.current.innerHTML = html;
-      setText(editorRef.current.innerText || "");
+      setMarkdown(isHtmlDoc ? (doc.markdown || htmlToMarkdown(doc.htmlContent)) : prdToMarkdownWithExtras(doc, doc.markdown));
       setHasDraft(true);
     } else {
-      editorRef.current.innerHTML = "<p><br></p>";
-      setText("");
+      setMarkdown("");
       setHasDraft(false);
     }
+  // 문서가 새로 들어올 때만 다시 채운다. 편집 중인 글을 덮어쓰지 않도록 의존성을 좁힌다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, doc?.projectOverview ?? null, doc?.type ?? null]);
+  }, [project?.id, doc]);
+
+  // 저장하지 않은 편집이 있으면 확인을 받고, 버리면 저장된 문서로 편집기를 되돌린다.
+  async function closeEditor() {
+    if (dirtyRef.current) {
+      const ok = await confirmDialog("저장하지 않은 변경이 있습니다. 버리고 닫을까요?", { confirmLabel: "버리고 닫기", danger: true });
+      if (!ok) return;
+      dirtyRef.current = false;
+      setMarkdown(doc && typeof doc === "object" ? (isHtmlDoc ? (doc.markdown || htmlToMarkdown(doc.htmlContent)) : prdToMarkdownWithExtras(doc, doc.markdown)) : "");
+      onDocumentEditingChange?.("PRD", false);
+    }
+    setEditMode(false);
+  }
+
+  function buildDocument(source) {
+    const htmlContent = renderMarkdown(source);
+    if (isHtmlDoc) return { ...(doc || {}), markdown: source, htmlContent };
+    return { ...markdownToPrd(source, doc || {}).doc, markdown: source, htmlContent };
+  }
 
   async function handleSave() {
     const artifactId = project?.artifactIds?.PRD;
     if (!artifactId) return;
-    const htmlContent = editorRef.current?.innerHTML;
-    if (!htmlContent || htmlContent === "<p><br></p>" || htmlContent === "<p></p>") return;
-    // 원본 구조화 필드 전체 보존, htmlContent만 추가/갱신
-    const nextDoc = { ...(doc || {}), htmlContent };
+    if (!markdown.trim()) { toast.error("빈 문서는 저장할 수 없습니다."); return; }
+    // 마크다운을 구조화 필드로 되돌리고, 틀에 없는 원본 필드는 그대로 둔다.
+    const nextDoc = buildDocument(markdown);
     const content = JSON.stringify(nextDoc);
     setSaving(true);
     try {
+      if (await onProposeDocument?.({ sourceType: "PRD", document: nextDoc })) return;
       await updateArtifact(artifactId, content);
+      dirtyRef.current = false;
       onDocumentEditingChange?.("PRD", false);
       onDocumentChange?.(nextDoc);
       onDocumentSaved?.({ sourceType: "PRD", document: nextDoc });
       setSaved(true); setTimeout(()=>setSaved(false), 3000);
-    } catch(e) { alert("저장 실패: "+e.message); }
+    } catch(e) { toast.error("저장 실패: "+e.message); }
     finally { setSaving(false); }
   }
 
@@ -776,16 +663,19 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
 
     const nextDoc = { ...doc };
     edits.forEach(e => { nextDoc[e.section] = e.after; });
-    nextDoc.htmlContent = prdJsonToHtml(nextDoc);
+    // 바뀐 구조에서 마크다운을 다시 만들어 편집기·저장본·화면이 같은 내용을 보게 한다.
+    nextDoc.markdown = prdToMarkdownWithExtras(nextDoc, doc.markdown);
+    nextDoc.htmlContent = renderMarkdown(nextDoc.markdown) || prdJsonToHtml(nextDoc);
+
+    const review = await onProposeDocument?.({ sourceType: "PRD", document: nextDoc, deferReview: true });
+    if (review) return typeof review === "object" ? review : { pendingApproval: true };
 
     // 승인한 수정은 곧바로 저장한다. 저장이 실패하면 편집기를 건드리지 않고
     // 예외를 그대로 올려보내 사이드바가 실패를 알리게 한다
     await updateArtifact(artifactId, JSON.stringify(nextDoc));
 
-    if (editorRef.current) {
-      editorRef.current.innerHTML = nextDoc.htmlContent;
-      setText(editorRef.current.innerText || "");
-    }
+    dirtyRef.current = false;
+    setMarkdown(nextDoc.markdown);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
 
@@ -795,20 +685,20 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
   }
 
   function handleExportPdf() {
-    const content = editorRef.current?.innerHTML;
-    if (!content || content === "<p><br></p>" || content === "<p></p>") return;
+    const content = renderMarkdown(markdown);
+    if (!content) return;
     const projectName = project?.name || "PRD";
     const now = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
     const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${projectName} — PRD</title>
 <style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
-@page{margin:20mm 25mm;size:A4}body{font-family:'Noto Sans KR',sans-serif;color:#1a1916;line-height:1.75;font-size:14px}
-.doc-header{border-bottom:2px solid #1a1916;padding-bottom:14px;margin-bottom:36px}
-.doc-header .title{font-size:11px;font-weight:700;color:#6b6960;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+@page{margin:20mm 25mm;size:A4}body{font-family:'Noto Sans KR',sans-serif;color:var(--text-1);line-height:1.75;font-size:14px}
+.doc-header{border-bottom:2px solid var(--text-1);padding-bottom:14px;margin-bottom:36px}
+.doc-header .title{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
 .doc-header h1{font-size:26px;font-weight:900;margin:0 0 6px}.doc-header .meta{font-size:11px;color:#9ca3af}
 h1{font-size:24px;font-weight:900;margin:0 0 14px}h2{font-size:17px;font-weight:700;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.1)}
 h3{font-size:14px;font-weight:600;margin:20px 0 6px;color:#374151}p{margin:5px 0}ul{padding-left:22px;margin:6px 0}ol{padding-left:24px;margin:6px 0}li{margin:4px 0}
-blockquote{border-left:3px solid #6b6960;margin:12px 0;padding:10px 16px;background:rgba(107,105,96,0.07);color:#6b6960;border-radius:0 6px 6px 0}
-pre{background:#f5f4f0;padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}
+blockquote{border-left:3px solid var(--text-2);margin:12px 0;padding:10px 16px;background:color-mix(in srgb, var(--text-2) 7%, transparent);color:var(--text-2);border-radius:0 6px 6px 0}
+pre{background:var(--db-bg-elevated);padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
 <div class="doc-header"><div class="title">Product Requirements Document</div><h1>${projectName}</h1><div class="meta">생성일 ${now} · Timiroom AI</div></div>
 ${content}</body></html>`;
@@ -821,17 +711,11 @@ ${content}</body></html>`;
   }
 
   const PdfBtn = ({ disabled }) => (
-    <button onClick={handleExportPdf} disabled={disabled} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:!disabled?C.accentBg:"rgba(0,0,0,0.04)", border:`1px solid ${!disabled?C.accentBdr:"rgba(0,0,0,0.08)"}`, color:!disabled?C.accent:"#9ca3af", cursor:!disabled?"pointer":"not-allowed", display:"flex", alignItems:"center", gap:5 }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-        <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>
-      </svg>
-      PDF
-    </button>
+    <ActionButton onClick={handleExportPdf} disabled={disabled}><Icon name="download" size={12} /> PDF</ActionButton>
   );
 
   return (
-    <div style={{ flex:1, display:"flex", height:"100vh", overflow:"hidden", background:C.bg, fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
+    <div className="prd-layout" style={{ flex:1, display:"flex", height:"100%", minHeight:0, overflow:"hidden", background:"var(--content-bg)", fontFamily:"'Pretendard','Noto Sans KR',sans-serif" }}>
 
       {/* ── 뷰 모드 ── */}
       {!editMode && (
@@ -843,32 +727,18 @@ ${content}</body></html>`;
             projectName={project?.name}
             onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
-          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-            <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface, justifyContent:"space-between" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                {project && <>
-                  <div style={{ width:20, height:20, borderRadius:5, background:`${project.color||"var(--text-1)"}22`, border:`1px solid ${project.color||"var(--text-1)"}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:900, color:project.color||"#6b6960" }}>{(project.name||"P").charAt(0).toUpperCase()}</div>
-                  <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>
-                  <span style={{ fontSize:13, color:C.sub }}>›</span>
-                </>}
-                <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD</span>
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                {hasDraft && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ AI 초안"}</span>}
-                <PdfBtn disabled={!hasDraft} />
-              </div>
-            </div>
+          <div className="prd-main" style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+            <PanelHeader project={project} label="PRD" docType="PRD">
+              {hasDraft && <Badge tone="success"><Icon name="check" size={11} /> AI 초안</Badge>}
+              <PdfBtn disabled={!hasDraft} />
+            </PanelHeader>
             <div style={{ flex:1, overflowY:"auto" }}>
               {!doc ? (
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"80px 0", gap:14 }}>
-                  <div style={{ fontSize:32 }}>{"📄"}</div>
-                  <div style={{ fontSize:16, fontWeight:700, color:C.text }}>PRD{"가 없습니다"}</div>
-                  <div style={{ fontSize:13, color:C.muted }}>{"파이프라인을 실행하거나 편집 모드에서 작성하세요"}</div>
-                  {!readOnly && <button onClick={()=>setEditMode(true)} style={{ marginTop:4, padding:"8px 18px", borderRadius:8, fontSize:13, fontWeight:600, background:C.accentBg, border:`1px solid ${C.accentBdr}`, color:C.accent, cursor:"pointer" }}>{"편집 모드 열기"}</button>}
-                </div>
+                // 편집은 AI가 만든 PRD를 고치는 방식이라, 문서가 없을 때는 편집을 열지 않는다(저장할 곳이 없다).
+                <EmptyState icon="doc" title="아직 PRD가 없습니다" description="AI 기획 생성이 끝나면 여기에 PRD가 만들어집니다. 생성이 끝났는데도 비어 있다면 생성 과정에서 실패한 것입니다." />
               ) : (
                 <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
-                  <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} />
+                  <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} extras={extras} />
                 </div>
               )}
             </div>
@@ -879,38 +749,37 @@ ${content}</body></html>`;
       {/* ── 편집 모드: 항상 마운트, 뷰 모드에서 숨김 ── */}
       <div style={{ display:editMode?"flex":"none", flex:1, flexDirection:"column", overflow:"hidden" }}>
         <div style={{ height:48, flexShrink:0, display:"flex", alignItems:"center", padding:"0 20px", gap:8, borderBottom:`1px solid ${C.border}`, background:C.surface }}>
-          <button onClick={()=>setEditMode(false)} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(0,0,0,0.04)", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer" }}>
+          <button onClick={closeEditor} title="편집 닫기" aria-label="편집 닫기" style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(0,0,0,0.04)", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           {project && <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{project.name}</span>}
           <span style={{ fontSize:13, color:C.sub }}>›</span>
-          <span style={{ fontSize:13, fontWeight:500, color:C.accent, padding:"2px 8px", borderRadius:6, background:C.accentBg, border:`1px solid ${C.accentBdr}` }}>PRD {"편집"}</span>
+          <Badge>PRD 편집</Badge>
           <div style={{ flex:1 }} />
-          {saved && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)", color:"#34d399", fontWeight:600 }}>{"✓ 저장됨"}</span>}
-          <button onClick={handleSave} disabled={saving||!project?.artifactIds?.PRD||readOnly} style={{ padding:"5px 12px", borderRadius:7, fontSize:12, fontWeight:600, background:saved?"rgba(52,211,153,0.15)":project?.artifactIds?.PRD?"rgba(96,165,250,0.12)":"rgba(0,0,0,0.04)", border:`1px solid ${saved?"rgba(52,211,153,0.4)":project?.artifactIds?.PRD?"rgba(96,165,250,0.35)":"rgba(0,0,0,0.08)"}`, color:saved?"#34d399":project?.artifactIds?.PRD?"#60a5fa":"#9ca3af", cursor:saving||!project?.artifactIds?.PRD?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:5, opacity:saving?0.7:1 }}>
-            {saved ? "저장됨" : saving ? "저장 중..." : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-                </svg>
-                {"저장"}
-              </>
-            )}
-          </button>
+          {saved && <Badge tone="success"><Icon name="check" size={11} /> 저장됨</Badge>}
+          <ActionButton size="sm" variant="primary" onClick={handleSave} disabled={saving || readOnly || !project?.artifactIds?.PRD}>
+            <Icon name="save" size={12} /> {saving ? "저장 중…" : "저장"}
+          </ActionButton>
           <PdfBtn disabled={!hasDraft} />
         </div>
-        <NotionEditor editorRef={editorRef} onTextChange={nextText => {
-          setText(nextText);
-          onDocumentEditingChange?.("PRD", true);
-        }} />
+        <MarkdownEditor
+          value={markdown}
+          ariaLabel="PRD 본문"
+          placeholder={"## 개요\n\n서비스를 한두 문장으로 설명하세요.\n\n## 목표\n\n- 첫 번째 목표"}
+          notice={unknownSections.length > 0 ? `'${unknownSections.join("', '")}' 섹션은 정해진 PRD 항목이 아니어서 AI와 정합성 검사에는 쓰이지 않고, 문서 화면에 추가 섹션으로만 보입니다.` : null}
+          onChange={(next) => {
+            dirtyRef.current = true;
+            setMarkdown(next);
+            onDocumentEditingChange?.("PRD", true);
+          }}
+        />
       </div>
 
       {/* html 타입 문서는 섹션 키가 없어 구조화 편집이 불가능하다 — 상담 모드로만 붙인다 */}
       <AiChatDock
         contextType="prd"
         project={project}
-        currentContent={text}
+        currentContent={markdown}
         document={!readOnly && doc && !isHtmlDoc ? doc : null}
         onApplyEdits={!readOnly && doc && !isHtmlDoc ? handleApplyEdits : undefined}
       />

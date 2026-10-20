@@ -7,7 +7,8 @@
  * 여러 개가 동시에 뜨면 최신 알림이 아래쪽에 쌓인다 (column-reverse).
  */
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { TOAST_EVENT } from "@/lib/feedback";
 
 const ToastContext = createContext(null);
 const AUTO_DISMISS_MS = 3000;
@@ -31,6 +32,13 @@ export function ToastProvider({ children }) {
     setToasts((prev) => [...prev, { id, type, message }]);
     timers.current[id] = setTimeout(() => dismissToast(id), AUTO_DISMISS_MS);
   }, [dismissToast]);
+
+  /* 컴포넌트 밖에서 부르는 toast.error() 등을 받는다. */
+  useEffect(() => {
+    const onToast = (event) => showToast(event.detail.type, event.detail.message);
+    window.addEventListener(TOAST_EVENT, onToast);
+    return () => window.removeEventListener(TOAST_EVENT, onToast);
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -76,7 +84,7 @@ function ToastStack({ toasts, onDismiss }) {
             gap: 10,
             padding: "12px 12px 12px 14px",
             borderRadius: 10,
-            background: "#1a1916",
+            background: "var(--text-1)",
             color: "#ffffff",
             fontSize: 13,
             fontWeight: 600,

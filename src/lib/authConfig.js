@@ -22,6 +22,15 @@ export const APP_URL =
 
 /** OAuth 로그인 후 돌아올 경로 저장 키 */
 export const AUTH_RETURN_TO_KEY = "timiroom.authReturnTo";
+export function safeAuthReturnTo(path) {
+  return typeof path === "string" && /^\/(?!\/)[^\\\r\n]*$/.test(path) ? path : null;
+}
+export function rememberAuthReturnTo(path) {
+  const safe = safeAuthReturnTo(path);
+  if (safe && typeof window !== "undefined") {
+    try { window.localStorage.setItem(AUTH_RETURN_TO_KEY, safe); } catch {}
+  }
+}
 
 /** Spring Security OAuth2 진입점 */
 export const OAUTH_ENDPOINTS = {
@@ -40,7 +49,7 @@ export function redirectToOAuth(provider, returnTo = null) {
   const url = OAUTH_ENDPOINTS[provider];
   if (!url) throw new Error(`Unknown OAuth provider: ${provider}`);
   if (typeof window !== "undefined" && returnTo) {
-    window.localStorage.setItem(AUTH_RETURN_TO_KEY, returnTo);
+    rememberAuthReturnTo(returnTo);
   }
   window.location.href = url;
 }
@@ -61,10 +70,21 @@ export async function apiFetch(url, options = {}) {
     credentials: "include",
   });
 
+  // AI 사용 한도 초과는 어느 화면에서 났든 같은 안내를 띄운다(UsageContext가 받는다).
+  if (res.status === 429 && typeof window !== "undefined") {
+    res.clone().json().then((body) => {
+      if (body?.code === "USAGE_LIMIT_EXCEEDED") {
+        window.dispatchEvent(new CustomEvent("timiroom:usage-limit", { detail: body }));
+      }
+    }).catch(() => {});
+  }
+
   if (res.status === 401) {
-    const REDIRECT_EXEMPT = ["/", "/auth/callback"];
+    // 로그인 없이 보는 화면(약관·방침)은 로그인 확인 실패로 첫 화면으로 보내지 않는다.
+    const REDIRECT_EXEMPT = ["/", "/auth/callback", "/terms", "/privacy", "/refund-policy"];
     const path = typeof window !== "undefined" ? window.location.pathname : "/";
     if (!REDIRECT_EXEMPT.includes(path) && !path.startsWith("/invite/")) {
+      rememberAuthReturnTo(path + window.location.search);
       window.location.href = "/";
     }
     return null;

@@ -1,4 +1,4 @@
-import { RAG_PIPELINE_URL } from "@/lib/authConfig";
+import { aiFetch } from "@/lib/aiGateway";
 
 const DOCUMENT_LABELS = {
   PRD: "PRD",
@@ -25,7 +25,7 @@ export function documentLabel(type) {
   return DOCUMENT_LABELS[type] || type;
 }
 
-export async function analyzeDocumentImpact({ sourceType, before, after, documents, signal }) {
+export async function analyzeDocumentImpact({ sourceType, before, after, documents, projectId, signal }) {
   const targetDocuments = Object.fromEntries(
     Object.entries(documents || {}).filter(([type, document]) => type !== sourceType && document != null)
   );
@@ -56,19 +56,12 @@ PRD, 기능 명세, API 명세, ERD 사이의 의미적 연결을 분석합니�
     linkedDocuments: targetDocuments,
   };
 
-  const response = await fetch(`${RAG_PIPELINE_URL}/api/agent/chat`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-LLM-Provider": "azure-foundry",
-      "X-LLM-Model": process.env.NEXT_PUBLIC_AGENT_MODEL || "gpt-5.4-mini",
-    },
-    body: JSON.stringify({
+  const response = await aiFetch("/chat", {
+    projectId,
+    body: {
       messages: [{ role: "user", content: JSON.stringify(payload) }],
-      systemPrompt,
-      projectContext: null,
-    }),
+      system_prompt: systemPrompt,
+    },
     signal,
   });
 
