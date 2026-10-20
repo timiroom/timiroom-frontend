@@ -1282,7 +1282,6 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .ws-compose__close:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
 .ws-compose__body { padding: 22px; }
 .ws-compose__label { margin-bottom: 12px; font-size: 11px; font-weight: 700; color: var(--text-3); letter-spacing: .07em; text-transform: uppercase; }
-.ws-compose__label--tight { display: block; margin-bottom: 8px; }
 .ws-compose__form { display: flex; flex-direction: column; gap: 10px; }
 .ws-compose__field { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1px solid var(--border-2, rgba(0, 0, 0, .12)); border-radius: 12px; background: transparent; color: var(--text-1); font: inherit; font-size: 13px; outline: none; transition: border-color .15s, box-shadow .15s, background .15s; }
 .ws-compose__field::placeholder { color: var(--text-3); }

@@ -89,11 +89,10 @@ export function WorkspaceComposerDialog({
                 onJoin();
               }}
             >
-              <label className="ws-compose__label ws-compose__label--tight" htmlFor="ws-compose-code">초대 코드</label>
               <div className="ws-compose__join-row">
                 <input
-                  id="ws-compose-code"
                   ref={joinInputRef}
+                  aria-label="초대 코드"
                   className="ws-compose__field"
                   value={joinCode}
                   onChange={(event) => onJoinCodeChange(event.target.value)}
