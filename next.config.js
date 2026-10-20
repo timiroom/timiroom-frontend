@@ -11,6 +11,19 @@ const nextConfig = {
       { protocol: 'https', hostname: 'minio.timiroom.kro.kr' },
     ],
   },
+  // 기본 보안 헤더: 다른 사이트의 iframe 안에 넣기(클릭재킹), MIME 추측, 리퍼러 전체 노출을 막고 HTTPS를 고정한다.
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ],
+    }];
+  },
   transpilePackages: [
     "@tiptap/react",
     "@tiptap/core",
