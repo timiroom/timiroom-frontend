@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { specChange, proposeManualChange, reviewChange, integrationJob, approveChange, rejectChange } from "@/lib/integrationApi";
 import { AiWorking, Badge } from "@/components/ui";
+import { confirmDialog } from "@/lib/feedback";
 import { SpecDocumentView } from "./SpecDocumentView";
 
 const labels = { PRD: "PRD", API_SPEC: "API 명세", DB_SCHEMA: "DB 스키마", FEATURE_LIST: "기능 명세" };
@@ -96,6 +97,9 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
     try { await action(); } catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
   const running = job && !terminal.has(job.status);
+  // 교차검증이 끝까지 돌았으면(경고가 있어도) PM이 확인하고 승인할 수 있다. 검증을 안 돌렸으면 승인할 수 없다.
+  const reviewCompleted = Boolean(proposal?.artifactReview && proposal.artifactReview.inputComplete !== false && Array.isArray(proposal.artifactReview.findings));
+  const reviewWarnings = (proposal?.artifactReview?.findings || []).filter((finding) => !["PASS", "INFO"].includes(finding.severity)).length;
   const ready = proposal?.status === "READY" && !proposal.stale;
   const canRevise = canApprove || (proposal && Object.keys(proposal.documents || {}).every((type) => allowedTargets.includes(type)));
   const documentTypes = proposal ? Object.keys(proposal.documents || {}) : draft ? [draft.sourceType] : [];
@@ -178,15 +182,17 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       })}>문서 교차검증 요청</button>}
       {ready && canApprove && <>
         <button disabled={busy || running} onClick={() => run(async () => { await rejectChange(project.id, activeId, proposal.proposalRevision); await refresh(activeId); })}>거절</button>
-        <button className="review-primary" disabled={busy || running || !proposal.artifactReviewPassed} onClick={() => run(async () => {
-          await approveChange(project.id, activeId, proposal.proposalRevision); await refresh(activeId); await onApproved?.();
-        })}>승인하고 기준 발행</button>
+        <button className="review-primary" disabled={busy || running || (!proposal.artifactReviewPassed && !reviewCompleted)} onClick={() => run(async () => {
+          const acknowledge = !proposal.artifactReviewPassed;
+          if (acknowledge && !await confirmDialog(`교차검증에서 확인할 항목 ${reviewWarnings}개가 있습니다. 내용을 확인했고 이대로 기준에 반영할까요?`, { confirmLabel: "확인하고 승인" })) return;
+          await approveChange(project.id, activeId, proposal.proposalRevision, acknowledge); await refresh(activeId); await onApproved?.();
+        })}>{proposal.artifactReviewPassed || !reviewCompleted ? "승인하고 기준 발행" : "확인하고 승인"}</button>
       </>}
       {ready && !canApprove && <p>PM의 검토와 승인을 기다립니다.</p>}
       {ready && canApprove && !proposal.artifactReviewPassed && !running && <p className="review-gate">
-        {proposal.artifactReview
-          ? "교차검증에서 확인할 항목이 나와 아직 승인할 수 없습니다. 위 결과를 반영해 '이 변경안 보완하기'로 고친 뒤 다시 검증하세요."
-          : "승인하려면 먼저 '문서 교차검증 요청'으로 검증을 통과해야 합니다."}
+        {reviewCompleted
+          ? `교차검증에서 확인할 항목 ${reviewWarnings}개가 나왔습니다. 처음 만든 문서에 원래 있던 문제일 수도 있습니다. 위 결과를 보고 고칠 필요가 없으면 '확인하고 승인'으로 반영하세요.`
+          : "승인하려면 먼저 '문서 교차검증 요청'으로 검증을 한 번 돌려야 합니다."}
       </p>}
     </footer>
   </section>

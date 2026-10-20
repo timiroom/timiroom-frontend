@@ -46,7 +46,8 @@ export const specChange = (project, id) => integrationRequest(`${projectPath(pro
 export const specChanges = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes?page=${page}`);
 export const integrationJobs = (project, page = 0) => integrationRequest(`${projectPath(project)}/spec-changes/jobs?page=${page}`);
 export const proposeManualChange = (project, input) => integrationRequest(`${projectPath(project)}/spec-changes`, { method: "POST", body: input });
-export const approveChange = (project, id, revision) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/approve`, { method: "POST", body: { revision } });
+// acknowledgeWarnings: 교차검증 경고를 PM이 확인하고 그대로 승인할 때 true
+export const approveChange = (project, id, revision, acknowledgeWarnings = false) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/approve`, { method: "POST", body: { revision, acknowledgeWarnings } });
 export const rejectChange = (project, id, revision) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/reject`, { method: "POST", body: { revision } });
 export const reviewChange = (project, id, revision, idempotencyKey) => integrationRequest(`${projectPath(project)}/spec-changes/${id}/review`, { method: "POST", body: { revision, idempotencyKey } });
 export const integrationJob = (project, id) => integrationRequest(`${projectPath(project)}/spec-changes/jobs/${id}`);
