@@ -325,7 +325,7 @@ function EmptyStateCard({ centered, icon, title, description, children }) {
         }}>
           <Icon name={icon} size={26} strokeWidth={1.6} />
         </div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", letterSpacing: "-.03em" }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.03em" }}>
           {title}
         </div>
         <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 10, lineHeight: 1.8 }}>

@@ -16,11 +16,11 @@
   --text-3:    #8f8f8f;
   --accent:    #0d0d0d;
   --accent-fg: #ffffff;
-  /* 워크스페이스가 없는 첫 화면 — 어두운 톤 위에 같은 계열의 옅은 빛을 겹친 배경 */
   /* 대화창 바탕 — 글을 읽는 데 방해되지 않게 위쪽이 아주 조금 밝고 아래로 갈수록 옅게 가라앉는다 */
   --chat-bg:
     radial-gradient(ellipse 80% 38% at 50% 0%, var(--surface) 0%, transparent 72%),
     linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--text-1) 4%, var(--bg)) 100%);
+  /* 워크스페이스가 없는 첫 화면 — 어두운 톤 위에 같은 계열의 옅은 빛을 겹친 배경 */
   --onboarding-bg:
     radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--accent-fg) 14%, var(--accent)) 0%, transparent 72%),
     radial-gradient(ellipse 55% 45% at 100% 100%, color-mix(in srgb, var(--accent-fg) 8%, var(--accent)) 0%, transparent 70%),
@@ -1325,15 +1325,20 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .ws-compose__secondary { flex-shrink: 0; padding: 0 16px; border: 1px solid var(--text-1); border-radius: 12px; background: var(--surface); color: var(--text-1); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s, transform .15s; }
 .ws-compose__secondary:hover:not(:disabled) { background: var(--text-1); color: var(--bg); }
 .ws-compose__secondary:active:not(:disabled) { transform: scale(.97); }
-.ws-compose__error { padding: 0 22px 20px; color: var(--db-red, #dc2626); font-size: 12px; font-weight: 600; animation: ws-compose-fade .2s ease both; }
+.ws-compose__error { color: var(--db-red, #dc2626); font-size: 12px; font-weight: 600; animation: ws-compose-fade .2s ease both; }
+.ws-compose__error--join { margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) {
   .ws-compose__backdrop, .ws-compose, .ws-compose__error { animation: none; }
   .ws-compose__join, .ws-compose__link, .ws-compose__primary, .ws-compose__secondary, .ws-compose__close, .ws-compose__field { transition: none; }
 }
 
-/* 빈 화면 시작 버튼 (dashboard DashboardEmptyState) — 올리면 떠오르며 검게 차고, 누르면 눌린다 */
-.empty-cta { margin-top: 18px; padding: 11px 18px; border: 1px solid var(--border-2, rgba(0, 0, 0, .12)); border-radius: 14px; background: var(--surface); color: var(--text-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease; }
-.empty-cta:hover { background: var(--text-1); border-color: var(--text-1); color: var(--bg); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, .28); }
-.empty-cta:active { transform: translateY(0) scale(.97); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); transition-duration: .08s; }
+/* 빈 화면 시작 버튼 (dashboard DashboardEmptyState) — 카드에서 누를 것이 이것 하나라 처음부터 검게 채운다.
+   떠오르는 효과는 마우스가 있는 기기에서만(터치에서 눌린 뒤 떠 있는 채로 남지 않게) */
+.empty-cta { margin-top: 18px; padding: 11px 18px; border: 1px solid var(--text-1); border-radius: 14px; background: var(--text-1); color: var(--bg); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s ease, border-color .2s ease, opacity .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease; }
+@media (hover: hover) {
+  .empty-cta:hover:not(:disabled) { background: color-mix(in srgb, var(--text-1) 86%, var(--bg)); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, .28); }
+}
+.empty-cta:active:not(:disabled) { transform: translateY(0) scale(.97); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); transition-duration: .08s; }
 .empty-cta:focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
+.empty-cta:disabled { opacity: .6; cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .empty-cta { transition: none; } .empty-cta:hover, .empty-cta:active { transform: none; } }

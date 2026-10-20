@@ -15,7 +15,6 @@ import { ActionButton, Badge, Icon, SearchInput } from "@/components/ui";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarAccount } from "./SidebarAccount";
 
-
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
   active:    { label: "진행 중", tone: "success" },

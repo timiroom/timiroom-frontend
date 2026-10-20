@@ -614,6 +614,8 @@ function IconPanelToggle() {
 /* ═══════════════════════════════════════════
    메인 — ProjectChatWizard
 ════════════════════════════════════════════ */
+const CHAT_FADE_MASK = "linear-gradient(to bottom, #000 calc(100% - 24px), transparent)";
+
 export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed, onToggleSidebar }) {
   const [messages,           setMessages]           = useState([]);
   const [currentSuggestions, setCurrentSuggestions] = useState([]);
@@ -809,8 +811,8 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
         <div style={{ padding: 20, color: "#f87171", fontSize: 13, textAlign: "center" }}>{sessionError}</div>
       )}
 
-      {/* 채팅 영역 */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 0" }}>
+      {/* 채팅 영역 — 입력창 위 구분선이 없으니, 스크롤된 글이 뚝 잘리지 않게 아래 24px(아래 여백만큼)를 흐리게 사라지게 한다 */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 0", maskImage: CHAT_FADE_MASK, WebkitMaskImage: CHAT_FADE_MASK }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 24px" }}>
 
           {messages.length <= 1 && (

@@ -18,6 +18,8 @@ export function WorkspaceComposerDialog({
   onJoin,
 }) {
   const [joinOpen, setJoinOpen] = useState(false);
+  // 오류 문구를 방금 누른 버튼 바로 아래에 보여주려고, 마지막으로 보낸 폼을 기억한다
+  const [lastAction, setLastAction] = useState("create");
   const dialogRef = useRef(null);
   const nameInputRef = useRef(null);
   const joinInputRef = useRef(null);
@@ -26,7 +28,10 @@ export function WorkspaceComposerDialog({
   onCloseRef.current = onClose;
 
   useEffect(() => {
-    if (!open) setJoinOpen(false);
+    if (!open) {
+      setJoinOpen(false);
+      setLastAction("create");
+    }
   }, [open]);
 
   // 열리면 이름 칸에 커서를 두고, Esc로 닫고, Tab은 창 안에서만 돌고, 닫히면 열기 전 자리로 포커스를 돌려준다
@@ -91,6 +96,7 @@ export function WorkspaceComposerDialog({
             className="ws-compose__form"
             onSubmit={(event) => {
               event.preventDefault();
+              setLastAction("create");
               onCreate();
             }}
           >
@@ -111,6 +117,7 @@ export function WorkspaceComposerDialog({
             <button type="submit" className="ws-compose__primary" disabled={creating}>
               {creating ? "생성 중" : "워크스페이스 생성"}
             </button>
+            {error && lastAction === "create" && <div className="ws-compose__error" role="alert">{error}</div>}
           </form>
 
           <button
@@ -120,7 +127,7 @@ export function WorkspaceComposerDialog({
             aria-controls="ws-compose-join"
             onClick={() => setJoinOpen((value) => !value)}
           >
-            초대코드 입력
+            초대 코드 입력
           </button>
 
           <div id="ws-compose-join" className={`ws-compose__join${joinOpen ? " is-open" : ""}`}>
@@ -128,6 +135,7 @@ export function WorkspaceComposerDialog({
               className="ws-compose__join-inner"
               onSubmit={(event) => {
                 event.preventDefault();
+                setLastAction("join");
                 onJoin();
               }}
             >
@@ -146,11 +154,11 @@ export function WorkspaceComposerDialog({
                   {joining ? "참여 중" : "참여하기"}
                 </button>
               </div>
+              {error && lastAction === "join" && <div className="ws-compose__error ws-compose__error--join" role="alert">{error}</div>}
             </form>
           </div>
         </div>
 
-        {error && <div className="ws-compose__error" role="alert">{error}</div>}
       </div>
     </div>
   );
