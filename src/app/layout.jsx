@@ -5,6 +5,9 @@ import { UsageProvider } from "@/context/UsageContext";
 import { AuthModal }    from "@/components/auth/AuthModal";
 import { ConfirmHost } from "@/components/ui/ConfirmHost";
 
+// 휴대폰 노치·홈 표시줄 영역까지 쓰고(안쪽 여백은 safe-area로 띄운다) 확대 없이 기기 폭에 맞춘다.
+export const viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+
 export const metadata = {
   title: "Align-it — 기획과 개발의 정합성, AI로 완성합니다",
   description:
