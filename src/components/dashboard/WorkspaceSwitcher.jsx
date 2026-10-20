@@ -19,7 +19,7 @@ function workspaceName(workspace) {
  * 누르면 내가 속한 워크스페이스 목록과 설정·새로 만들기 메뉴가 열린다.
  * onCreate가 없으면 새로 만들기 항목을 숨긴다(설정 화면처럼 만들기 창이 없는 곳).
  */
-export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreate, settingsHref = "/settings/workspace/general", subtitle, loading = false }) {
+export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreate, settingsHref = "/settings/workspace/general", subtitle, loading = false, compact = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const active = workspaces.find((workspace) => String(workspaceId(workspace)) === String(activeId)) ?? null;
@@ -35,7 +35,7 @@ export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreat
 
   if (!loading && workspaces.length === 0) {
     return onCreate ? (
-      <button type="button" className="ws-switch__trigger" onClick={onCreate}>
+      <button type="button" className={`ws-switch__trigger${compact ? " ws-switch--compact" : ""}`} onClick={onCreate}>
         <span className="ws-switch__empty-icon" aria-hidden="true"><Icon name="plus" size={14} /></span>
         <span className="ws-switch__text">
           <span className="ws-switch__name">워크스페이스 시작하기</span>
@@ -46,7 +46,7 @@ export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreat
   }
 
   return (
-    <div className="ws-switch" ref={rootRef}>
+    <div className={`ws-switch${compact ? " ws-switch--compact" : ""}`} ref={rootRef}>
       <button
         type="button"
         className={`ws-switch__trigger${open ? " is-open" : ""}`}
@@ -54,7 +54,7 @@ export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreat
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <Avatar name={workspaceName(active)} src={active?.iconUrl} size={32} square />
+        <Avatar name={workspaceName(active)} src={active?.iconUrl} size={compact ? 22 : 32} square />
         <span className="ws-switch__text">
           <span className="ws-switch__name">{loading && !active ? "불러오는 중…" : workspaceName(active)}</span>
           <span className="ws-switch__sub">{subtitle ?? (active ? ROLE_LABEL[active.viewerRole] ?? "멤버" : "")}</span>

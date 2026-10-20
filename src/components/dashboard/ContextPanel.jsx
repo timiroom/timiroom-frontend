@@ -15,7 +15,6 @@ import { ActionButton, Badge, Icon, SearchInput } from "@/components/ui";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarAccount } from "./SidebarAccount";
 
-const ROLE_LABEL = { OWNER: "소유자", MEMBER: "멤버", GUEST: "게스트" };
 
 /* ── 상태 배지 ── */
 const STATUS_MAP = {
@@ -127,7 +126,7 @@ function ProjectsPanel({
           onSelect={onSelectWorkspace}
           onCreate={onOpenWorkspaceComposer}
           loading={workspacesLoading}
-          subtitle={workspace ? `${ROLE_LABEL[workspace.viewerRole] ?? "멤버"} · 프로젝트 ${projects.length}개` : undefined}
+          compact
         />
       </div>
 
