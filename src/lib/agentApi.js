@@ -146,10 +146,11 @@ export const DOC_TYPES = {
  * @returns {Promise<{intent: "edit"|"chat", reply: string, analysis?: object, edits: object[]}>}
  *   edits[]: { section, label, before, after, diff: [{type:"same"|"add"|"del", text}] }
  */
-export async function requestDocumentEdit({ docType, document, instruction, history = [], projectId, signal }) {
+export async function requestDocumentEdit({ docType, document, instruction, history = [], related = {}, projectId, signal }) {
   const res = await aiFetch(`/documents/${encodeURIComponent(docType)}/edit`, {
     projectId,
-    body: { document: document || {}, instruction, history },
+    // related: 같은 프로젝트의 다른 문서 요약 — AI가 문서끼리 어긋나지 않는 수정안을 만들고 문서를 넘나드는 질문에 답하게 한다
+    body: { document: document || {}, instruction, history, related },
     signal,
   });
 
