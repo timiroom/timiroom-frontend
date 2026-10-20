@@ -43,6 +43,7 @@ import { fetchActiveRuns, updateArtifact } from "@/lib/pipelineApi";
 import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { SpecChangeBar } from "@/components/dashboard/SpecChangeBar";
+import { SpecAnchorStatus } from "@/components/dashboard/SpecAnchorStatus";
 import { latestSnapshot, publishSnapshot } from "@/lib/integrationApi";
 import { sourceMatchesSnapshot } from "@/lib/specSource";
 
@@ -488,7 +489,7 @@ export default function DashboardPage() {
     latestSnapshot(selectedProject.id)
       .then(async (snapshot) => {
         const checks = await Promise.all(snapshot.documents.map((doc) => sourceMatchesSnapshot(selectedProject, doc.type, doc)));
-        if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision });
+        if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision, snapshotId: snapshot.snapshotId });
       })
       .catch((error) => {
         if (error.code === "SPEC_NOT_PUBLISHED") unpublishedRef.current.add(unpublishedKey);
@@ -1331,6 +1332,7 @@ export default function DashboardPage() {
                   publishing={publishing}
                   onReload={() => loadArtifacts(selectedProject)}
                   onPublish={handlePublishSnapshot}
+                  anchorSlot={specStatus?.snapshotId && <SpecAnchorStatus key={specStatus.snapshotId} projectId={selectedProject.id} snapshotId={specStatus.snapshotId} />}
                 />
               )}
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
