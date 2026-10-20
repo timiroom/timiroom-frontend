@@ -131,10 +131,14 @@ button, input, select, textarea { font-family: inherit; }
 .db-badge-dot { width:6px;height:6px;border-radius:50%;background:currentColor; }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--db-bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--db-purple-700); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--db-purple-500); }
+/* 스크롤바: 거의 검정(#2f2f2f)이라 눈에 띄던 것을 옅은 회색으로. 바탕은 투명, 손잡이는 가장자리를 띄워 얇게 보이고
+   마우스를 올리면 조금 진해진다. Firefox는 scrollbar-color로 같은 색을 쓴다. */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-1) 18%, transparent) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-1) 16%, transparent); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text-1) 32%, transparent); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
 
 /* ── Animations ── */
 @keyframes db-pulse {
