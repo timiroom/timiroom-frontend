@@ -1265,7 +1265,9 @@ export default function DashboardPage() {
   }
 
   // 워크스페이스가 하나도 없으면 사이드바에는 계정 줄만 두고, 가운데에 시작 카드만 보여준다
-  const workspaceOnboarding = showWizard && !activeWorkspaceId && !isLoadingWorkspaces;
+  // 본문의 시작 카드(DashboardEmptyState)가 뜨는 조건과 똑같이 맞춘다. 로딩 여부를 따로 보면
+  // 본문은 어두운 시작 화면인데 사이드바만 예전 모습으로 남는 어긋남이 생긴다.
+  const workspaceOnboarding = showWizard && !activeWorkspaceId;
 
   return (
     <>
