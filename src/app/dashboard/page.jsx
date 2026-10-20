@@ -43,7 +43,7 @@ import { fetchActiveRuns, updateArtifact } from "@/lib/pipelineApi";
 import { analyzeDocumentImpact, documentLabel } from "@/lib/documentSyncApi";
 import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { SpecChangeBar } from "@/components/dashboard/SpecChangeBar";
-import { latestSnapshot, publishSnapshot } from "@/lib/integrationApi";
+import { latestSnapshot, publishSnapshot, specChanges } from "@/lib/integrationApi";
 import { sourceMatchesSnapshot } from "@/lib/specSource";
 
 const ROLE_DOCUMENT_PERMISSIONS = {
@@ -488,7 +488,7 @@ export default function DashboardPage() {
     latestSnapshot(selectedProject.id)
       .then(async (snapshot) => {
         const checks = await Promise.all(snapshot.documents.map((doc) => sourceMatchesSnapshot(selectedProject, doc.type, doc)));
-        if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision });
+        if (active) setSpecStatus({ state: checks.every(Boolean) ? "match" : "differ", revision: snapshot.revision, snapshotId: snapshot.snapshotId });
       })
       .catch((error) => {
         if (error.code === "SPEC_NOT_PUBLISHED") unpublishedRef.current.add(unpublishedKey);
@@ -497,6 +497,24 @@ export default function DashboardPage() {
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 문서 원본이 바뀔 때만 다시 대조한다
   }, [integrationEnabled, selectedProject?.id, selectedProject?.artifactSources, specStatusTick]);
+
+  /* 승인을 기다리는 변경안(지금 기준에서 만든 것만) 수. 안내 바에 바로가기를 띄운다. 탭으로 돌아오면 다시 센다. */
+  const [pendingChanges, setPendingChanges] = useState(null);
+  useEffect(() => {
+    const snapshotId = specStatus?.snapshotId;
+    if (!integrationEnabled || !selectedProject?.id || !snapshotId) { setPendingChanges(null); return undefined; }
+    let active = true;
+    const load = () => specChanges(selectedProject.id, 0)
+      .then((page) => {
+        const ready = (page?.content ?? []).filter((item) => item.status === "READY" && item.snapshotId === snapshotId);
+        if (active) setPendingChanges({ count: ready.length, latestId: ready[0]?.proposalId ?? null });
+      })
+      .catch(() => { if (active) setPendingChanges(null); });
+    load();
+    const onFocus = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { active = false; document.removeEventListener("visibilitychange", onFocus); };
+  }, [integrationEnabled, selectedProject?.id, specStatus?.snapshotId]);
 
   useEffect(() => {
     runningPipelineRef.current = runningPipeline;
@@ -1327,6 +1345,7 @@ export default function DashboardPage() {
                 <SpecChangeBar
                   projectId={selectedProject.id}
                   status={specStatus}
+                  pending={pendingChanges}
                   canPublish={myProjectRole === "PM"}
                   publishing={publishing}
                   onReload={() => loadArtifacts(selectedProject)}

@@ -10,7 +10,7 @@ import { ActionButton } from "@/components/ui";
  * 상태는 문구 앞의 색 점(회색·초록·주황)으로도 구분한다.
  * 상태를 아직 모르면(status 없음) 아무것도 그리지 않는다.
  */
-export function SpecChangeBar({ projectId, status, canPublish, publishing, onReload, onPublish }) {
+export function SpecChangeBar({ projectId, status, pending, canPublish, publishing, onReload, onPublish }) {
   if (!status) return null;
   const { state, revision } = status;
   return (
@@ -24,6 +24,14 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         {state === "differ" && `화면의 문서가 발행 기준(revision ${revision})과 다릅니다.`}
       </p>
       <div className="spec-bar-actions">
+        {pending?.count > 0 && (
+          <a className="spec-bar-pending" href={pending.count === 1 && pending.latestId
+            ? `/spec-review?projectId=${projectId}&proposalId=${pending.latestId}`
+            : `/spec-changes?projectId=${projectId}`}>
+            <span className="spec-bar-pending__dot" aria-hidden="true" />
+            승인 대기 변경안 {pending.count}개
+          </a>
+        )}
         {state === "differ" && <ActionButton size="sm" onClick={onReload}>문서 다시 불러오기</ActionButton>}
         {state !== "none" && <ActionButton size="sm" href={`/spec-changes?projectId=${projectId}`}>변경안·검사 기록</ActionButton>}
         {state !== "match" && canPublish && (
@@ -38,6 +46,9 @@ export function SpecChangeBar({ projectId, status, canPublish, publishing, onRel
         .spec-bar-dot-match { background:var(--db-green); }
         .spec-bar-dot-differ { background:var(--db-orange); }
         .spec-bar-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+        .spec-bar-pending { display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 10px; border-radius:999px; border:1px solid color-mix(in srgb, var(--db-orange) 45%, transparent); background:color-mix(in srgb, var(--db-orange) 10%, var(--surface)); color:var(--text-1); font-weight:600; font-size:12px; text-decoration:none; white-space:nowrap; }
+        .spec-bar-pending:hover { background:color-mix(in srgb, var(--db-orange) 18%, var(--surface)); }
+        .spec-bar-pending__dot { width:6px; height:6px; border-radius:50%; background:var(--db-orange); }
       `}</style>
     </div>
   );
