@@ -690,8 +690,9 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     const projectName = project?.name || "PRD";
     const now = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
     const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${projectName} — PRD</title>
-<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
-@page{margin:20mm 25mm;size:A4}body{font-family:'Noto Sans KR',sans-serif;color:var(--text-1);line-height:1.75;font-size:14px}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>:root{--text-1:#0d0d0d;--text-2:#5d5d5d;--content-bg:#f9f9f9;--db-bg-elevated:#f3f3f3;--font-mono:'Pretendard','Noto Sans KR',sans-serif}
+@page{margin:20mm 25mm;size:A4}body{font-family:'Pretendard','Noto Sans KR',sans-serif;color:var(--text-1);line-height:1.75;font-size:14px}
 .doc-header{border-bottom:2px solid var(--text-1);padding-bottom:14px;margin-bottom:36px}
 .doc-header .title{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
 .doc-header h1{font-size:26px;font-weight:900;margin:0 0 6px}.doc-header .meta{font-size:11px;color:#9ca3af}
