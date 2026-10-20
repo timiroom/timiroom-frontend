@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@/components/ui";
+import { Icon, AiWorking } from "@/components/ui";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
@@ -592,10 +592,9 @@ function TypingIndicator() {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16, gap: 10 }}>
       <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--db-grad-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", boxShadow: "var(--db-glow-sm)", flexShrink: 0 }}>A</div>
-      <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px 18px 18px 4px", display: "flex", gap: 5, alignItems: "center" }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", animation: `dot-bounce 1.2s ${i * 0.2}s infinite ease-in-out` }}/>
-        ))}
+      {/* AI 채팅 창과 같은 진행 표시: 도는 표시와 경과 시간 */}
+      <div style={{ padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "18px 18px 18px 4px" }}>
+        <AiWorking compact label="답변을 준비하고 있습니다" />
       </div>
     </div>
   );
