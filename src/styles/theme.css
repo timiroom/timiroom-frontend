@@ -16,6 +16,12 @@
   --text-3:    #8f8f8f;
   --accent:    #0d0d0d;
   --accent-fg: #ffffff;
+  /* 워크스페이스가 없는 첫 화면 — 어두운 톤 위에 같은 계열의 옅은 빛을 겹친 배경 */
+  --onboarding-bg:
+    radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--accent-fg) 14%, var(--accent)) 0%, transparent 72%),
+    radial-gradient(ellipse 55% 45% at 100% 100%, color-mix(in srgb, var(--accent-fg) 8%, var(--accent)) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 40% at 0% 0%, color-mix(in srgb, var(--accent-fg) 6%, var(--accent)) 0%, transparent 70%),
+    var(--accent);
 
   /* ── Background layers (Mapped to new palette) ── */
   --db-bg-base:    var(--bg);
@@ -442,7 +448,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ctx-panel { flex-shrink: 0; width: 320px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); border-right: 1px solid var(--border); transition: width .16s ease; }
 .ctx-panel.is-collapsed { width: 0; border-right: none; }
 /* 워크스페이스가 없는 첫 화면 — 사이드바도 본문과 같은 어두운 바탕, 구분선 없이 계정 줄만 */
-.ctx-panel--onboarding { background: var(--accent); border-right: none; }
+.ctx-panel--onboarding { background: transparent; border-right: none; }
 .ctx-panel--onboarding .ctx-foot { border-top: none; }
 .ctx-panel--onboarding .ctx-account__name { color: var(--accent-fg); }
 .ctx-panel--onboarding .ctx-account__chevron { color: color-mix(in srgb, var(--accent-fg) 60%, transparent); }
