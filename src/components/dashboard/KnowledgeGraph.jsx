@@ -189,11 +189,16 @@ export function KnowledgeGraph({ project }) {
         textureOnViewport: true,
         motionBlur: false,
         style: baseStyle(DEFAULT_DISPLAY),
-        // 첫 배치는 계산이 몇 초 걸린다. 그동안 노드가 왼쪽 위에 뭉쳐 보이지 않게
-        // 애니메이션 없이 끝난 결과만 보여 준다.
-        layout: { ...fcoseLayout(elements.length), animate: false },
       });
-      cy.one("layoutstop", () => { if (!disposed) setPlaced(true); });
+
+      // 첫 배치는 계산이 몇 초 걸린다. 그동안 노드가 왼쪽 위에 뭉쳐 보이지 않게
+      // 애니메이션 없이 끝난 결과만 보여 준다. 배치가 생성자 안에서 바로 끝나면
+      // 완료 신호를 놓치므로, 신호를 먼저 걸고 배치를 직접 돌린다.
+      const firstLayout = cy.layout({ ...fcoseLayout(elements.length), animate: false });
+      firstLayout.one("layoutstop", () => { if (!disposed) setPlaced(true); });
+      firstLayout.run();
+      // 어떤 이유로든 신호가 오지 않아도 화면이 영영 가려지지 않게 한다.
+      setTimeout(() => { if (!disposed) setPlaced(true); }, 6000);
 
       cy.on("tap", "node", (evt) => {
         const node = evt.target;
