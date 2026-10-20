@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar, Icon } from "@/components/ui";
 
-const ROLE_LABEL = { OWNER: "소유자", MEMBER: "멤버", GUEST: "게스트" };
+export const ROLE_LABEL = { OWNER: "소유자", MEMBER: "멤버", GUEST: "게스트" };
 
 function workspaceId(workspace) {
   return workspace?.teamId ?? workspace?.id ?? null;
@@ -18,11 +18,14 @@ function workspaceName(workspace) {
  * 워크스페이스 전환 드롭다운. 사이드바 맨 위와 설정 메뉴에 둔다.
  * 누르면 내가 속한 워크스페이스 목록과 설정·새로 만들기 메뉴가 열린다.
  * onCreate가 없으면 새로 만들기 항목을 숨긴다(설정 화면처럼 만들기 창이 없는 곳).
+ * compact(사이드바 머리줄)는 부제(역할·프로젝트 수)를 줄에서 빼는 대신 메뉴의 현재 워크스페이스 아래와
+ * 마우스를 올렸을 때의 풍선 도움말로 보여준다. 화면 읽기 프로그램에는 계속 읽힌다.
  */
 export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreate, settingsHref = "/settings/workspace/general", subtitle, loading = false, compact = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const active = workspaces.find((workspace) => String(workspaceId(workspace)) === String(activeId)) ?? null;
+  const subText = subtitle ?? (active ? ROLE_LABEL[active.viewerRole] ?? "멤버" : "");
 
   useEffect(() => {
     if (!open) return undefined;
@@ -52,12 +55,13 @@ export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreat
         className={`ws-switch__trigger${open ? " is-open" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
+        title={compact && active && subText ? `${workspaceName(active)} · ${subText}` : undefined}
         onClick={() => setOpen((value) => !value)}
       >
         <Avatar name={workspaceName(active)} src={active?.iconUrl} size={compact ? 22 : 32} square />
         <span className="ws-switch__text">
           <span className="ws-switch__name">{loading && !active ? "불러오는 중…" : workspaceName(active)}</span>
-          <span className="ws-switch__sub">{subtitle ?? (active ? ROLE_LABEL[active.viewerRole] ?? "멤버" : "")}</span>
+          <span className="ws-switch__sub">{subText}</span>
         </span>
         <svg className="ws-switch__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M8 9l4-4 4 4" /><path d="M16 15l-4 4-4-4" />
@@ -80,7 +84,14 @@ export function WorkspaceSwitcher({ workspaces = [], activeId, onSelect, onCreat
                 onClick={() => { setOpen(false); if (!selected) onSelect(id); }}
               >
                 <Avatar name={workspaceName(workspace)} src={workspace.iconUrl} size={24} square />
-                <span className="ws-switch__option-name">{workspaceName(workspace)}</span>
+                {compact && selected && subText ? (
+                  <span className="ws-switch__option-text">
+                    <span className="ws-switch__option-name">{workspaceName(workspace)}</span>
+                    <span className="ws-switch__option-sub">{subText}</span>
+                  </span>
+                ) : (
+                  <span className="ws-switch__option-name">{workspaceName(workspace)}</span>
+                )}
                 {selected && <Icon name="check" size={14} />}
               </button>
             );

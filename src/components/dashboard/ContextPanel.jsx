@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import { ActionButton, Badge, Icon, SearchInput } from "@/components/ui";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { ROLE_LABEL, WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarAccount } from "./SidebarAccount";
 
 /* ── 상태 배지 ── */
@@ -125,6 +125,7 @@ function ProjectsPanel({
           onSelect={onSelectWorkspace}
           onCreate={onOpenWorkspaceComposer}
           loading={workspacesLoading}
+          subtitle={workspace ? `${ROLE_LABEL[workspace.viewerRole] ?? "멤버"} · 프로젝트 ${projects.length}개` : undefined}
           compact
         />
       </div>

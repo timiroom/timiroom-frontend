@@ -465,10 +465,19 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 @media (max-width: 767px) { :root { --topbar-h: 44px; } }
 .ctx-head { flex-shrink: 0; box-sizing: border-box; height: var(--topbar-h); display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid var(--border); }
 .ctx-head .ws-switch { flex: 1; min-width: 0; }
-.ws-switch--compact .ws-switch__sub { display: none; }
+/* 줄에서는 숨기지만 화면 읽기 프로그램에는 남긴다(내용은 메뉴의 현재 워크스페이스 아래에 보인다) */
+.ws-switch--compact .ws-switch__sub { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ws-switch__option-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ws-switch__option-sub { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-switch--compact.ws-switch__trigger, .ws-switch--compact .ws-switch__trigger { padding: 3px 8px; gap: 8px; }
 .ws-switch--compact .ws-switch__name { font-size: 13px; }
 .ws-switch--compact .ws-switch__empty-icon { width: 22px; height: 22px; border-radius: 7px; }
+/* 휴대폰: 머리줄(44px)을 거의 채우게 키우고, 누르는 영역은 위아래로 조금 더 넓혀 44px. 메뉴 항목도 44px */
+@media (max-width: 767px) {
+  .ws-switch--compact.ws-switch__trigger, .ws-switch--compact .ws-switch__trigger { position: relative; min-height: 40px; }
+  .ws-switch--compact.ws-switch__trigger::before, .ws-switch--compact .ws-switch__trigger::before { content: ""; position: absolute; inset: -2px 0; }
+  .ws-switch--compact .ws-switch__option { min-height: 44px; }
+}
 .ctx-head__title { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ctx-head__sub { margin-top: 2px; font-size: 12px; color: var(--text-3); }
 .ctx-tools { flex-shrink: 0; padding: 12px 12px 0; }
