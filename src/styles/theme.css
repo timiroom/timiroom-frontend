@@ -1180,4 +1180,6 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .panel-inner, .gh-body__inner, .qa-body, .ui-set-page--panel { padding-left: 24px; padding-right: 24px; }
   .ui-panel-header, .ui-panel-toolbar { padding-left: 24px; padding-right: 24px; }
   .ui-panel-header .ui-btn { min-height: 34px; }
+  .doc-tabbar__toggle { width: 32px !important; height: 32px !important; }
+  .doc-tab__close { width: 24px !important; height: 24px !important; }
 }
