@@ -111,11 +111,36 @@ function IconPanelToggle() {
   );
 }
 
+/* 휴대폰 아래 탭 바: 자주 여는 문서 네 개와 전체 메뉴(사이드바). 휴대폰(767px 이하)에서만 보인다. */
+const MOBILE_TABS = [
+  { view: "prd", label: "PRD", icon: "doc" },
+  { view: "features", label: "기능", icon: "checklist" },
+  { view: "api", label: "API", icon: "code" },
+  { view: "erd", label: "ERD", icon: "table" },
+];
+function MobileTabBar({ view, onOpen, onMenu }) {
+  return (
+    <nav className="mobile-tabbar" aria-label="문서 바로가기">
+      {MOBILE_TABS.map((tab) => (
+        <button key={tab.view} type="button" className={`mobile-tabbar__item${view === tab.view ? " is-active" : ""}`}
+          aria-current={view === tab.view ? "page" : undefined} onClick={() => onOpen(tab.view)}>
+          <Icon name={tab.icon} size={20} />
+          <span>{tab.label}</span>
+        </button>
+      ))}
+      <button type="button" className={`mobile-tabbar__item${MOBILE_TABS.some((tab) => tab.view === view) ? "" : " is-active"}`} onClick={onMenu}>
+        <Icon name="list" size={20} />
+        <span>전체</span>
+      </button>
+    </nav>
+  );
+}
+
 function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSidebar }) {
   if (!tabs.length) return null;
 
   return (
-    <div style={{
+    <div className="doc-tabbar" style={{
       display: "flex", alignItems: "center", height: 36,
       background: "var(--bg)", borderBottom: "1px solid var(--border)",
       overflowX: "auto", overflowY: "hidden", flexShrink: 0,
@@ -124,6 +149,8 @@ function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSideba
         type="button"
         onClick={onToggleSidebar}
         title="사이드바 접기/펼치기"
+        aria-label="사이드바 접기/펼치기"
+        className="doc-tabbar__toggle"
         style={{
           width: 26, height: 26, borderRadius: 7, flexShrink: 0, margin: "0 4px 0 8px",
           background: "none", border: "none", cursor: "pointer",
@@ -157,6 +184,8 @@ function DocumentTabBar({ tabs, activeTabId, onActivate, onClose, onToggleSideba
               type="button"
               onClick={(e) => onClose(tab.id, e)}
               title="탭 닫기"
+              aria-label={`${tab.label} 탭 닫기`}
+              className="doc-tab__close"
               style={{
                 width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                 border: "none", background: "none", cursor: "pointer",
@@ -1244,7 +1273,7 @@ export default function DashboardPage() {
         @keyframes dash-panel-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
         @keyframes document-sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-      <div style={{
+      <div className="dash-root" style={{
         display: "flex",
         height: "100vh",
         overflow: "hidden",
@@ -1392,6 +1421,8 @@ export default function DashboardPage() {
                 <AgentPanel project={selectedProject} view={selectedView} />
               )}
               </div>
+              <MobileTabBar view={selectedView} onOpen={(view) => handleOpenDocument(selectedProject, view)}
+                onMenu={() => setContextPanelCollapsed(false)} />
             </div>
           </div>
         ) : isLoadingProjects ? (

@@ -62,7 +62,7 @@ function ColumnHeader({ title, count, onOpen }) {
         <strong style={{ color: C.text, fontSize: 13 }}>{title}</strong>
         <span style={{ color: C.muted, fontSize: 11 }}>{count}</span>
       </div>
-      {onOpen && <button type="button" onClick={onOpen} style={{ padding: 0, border: "none", background: "transparent", color: C.muted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 →</button>}
+      {onOpen && <button type="button" className="gh-more" onClick={onOpen} style={{ padding: 0, border: "none", background: "transparent", color: C.muted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 →</button>}
     </div>
   );
 }

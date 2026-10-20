@@ -1142,3 +1142,42 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 :root { --font-sans: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; --font-mono: var(--font-sans); }
 code, pre, kbd, samp { font-family: var(--font-mono); }
 :root { --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-13: 13px; --fs-14: 14px; --fs-16: 16px; --fs-20: 20px; --fs-22: 22px; }
+
+/* ── 휴대폰 정리 ─────────────────────────────────────────────
+   머리줄: 위 탭 줄에 이미 "프로젝트 · 화면"이 있으니, 버튼이 있는 화면은 경로를 숨기고 버튼을 한 줄로 가로 스크롤한다.
+   그래서 버튼 수와 관계없이 머리줄 높이가 같다(:has()로 버튼 유무를 본다). 손가락으로 누르는 버튼은 최소 36px. */
+@media (max-width: 767px) {
+  .doc-tabbar { height: 44px !important; }
+  .doc-tabbar__toggle { width: 36px !important; height: 36px !important; margin: 0 2px 0 4px !important; }
+  .doc-tab__close { width: 28px !important; height: 28px !important; }
+  .ui-panel-header { flex-wrap: nowrap; min-height: 52px; padding: 0 16px; }
+  .ui-panel-header:has(.ui-panel-header__actions) .ui-panel-header__crumb { display: none; }
+  .ui-panel-header__actions { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; padding: 8px 0; }
+  .ui-panel-header__actions::-webkit-scrollbar { display: none; }
+  .ui-panel-header__actions > * { flex-shrink: 0; }
+  .ui-panel-header .ui-btn, .ui-panel-toolbar .ui-btn { min-height: 36px; }
+  .ui-panel-toolbar { padding: 8px 16px; }
+  .ui-chip, .gh-filter__item { height: 32px; }
+  .gh-body__inner { padding: 16px 16px 40px; }
+  .kg-body { padding: 16px !important; }
+  .gh-more { padding: 8px 4px !important; margin: -8px -4px !important; }
+}
+
+/* 휴대폰 아래 탭 바(767px 이하). 홈 표시줄 영역(safe-area)만큼 아래를 띄운다. */
+.mobile-tabbar { display: none; }
+@media (max-width: 767px) {
+  .mobile-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); flex-shrink: 0; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: saturate(1.4) blur(12px); padding-bottom: env(safe-area-inset-bottom); }
+  .mobile-tabbar__item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; border: none; background: none; color: var(--text-3); font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .mobile-tabbar__item.is-active { color: var(--text-1); }
+  .mobile-tabbar__item:active { background: color-mix(in srgb, var(--text-1) 5%, transparent); }
+  /* AI 채팅 버튼을 탭 바 위로 */
+  .ai-chat-launcher { bottom: calc(68px + env(safe-area-inset-bottom)) !important; }
+  /* 화면 높이: 주소창이 접히고 펴질 때 따라가는 dvh */
+  .dash-root { height: 100dvh !important; }
+}
+/* 태블릿(768~1023px): 사이드바는 덮개형, 본문 여백은 좌우 24px로 조금 줄인다. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .panel-inner, .gh-body__inner, .qa-body, .ui-set-page--panel { padding-left: 24px; padding-right: 24px; }
+  .ui-panel-header, .ui-panel-toolbar { padding-left: 24px; padding-right: 24px; }
+  .ui-panel-header .ui-btn { min-height: 34px; }
+}
