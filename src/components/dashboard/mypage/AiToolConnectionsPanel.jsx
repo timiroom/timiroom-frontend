@@ -112,7 +112,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
       )}
       {slackEnabled && <div className="integration-slack">
         <h3>Slack 연결</h3>
-        <p>Slack 계정을 연결하면 프로젝트 알림을 받고 명세 조회와 검사를 요청할 수 있습니다.</p>
+        <p>Slack 계정을 연결하면 프로젝트 알림을 받고, Slack에서 바로 검토 대기 확인과 검사를 요청할 수 있습니다. 같은 Slack 워크스페이스의 팀원이라면 누구나 각자 연결할 수 있습니다.</p>
         <div className="integration-row">
           <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
             {slack?.connected && <p className="connection-meta">{slack.account.user_id}</p>}
@@ -122,7 +122,9 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         </div>
         {slack?.connected && <>
           <h4>프로젝트 알림 채널</h4>
-          <p>PM이 프로젝트별 채널을 지정합니다. 알림에는 검사 상태와 티미룸 링크가 표시됩니다.</p>
+          <p>변경안 승인 요청, 교차검증·PR 검사 결과가 이 채널로 옵니다. 가장 쉬운 방법은 알림을 받을 Slack 채널에서 <code>/timiroom 채널연결 프로젝트이름</code>을 입력하는 것입니다(PM만). 그다음 그 채널에 티미룸 앱을 초대하세요.</p>
+          <details className="integration-manual"><summary>채널 ID로 직접 연결하기</summary>
+          <p>채널 이름을 눌러 열리는 채널 정보 맨 아래에서 채널 ID(C로 시작)를 복사할 수 있습니다.</p>
           <form onSubmit={(event) => { event.preventDefault(); run(() => configureSlackChannel(Number(project), channel.trim()), "알림 채널을 설정했습니다."); }}>
             <label className="integration-label">프로젝트<select value={project} onChange={(event) => setProject(event.target.value)} required>
               <option value="">프로젝트 선택</option>{projects.map((item) => <option key={item.projectId ?? item.id} value={item.projectId ?? item.id}>{item.projectName ?? item.name}</option>)}
@@ -130,11 +132,21 @@ export function AiToolConnectionsPanel({ projects = [] }) {
             <label className="integration-label">채널 ID<input value={channel} onChange={(event) => setChannel(event.target.value)} placeholder="C0123456789" pattern="[CG][A-Z0-9]+" maxLength={64} required /></label>
             <button disabled={busy}>채널 연결</button>
           </form>
+          </details>
           <ul>{(slack.channels || []).map((item) => <li key={item.project_id}>
             <div className="connection-detail"><strong>{projectName(item.project_id)}</strong><p className="connection-meta">{item.channel_id}</p></div>
             <button disabled={busy} onClick={() => run(() => removeSlackChannel(item.project_id), "알림 채널을 해제했습니다.")}>채널 해제</button>
           </li>)}</ul>
-          <p><code>/timiroom spec</code>으로 명세를 조회하고 <code>/timiroom help</code>에서 검사 명령을 확인하세요. 승인은 티미룸에서 처리합니다.</p>
+          <h4>자주 쓰는 Slack 명령</h4>
+          <dl className="slack-commands">
+            <dt><code>/timiroom</code></dt><dd>이 채널 프로젝트의 현황 (기준 명세, 승인 대기 수)</dd>
+            <dt><code>/timiroom 대기</code></dt><dd>승인을 기다리는 변경안 목록과 바로가기</dd>
+            <dt><code>/timiroom 검증</code></dt><dd>가장 최근 대기 변경안의 문서 교차검증</dd>
+            <dt><code>/timiroom pr 12</code></dt><dd>연결된 레포의 PR #12 정합성 검사</dd>
+            <dt><code>/timiroom 상태</code></dt><dd>최근 작업 결과</dd>
+            <dt><code>/timiroom 도움말</code></dt><dd>전체 명령</dd>
+          </dl>
+          <p className="connection-meta">승인과 거절은 티미룸 화면에서 합니다.</p>
         </>}
       </div>}
       <p className="integration-feedback" role="status" aria-live="polite">{feedback}</p>
@@ -142,6 +154,10 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         .integration-card { margin:16px 0; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--db-radius-lg); padding:24px 28px; color:var(--text-1); }
         h2,h3 { font-size:11px; font-weight:700; color:var(--text-3); letter-spacing:.07em; margin:0 0 16px; }
         h4 { font-size:13px; font-weight:600; margin:24px 0 8px; }
+        .integration-manual { margin:4px 0 12px; } .integration-manual summary { cursor:pointer; font-size:13px; color:var(--text-2); }
+        .slack-commands { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:6px 16px; margin:0 0 8px; font-size:13px; line-height:1.6; }
+        .slack-commands dt { white-space:nowrap; } .slack-commands dd { margin:0; color:var(--text-2); }
+        @media (max-width:520px) { .slack-commands { grid-template-columns:1fr; gap:2px; } .slack-commands dd { margin-bottom:8px; } }
         p,li { font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
         p { color:var(--text-2); margin:0 0 16px; }
         strong { font-size:14px; font-weight:600; }

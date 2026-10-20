@@ -15,6 +15,8 @@ const TYPE_LABEL = {
   PIPELINE_COMPLETE: "문서 생성",
   PIPELINE_FAILED: "문서 생성 실패",
   PR_CONSISTENCY_REVIEW: "PR 정합성",
+  SPEC_CHANGE_READY: "승인 대기",
+  SPEC_REVIEW_DONE: "교차검증",
   TEAM_INVITE: "팀 초대",
   MENTION: "멘션",
 };
@@ -73,6 +75,11 @@ export function NotificationBell() {
     markRead(item);
     if (item.projectId == null) return;
     setOpen(false);
+    // 변경안 알림은 승인 대기 목록으로 바로 보낸다.
+    if (item.type === "SPEC_CHANGE_READY" || item.type === "SPEC_REVIEW_DONE") {
+      window.location.assign(`/spec-changes?projectId=${item.projectId}`);
+      return;
+    }
     navigateDashboard({ projectId: item.projectId, view: TARGET_VIEW[item.type] ?? "prd" });
   };
 
