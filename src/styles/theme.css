@@ -437,6 +437,14 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 /* ── 프로젝트 패널 (dashboard/ContextPanel) ── */
 .ctx-panel { flex-shrink: 0; width: 320px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); border-right: 1px solid var(--border); transition: width .16s ease; }
 .ctx-panel.is-collapsed { width: 0; border-right: none; }
+/* 워크스페이스가 없는 첫 화면 — 사이드바도 본문과 같은 어두운 바탕, 구분선 없이 계정 줄만 */
+.ctx-panel--onboarding { background: var(--accent); border-right: none; }
+.ctx-panel--onboarding .ctx-foot { border-top: none; }
+.ctx-panel--onboarding .ctx-account__name { color: var(--accent-fg); }
+.ctx-panel--onboarding .ctx-account__chevron { color: color-mix(in srgb, var(--accent-fg) 60%, transparent); }
+.ctx-panel--onboarding .ctx-account:hover, .ctx-panel--onboarding .ctx-account.is-open { background: color-mix(in srgb, var(--accent-fg) 12%, transparent); }
+.ctx-panel--onboarding .notice-btn { color: color-mix(in srgb, var(--accent-fg) 75%, transparent); }
+.ctx-panel--onboarding .notice-btn:hover, .ctx-panel--onboarding .notice-btn.is-open { background: color-mix(in srgb, var(--accent-fg) 12%, transparent); color: var(--accent-fg); }
 .ctx { display: flex; flex-direction: column; height: 100%; }
 .ctx-head { flex-shrink: 0; padding: 8px; border-bottom: 1px solid var(--border); }
 .ctx-head__title { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
