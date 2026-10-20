@@ -30,6 +30,7 @@
  */
 
 import { tint } from "@/lib/color";
+import { AiWorking } from "@/components/ui";
 import { useUsage, isUsageBlocked, USAGE_WARN_PERCENT } from "@/context/UsageContext";
 import { formatResetDate } from "@/lib/usageApi";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -365,8 +366,9 @@ function MessageBubble({ msg, isStreaming }) {
           fontSize: 13, color: C.text, lineHeight: 1.7,
           whiteSpace: "pre-wrap", wordBreak: "keep-all", overflowWrap: "anywhere",
         }}>
+          {isStreaming && !displayContent && <AiWorking compact label="답변을 준비하고 있습니다" />}
           {renderInlineMarkdown(displayContent)}
-          {isStreaming && <span style={{
+          {isStreaming && displayContent && <span style={{
             display: "inline-block", width: 2, height: 14,
             background: C.aiColor, marginLeft: 2,
             animation: "aic-cursor 0.8s ease infinite",
@@ -781,9 +783,8 @@ export function AiChatDock({
         {busy && editMode && (
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <AiAvatar />
-            <div style={{ fontSize: 12.5, color: C.muted, paddingTop: 3 }}>
-              <strong style={{ display: "block", color: C.text, marginBottom: 2 }}>명세를 분석하고 있습니다</strong>
-              요구사항과 현재 문서를 비교해 변경 범위를 계산하는 중입니다.
+            <div style={{ paddingTop: 3, minWidth: 0 }}>
+              <AiWorking compact label="명세를 분석하고 있습니다" hint="요구사항과 현재 문서를 비교해 변경 범위를 계산하는 중입니다. 보통 30초~1분 걸립니다." />
             </div>
           </div>
         )}

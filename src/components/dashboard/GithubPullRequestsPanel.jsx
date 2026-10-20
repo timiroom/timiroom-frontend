@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionButton, Badge, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
+import { ActionButton, Badge, EmptyState, Icon, LoadingState, PanelHeader, AiWorking } from "@/components/ui";
 import { useCallback, useEffect, useState } from "react";
 import { navigateDashboard } from "@/lib/dashboardUrl";
 import { checkPullRequestConsistency, fetchProjectPullRequests, fetchProjectRepositories } from "@/lib/githubApi";
@@ -127,6 +127,11 @@ function PullRequestCard({ pull, canManage, checking, onCheck, result }) {
         )}
       </div>
       <RelatedPullRequests pulls={pull.relatedPullRequests} />
+      {checking === key && (
+        <div style={{ marginTop: 10 }}>
+          <AiWorking label="PR 변경을 명세와 비교하고 있습니다" hint="변경 파일이 많으면 1~3분 걸릴 수 있습니다. 끝나면 GitHub에도 리뷰가 남습니다." />
+        </div>
+      )}
       <ConsistencyResult result={result} />
     </article>
   );

@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { specChange, proposeManualChange, reviewChange, integrationJob, approveChange, rejectChange } from "@/lib/integrationApi";
-import { Badge } from "@/components/ui";
+import { AiWorking, Badge } from "@/components/ui";
 import { SpecDocumentView } from "./SpecDocumentView";
 
 const labels = { PRD: "PRD", API_SPEC: "API 명세", DB_SCHEMA: "DB 스키마", FEATURE_LIST: "기능 명세" };
@@ -146,7 +146,10 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
           </div></details>
         </article>;
       })}
-      {running && <p role="status">{job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} · {jobLabels[job.status] ?? job.status} · 화면을 닫아도 작업은 계속됩니다.</p>}
+      {running && <AiWorking key={job.jobId} startedAt={job.createdAt}
+        label={`${job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} ${jobLabels[job.status] ?? job.status}`}
+        hint={job.kind === "ARTIFACT_REVIEW" ? "바뀐 문서와 연결 문서가 서로 맞는지 AI가 확인합니다. 보통 1~2분 걸리고, 화면을 닫아도 계속됩니다." : "선택한 범위의 연결 문서까지 AI가 고칩니다. 보통 1~3분 걸리고, 화면을 닫아도 계속됩니다."} />}
+      {proposal?.status === "GENERATING" && !running && <AiWorking startedAt={proposal.createdAt} label="변경안을 만들고 있습니다" hint="화면을 닫아도 계속되며, 끝나면 이 화면이 자동으로 바뀝니다." />}
       {!draft && !proposal && !error && <p role="status">변경안을 불러오고 있습니다.</p>}
       <p role="alert" className="review-error">{error}</p>
     </div>
@@ -180,6 +183,11 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         })}>승인하고 기준 발행</button>
       </>}
       {ready && !canApprove && <p>PM의 검토와 승인을 기다립니다.</p>}
+      {ready && canApprove && !proposal.artifactReviewPassed && !running && <p className="review-gate">
+        {proposal.artifactReview
+          ? "교차검증에서 확인할 항목이 나와 아직 승인할 수 없습니다. 위 결과를 반영해 '이 변경안 보완하기'로 고친 뒤 다시 검증하세요."
+          : "승인하려면 먼저 '문서 교차검증 요청'으로 검증을 통과해야 합니다."}
+      </p>}
     </footer>
   </section>
     {/* styled-jsx(SWC)는 style 태그가 있는 요소부터 범위를 잡으므로 바깥 요소 바로 아래에 둔다 */}
@@ -193,6 +201,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:var(--surface); font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
       .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,.review-preview:focus-visible,a:focus-visible { outline:2px solid var(--text-1); outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
+      .review-gate { flex-basis:100%; margin:0; font-size:12.5px; color:var(--text-2); }
       .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
       .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }
       .review-field { margin:12px 0 18px; } .review-key { margin:0 0 6px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--text-1); }
