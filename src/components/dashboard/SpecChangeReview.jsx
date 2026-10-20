@@ -106,6 +106,11 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
   return <div className="review-backdrop"><section className="review-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="review-title">
     <header><div><p className="eyebrow">{project.name || "프로젝트"} · 문서 변경안</p><h2 id="review-title">{proposal ? "변경 내용을 검토하세요" : "수정 범위를 선택하세요"}</h2></div><button onClick={onClose} aria-label="변경안 검토 닫기">닫기</button></header>
     <div className="review-body">
+      {/* 진행 표시는 문서 비교보다 위에 둬서 열자마자 보이게 한다 */}
+      {running && <div className="review-progress"><AiWorking key={job.jobId} startedAt={job.createdAt}
+        label={`${job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} ${jobLabels[job.status] ?? job.status}`}
+        hint={job.kind === "ARTIFACT_REVIEW" ? "바뀐 문서와 연결 문서가 서로 맞는지 AI가 확인합니다. 보통 1~2분 걸리고, 화면을 닫아도 계속됩니다." : "선택한 범위의 연결 문서까지 AI가 고칩니다. 보통 1~3분 걸리고, 화면을 닫아도 계속됩니다."} /></div>}
+      {proposal?.status === "GENERATING" && !running && <div className="review-progress"><AiWorking startedAt={proposal.createdAt} label="변경안을 만들고 있습니다" hint="화면을 닫아도 계속되며, 끝나면 이 화면이 자동으로 바뀝니다." /></div>}
       {!proposal && draft && <>
         <p>원본은 승인 후 적용됩니다. 함께 수정할 수 있는 문서를 선택하면 티미룸이 선택한 범위에서 연결 문서의 영향을 분석합니다.</p>
         <fieldset disabled={busy || Boolean(job)}><legend>수정 허용 범위</legend>{draft.snapshot.documents.filter((item) => allowedTargets.includes(item.type)).map((item) => <label className="scope" key={item.type}>
@@ -150,10 +155,6 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
           </div></details>
         </article>;
       })}
-      {running && <AiWorking key={job.jobId} startedAt={job.createdAt}
-        label={`${job.kind === "ARTIFACT_REVIEW" ? "문서 교차검증" : "변경안 생성"} ${jobLabels[job.status] ?? job.status}`}
-        hint={job.kind === "ARTIFACT_REVIEW" ? "바뀐 문서와 연결 문서가 서로 맞는지 AI가 확인합니다. 보통 1~2분 걸리고, 화면을 닫아도 계속됩니다." : "선택한 범위의 연결 문서까지 AI가 고칩니다. 보통 1~3분 걸리고, 화면을 닫아도 계속됩니다."} />}
-      {proposal?.status === "GENERATING" && !running && <AiWorking startedAt={proposal.createdAt} label="변경안을 만들고 있습니다" hint="화면을 닫아도 계속되며, 끝나면 이 화면이 자동으로 바뀝니다." />}
       {!draft && !proposal && !error && <p role="status">변경안을 불러오고 있습니다.</p>}
       <p role="alert" className="review-error">{error}</p>
     </div>
@@ -207,6 +208,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:var(--surface); font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
       .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,.review-preview:focus-visible,a:focus-visible { outline:2px solid var(--text-1); outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
+      .review-progress { margin:8px 0 14px; }
       .review-gate { flex-basis:100%; margin:0; font-size:12.5px; color:var(--text-2); }
       .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
       .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }
