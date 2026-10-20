@@ -1094,16 +1094,8 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
                     transition: "opacity 0.15s",
                     pointerEvents: isHover ? "auto" : "none",
                   }}>
-                    <button onClick={() => onEdit(i)} style={{
-                      padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600,
-                      background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)",
-                      color: "#fbbf24", cursor: "pointer",
-                    }}>편집</button>
-                    <button onClick={() => onDelete(i)} style={{
-                      padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600,
-                      background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
-                      color: "#f87171", cursor: "pointer",
-                    }}>삭제</button>
+                    <ActionButton size="sm" iconOnly onClick={() => onEdit(i)} title="관계 편집" aria-label="관계 편집"><Icon name="pencil" size={12} /></ActionButton>
+                    <ActionButton size="sm" iconOnly variant="danger" onClick={() => onDelete(i)} title="관계 삭제" aria-label="관계 삭제"><Icon name="trash" size={12} /></ActionButton>
                   </div>
                 )}
               </div>

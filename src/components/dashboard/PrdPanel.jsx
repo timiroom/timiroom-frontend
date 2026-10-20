@@ -737,7 +737,7 @@ ${content}</body></html>`;
                 // 편집은 AI가 만든 PRD를 고치는 방식이라, 문서가 없을 때는 편집을 열지 않는다(저장할 곳이 없다).
                 <EmptyState icon="doc" title="아직 PRD가 없습니다" description="AI 기획 생성이 끝나면 여기에 PRD가 만들어집니다. 생성이 끝났는데도 비어 있다면 생성 과정에서 실패한 것입니다." />
               ) : (
-                <div style={{ maxWidth:780, margin:"0 auto", padding:"32px 36px 80px" }}>
+                <div className="panel-inner" style={{ maxWidth:860 }}>
                   <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} extras={extras} />
                 </div>
               )}
