@@ -1491,7 +1491,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
           {!schema ? (
             <EmptyState canEdit={canEdit} onAdd={handleAddTable} />
           ) : (
-            <div style={{ maxWidth: 860, margin: "0 auto", padding: "22px 24px 60px" }}>
+            <div className="panel-inner">
               <WarningBanner warnings={warnings} />
               {!search && <SchemaSummary schema={schema} />}
               {!search && (

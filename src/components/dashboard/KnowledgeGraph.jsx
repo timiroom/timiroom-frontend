@@ -335,7 +335,7 @@ export function KnowledgeGraph({ project }) {
             ))}
       </PanelToolbar>
 
-      <div className="kg-body" style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: 20, background: "var(--content-bg)", boxSizing: "border-box", overflow: "hidden" }}>
+      <div className="kg-body" style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, padding: "24px 28px", background: "var(--content-bg)", boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── 왼쪽: 그래프 ── */}
       <div className="kg-main" style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <div className="db-card" data-testid="kg-canvas" style={{

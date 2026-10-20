@@ -373,9 +373,11 @@ export function CommitHistoryView({ project }) {
   return (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: "var(--content-bg)" }}>
       <PanelHeader project={project} label="커밋 기록" />
-      <div style={{ flex: 1, minHeight: 0, display: "flex", justifyContent: "center", overflow: "hidden" }}>
-        <div style={{ width: "min(760px, 100%)", display: "flex", flexDirection: "column", minHeight: 0, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, background: "var(--surface)" }}>
-          <CommitHistoryPanel selectedProject={project} />
+      <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
+        <div className="panel-inner panel-inner--fill">
+          <div className="commit-card">
+            <CommitHistoryPanel selectedProject={project} />
+          </div>
         </div>
       </div>
     </div>
