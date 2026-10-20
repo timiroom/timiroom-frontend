@@ -295,18 +295,7 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
           <button
             type="button"
             onClick={onCreateProject}
-            style={{
-              marginTop: 18,
-              padding: "11px 18px",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.08)",
-              background: "var(--surface)",
-              color: "var(--text-2)",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
+            className="empty-cta"
           >
             첫 프로젝트 만들기
           </button>
@@ -314,18 +303,7 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
           <button
             type="button"
             onClick={onOpenWorkspaceComposer}
-            style={{
-              marginTop: 18,
-              padding: "11px 18px",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.08)",
-              background: "var(--surface)",
-              color: "var(--text-2)",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
+            className="empty-cta"
           >
             워크스페이스 시작하기
           </button>
