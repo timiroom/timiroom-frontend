@@ -460,7 +460,15 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ctx-panel--onboarding .notice-btn { color: color-mix(in srgb, var(--accent-fg) 75%, transparent); }
 .ctx-panel--onboarding .notice-btn:hover, .ctx-panel--onboarding .notice-btn.is-open { background: color-mix(in srgb, var(--accent-fg) 12%, transparent); color: var(--accent-fg); }
 .ctx { display: flex; flex-direction: column; height: 100%; }
-.ctx-head { flex-shrink: 0; padding: 8px; border-bottom: 1px solid var(--border); }
+/* 사이드바 머리줄 — 오른쪽 문서 탭 줄(.doc-tabbar: 테두리 포함 36)과 같은 높이로 맞춘다 */
+:root { --topbar-h: 36px; }
+@media (max-width: 767px) { :root { --topbar-h: 44px; } }
+.ctx-head { flex-shrink: 0; box-sizing: border-box; height: var(--topbar-h); display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid var(--border); }
+.ctx-head .ws-switch { flex: 1; min-width: 0; }
+.ws-switch--compact .ws-switch__sub { display: none; }
+.ws-switch--compact.ws-switch__trigger, .ws-switch--compact .ws-switch__trigger { padding: 3px 8px; gap: 8px; }
+.ws-switch--compact .ws-switch__name { font-size: 13px; }
+.ws-switch--compact .ws-switch__empty-icon { width: 22px; height: 22px; border-radius: 7px; }
 .ctx-head__title { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ctx-head__sub { margin-top: 2px; font-size: 12px; color: var(--text-3); }
 .ctx-tools { flex-shrink: 0; padding: 12px 12px 0; }
