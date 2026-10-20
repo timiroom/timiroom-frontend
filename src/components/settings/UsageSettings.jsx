@@ -343,6 +343,7 @@ function ModelTierSection({ usingOwnKey, onChanged }) {
                 className={`tier-option${active ? " is-active" : ""}`} onClick={() => choose(option)}>
                 <span className="tier-option__head">
                   <span className="tier-option__name">{option.label}</span>
+                  {option.tier === "MEDIUM" && <Badge>기본</Badge>}
                   {option.proOnly && <Badge tone={option.available ? "neutral" : "warning"}>프로</Badge>}
                 </span>
                 <span className="tier-option__desc">{option.description}</span>
