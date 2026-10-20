@@ -121,7 +121,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         <p>Slack 계정을 연결하면 프로젝트 알림을 받고, Slack에서 바로 검토 대기 확인과 검사를 요청할 수 있습니다. 같은 Slack 워크스페이스의 팀원이라면 누구나 각자 연결할 수 있습니다.</p>
         <div className="integration-row">
           <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
-            {slack?.connected && <p className="connection-meta">Slack 사용자 {slack.account.user_id}</p>}
+            {slack?.connected && <p className="connection-meta">{slack.account.linked_at ? `${new Date(slack.account.linked_at).toLocaleDateString("ko-KR")}에 연결` : "연결되어 있습니다"} · Slack에서 /timiroom 명령을 쓸 수 있습니다</p>}
           </div>
           {slack?.connected ? <button disabled={busy || loading} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
             : <button disabled={busy || loading || !slack} onClick={startSlackConnection}>{busy ? "연결 중…" : "연결"}</button>}
