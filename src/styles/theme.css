@@ -1041,7 +1041,15 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .ctx-panel { position: fixed; top: 0; left: 0; bottom: 0; z-index: 70; width: min(320px, 86vw); box-shadow: 0 12px 40px rgba(0, 0, 0, .18); }
   .ctx-panel.is-collapsed { width: 0; box-shadow: none; }
   .ctx-backdrop { display: block; position: fixed; inset: 0; z-index: 69; background: rgba(0, 0, 0, .28); }
+  /* 첫 화면 사이드바는 넓은 화면에선 투명이지만, 덮어 보일 때는 아래 카드가 비치지 않게 바탕을 칠한다 */
+  .ctx-panel--onboarding { background: var(--accent); }
 }
+
+/* 첫 화면에서 접힌 사이드바를 여는 버튼 (dashboard page) — 어두운 바탕 위 왼쪽 위 */
+.onboarding-menu-btn { position: fixed; top: 12px; left: 12px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid color-mix(in srgb, var(--accent-fg) 16%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--accent-fg) 6%, transparent); color: color-mix(in srgb, var(--accent-fg) 80%, transparent); cursor: pointer; transition: background .15s, color .15s; }
+.onboarding-menu-btn:hover { background: color-mix(in srgb, var(--accent-fg) 14%, transparent); color: var(--accent-fg); }
+.onboarding-menu-btn:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .onboarding-menu-btn { transition: none; } }
 
 /* 좁은 화면: PRD 목차를 위쪽 가로 탭으로 바꿔 본문이 화면 폭을 다 쓰게 하고, 머리글 버튼은 줄바꿈한다. */
 @media (max-width: 767px) {
@@ -1286,6 +1294,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 @keyframes ws-compose-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
 .ws-compose__backdrop { position: fixed; inset: 0; z-index: 240; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8, 8, 8, .42); backdrop-filter: blur(2px); animation: ws-compose-fade .2s ease both; }
 .ws-compose { width: min(440px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 28px 80px rgba(0, 0, 0, .28); animation: ws-compose-rise .26s cubic-bezier(.2, .8, .2, 1) both; }
+.ws-compose:focus { outline: none; }
 .ws-compose__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 18px; border-bottom: 1px solid var(--border); }
 .ws-compose__title { font-size: 19px; font-weight: 800; color: var(--text-1); letter-spacing: -.01em; }
 .ws-compose__sub { margin-top: 4px; font-size: 12px; color: var(--text-3); }
