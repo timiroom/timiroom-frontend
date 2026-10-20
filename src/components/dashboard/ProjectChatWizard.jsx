@@ -774,7 +774,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
   const canSend = (inputText.trim() || attachedFiles.length > 0) && !isLoading && !isSubmitting && !sessionError;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--chat-bg)" }}>
 
       {/* 탭 바 */}
       <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 10, paddingRight: 12, flexShrink: 0 }}>
@@ -837,7 +837,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
       </div>
 
       {/* 입력창 */}
-      <div style={{ padding: "12px 24px 20px", background: "var(--db-bg-primary)", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+      <div style={{ padding: "12px 24px 20px", flexShrink: 0 }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
           {/* Claude 제안 버튼 */}

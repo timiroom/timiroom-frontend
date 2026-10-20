@@ -17,6 +17,10 @@
   --accent:    #0d0d0d;
   --accent-fg: #ffffff;
   /* 워크스페이스가 없는 첫 화면 — 어두운 톤 위에 같은 계열의 옅은 빛을 겹친 배경 */
+  /* 대화창 바탕 — 글을 읽는 데 방해되지 않게 위쪽이 아주 조금 밝고 아래로 갈수록 옅게 가라앉는다 */
+  --chat-bg:
+    radial-gradient(ellipse 80% 38% at 50% 0%, var(--surface) 0%, transparent 72%),
+    linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--text-1) 4%, var(--bg)) 100%);
   --onboarding-bg:
     radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--accent-fg) 14%, var(--accent)) 0%, transparent 72%),
     radial-gradient(ellipse 55% 45% at 100% 100%, color-mix(in srgb, var(--accent-fg) 8%, var(--accent)) 0%, transparent 70%),
