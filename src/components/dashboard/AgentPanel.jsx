@@ -385,7 +385,7 @@ function EmptyState({ project, onSelectSuggestion }) {
         width: 56, height: 56, borderRadius: 16,
         background: "var(--text-1)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 24, fontWeight: 900, color: "var(--bg)",
+        fontSize: 22, fontWeight: 900, color: "var(--bg)",
         boxShadow: "0 8px 28px color-mix(in srgb, var(--text-1) 35%, transparent)",
         marginBottom: 20,
       }}>A</div>

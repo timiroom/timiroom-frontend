@@ -113,7 +113,7 @@ function CustomTypeSelect({ value, onChange }) {
         }}
       >
         <span style={{
-          fontSize: 12.5, color,
+          fontSize: 13, color,
           fontFamily: "'JetBrains Mono','Fira Code',monospace",
           flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
@@ -175,7 +175,7 @@ function CustomTypeSelect({ value, onChange }) {
                       onClick={() => select(type)}
                       style={{
                         padding: "7px 14px", cursor: "pointer",
-                        fontSize: 12.5, color: tc,
+                        fontSize: 13, color: tc,
                         fontFamily: "'JetBrains Mono','Fira Code',monospace",
                         background: isSelected ? "rgba(96,165,250,0.12)" : "transparent",
                         display: "flex", alignItems: "center", gap: 8,
@@ -279,7 +279,7 @@ function RoleIcon({ role }) {
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       width: 16, height: 16, borderRadius: 3,
       background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)",
-      fontSize: 9, marginRight: 5, flexShrink: 0,
+      fontSize: 10, marginRight: 5, flexShrink: 0,
     }}><Icon name="key" size={10} /></span>
   );
   if (role === "fk") return (
@@ -287,7 +287,7 @@ function RoleIcon({ role }) {
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       width: 16, height: 16, borderRadius: 3,
       background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)",
-      fontSize: 9, marginRight: 5, flexShrink: 0,
+      fontSize: 10, marginRight: 5, flexShrink: 0,
     }}><Icon name="link" size={10} /></span>
   );
   if (role === "uq") return (
@@ -295,7 +295,7 @@ function RoleIcon({ role }) {
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       width: 16, height: 16, borderRadius: 3,
       background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)",
-      fontSize: 9, marginRight: 5, flexShrink: 0,
+      fontSize: 10, marginRight: 5, flexShrink: 0,
     }}>◆</span>
   );
   return <span style={{ width: 21, display: "inline-block", flexShrink: 0 }} />;
@@ -472,7 +472,7 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
           padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 16 }}>
             {isNew ? "관계 추가" : "관계 수정"}
           </span>
           <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 20 }}>×</button>
@@ -636,7 +636,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
   const inp = {
     padding: "7px 10px", borderRadius: 7,
     border: "1px solid var(--border)", background: "var(--surface)",
-    color: "var(--text-1)", fontSize: 12.5, outline: "none", boxSizing: "border-box",
+    color: "var(--text-1)", fontSize: 13, outline: "none", boxSizing: "border-box",
     fontFamily: "'JetBrains Mono','Fira Code',monospace",
   };
   const lbl = {
@@ -660,7 +660,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
           padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 16 }}>
             {isNew ? "테이블 추가" : "테이블 수정"}
           </span>
           <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 20 }}>×</button>
@@ -1220,7 +1220,7 @@ function SqlModal({ sql, onClose }) {
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-            color: "#9ca3af", cursor: "pointer", fontSize: 18, lineHeight: 1,
+            color: "#9ca3af", cursor: "pointer", fontSize: 16, lineHeight: 1,
           }}>×</button>
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>

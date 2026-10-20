@@ -80,7 +80,7 @@ function ValueNode({ value, depth = 0 }) {
         gap: 10,
         alignItems: "start",
       }}>
-        <dt style={{ fontSize: 11, lineHeight: 1.6, fontWeight: 750, color: palette.muted }}>
+        <dt style={{ fontSize: 11, lineHeight: 1.6, fontWeight: 700, color: palette.muted }}>
           {humanizeSpecKey(key)}
         </dt>
         <dd style={{ margin: 0, minWidth: 0, fontSize: 12, lineHeight: 1.65, color: palette.text, wordBreak: "keep-all", overflowWrap: "anywhere" }}>
@@ -120,10 +120,10 @@ export function SpecDocumentView({ value, compareValue, emptyLabel = "문서 내
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
           padding: "9px 12px", borderBottom: `1px solid ${palette.subtleBorder}`,
         }}>
-          <strong style={{ fontSize: 12.5, color: palette.text }}>{humanizeSpecKey(key)}</strong>
-          {changed && <span style={{ fontSize: 10, fontWeight: 750, color: "#b45309" }}>변경됨</span>}
+          <strong style={{ fontSize: 13, color: palette.text }}>{humanizeSpecKey(key)}</strong>
+          {changed && <span style={{ fontSize: 10, fontWeight: 700, color: "#b45309" }}>변경됨</span>}
         </header>
-        <div style={{ padding: "11px 12px", fontSize: 12.5, lineHeight: 1.7 }}>
+        <div style={{ padding: "11px 12px", fontSize: 13, lineHeight: 1.7 }}>
           <ValueNode value={sectionValue} depth={0} />
         </div>
       </section>;

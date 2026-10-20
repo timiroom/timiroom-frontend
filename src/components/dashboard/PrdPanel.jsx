@@ -190,7 +190,7 @@ function SectionTitle({ icon, title }) {
     <div style={{ marginBottom: 28 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
         <SectionIcon name={icon} size={22} />
-        <h1 style={{ margin:0, fontSize:24, fontWeight:800, color:C.text }}>{title}</h1>
+        <h1 style={{ margin:0, fontSize:22, fontWeight:800, color:C.text }}>{title}</h1>
       </div>
       <div style={{ height:2, background:"rgba(0,0,0,0.06)", borderRadius:1 }} />
     </div>
@@ -295,7 +295,7 @@ function FeaturesView({ doc }) {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {group.items.map((f,i) => (
                 <div key={i} style={{ padding:"16px 18px", borderRadius:12, background:C.card, border:`1px solid ${C.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
-                  <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:f.description||asList(f.requirements).length?8:0 }}>{f.name}</div>
+                  <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:f.description||asList(f.requirements).length?8:0 }}>{f.name}</div>
                   {f.description && <p style={{ margin:"0 0 10px", fontSize:13, color:"#374151", lineHeight:1.7 }}><SourceText text={f.description} /></p>}
                   {asList(f.requirements).length>0 && (
                     <ul style={{ margin:0, paddingLeft:18 }}>
@@ -326,7 +326,7 @@ function PersonasView({ doc }) {
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
               <div style={{ width:44, height:44, borderRadius:12, background:"color-mix(in srgb, var(--text-2) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--text-2) 20%, transparent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}><Icon name="users" size={18} strokeWidth={1.7} /></div>
               <div>
-                <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{p.name}</div>
+                <div style={{ fontSize:16, fontWeight:700, color:C.text }}>{p.name}</div>
                 <div style={{ fontSize:12, color:C.muted }}>{[p.age,p.job].filter(Boolean).join(" · ")}</div>
               </div>
             </div>
@@ -429,7 +429,7 @@ function TechStackView({ doc }) {
                 : <TechLogo fallbackIcon={card.icon} />}
               <span style={{ marginLeft:"auto", fontSize:11, fontWeight:700, letterSpacing:"0.03em", color:"var(--text-2)", background:"rgba(0,0,0,0.04)", padding:"3px 10px", borderRadius:100, flexShrink:0 }}>{card.label}</span>
             </div>
-            <div style={{ fontSize:15, fontWeight:700, color:C.text, lineHeight:1.4 }}>{card.title}</div>
+            <div style={{ fontSize:16, fontWeight:700, color:C.text, lineHeight:1.4 }}>{card.title}</div>
             {/* 설명은 첫 문장 두 줄까지. 전체 문장은 마우스를 올리면 보이고, 편집 모드에 그대로 있다. */}
             {card.summary && (
               <p title={card.full} style={{ margin:0, fontSize:13, color:"var(--text-2)", lineHeight:1.6, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
@@ -695,7 +695,7 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
 .doc-header{border-bottom:2px solid var(--text-1);padding-bottom:14px;margin-bottom:36px}
 .doc-header .title{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
 .doc-header h1{font-size:26px;font-weight:900;margin:0 0 6px}.doc-header .meta{font-size:11px;color:#9ca3af}
-h1{font-size:24px;font-weight:900;margin:0 0 14px}h2{font-size:17px;font-weight:700;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.1)}
+h1{font-size:22px;font-weight:900;margin:0 0 14px}h2{font-size:16px;font-weight:700;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.1)}
 h3{font-size:14px;font-weight:600;margin:20px 0 6px;color:#374151}p{margin:5px 0}ul{padding-left:22px;margin:6px 0}ol{padding-left:24px;margin:6px 0}li{margin:4px 0}
 blockquote{border-left:3px solid var(--text-2);margin:12px 0;padding:10px 16px;background:color-mix(in srgb, var(--text-2) 7%, transparent);color:var(--text-2);border-radius:0 6px 6px 0}
 pre{background:var(--db-bg-elevated);padding:12px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);margin:10px 0;font-family:monospace;font-size:12px;white-space:pre-wrap}

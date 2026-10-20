@@ -854,7 +854,7 @@ function Legend({ summary, stepsShown }) {
   return (
     <div style={{
       position: "absolute", left: 16, bottom: 16, display: "flex", gap: 12, flexWrap: "wrap", maxWidth: "calc(100% - 32px)",
-      padding: "8px 12px", borderRadius: 10, fontSize: 10.5,
+      padding: "8px 12px", borderRadius: 10, fontSize: 11,
       background: "rgba(249,249,249,0.9)", backdropFilter: "blur(8px)",
       border: `1px solid ${C.border}`, color: C.muted,
     }}>
@@ -914,7 +914,7 @@ function Overlay({ children, tone }) {
     <div style={{
       position: "absolute", inset: 0, display: "flex",
       alignItems: "center", justifyContent: "center", textAlign: "center",
-      fontSize: 13.5, lineHeight: 1.7,
+      fontSize: 14, lineHeight: 1.7,
       color: tone === "error" ? "#ef4444" : C.muted,
       background: "rgba(249,249,249,0.82)",
     }}>
@@ -927,7 +927,7 @@ function Empty({ message }) {
   return (
     <div style={{
       flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: C.bg, color: C.muted, fontSize: 13.5,
+      height: "100vh", background: C.bg, color: C.muted, fontSize: 14,
     }}>{message}</div>
   );
 }
@@ -947,12 +947,12 @@ function DetailPanel({ selection, onClose }) {
         }}>✕</button>
       </div>
 
-      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: C.text, wordBreak: "break-all", lineHeight: 1.45 }}>
+      <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: C.text, wordBreak: "break-all", lineHeight: 1.45 }}>
         {selection.label}
       </h3>
 
       {selection.meta?.description && (
-        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>{selection.meta.description}</p>
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: C.muted, lineHeight: 1.6 }}>{selection.meta.description}</p>
       )}
 
       {selection.type === "pr" && <PullRequestDetail meta={selection.meta} />}
@@ -1056,7 +1056,7 @@ function PullRequestDetail({ meta }) {
 function ExternalLink({ href, children }) {
   return (
     <a href={href} target="_blank" rel="noreferrer" style={{
-      padding: "5px 11px", borderRadius: 999, fontSize: 11.5,
+      padding: "5px 11px", borderRadius: 999, fontSize: 12,
       border: `1px solid ${C.border}`, color: C.text, textDecoration: "none",
     }}>{children} ↗</a>
   );
@@ -1064,7 +1064,7 @@ function ExternalLink({ href, children }) {
 
 function SectionTitle({ children }) {
   return (
-    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em", color: C.muted, marginBottom: 7 }}>{children}</div>
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: C.muted, marginBottom: 7 }}>{children}</div>
   );
 }
 
