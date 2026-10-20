@@ -250,25 +250,23 @@ function mergeWorkspaceProjects(projects, runningPipeline) {
 }
 
 function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onOpenWorkspaceComposer }) {
+  // 워크스페이스가 없을 때는 사이드바 폭과 상관없이 창 정중앙에 둔다. 배경은 루트가 그린다.
+  const centered = !hasWorkspace;
   return (
     <div style={{
-      flex: 1,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 40,
-      background: hasWorkspace
-        ? "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, var(--surface) 100%)"
-        : "var(--accent)",
+      ...(centered
+        ? { position: "fixed", inset: 0, pointerEvents: "none", display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }
+        : { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40, background: "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, var(--surface) 100%)" }),
     }}>
       <div style={{
         width: "min(520px, 100%)",
         padding: "34px 32px",
         borderRadius: 24,
-        border: "1px solid rgba(0,0,0,0.06)",
+        border: centered ? "1px solid color-mix(in srgb, var(--accent-fg) 14%, transparent)" : "1px solid rgba(0,0,0,0.06)",
         background: "var(--surface)",
-        boxShadow: "0 22px 60px rgba(0,0,0,0.14)",
+        boxShadow: centered ? "0 28px 80px rgba(0,0,0,0.55)" : "0 22px 60px rgba(0,0,0,0.14)",
         textAlign: "center",
+        pointerEvents: "auto",
       }}>
         <div style={{
           width: 56,
@@ -1284,7 +1282,7 @@ export default function DashboardPage() {
         display: "flex",
         height: "100vh",
         overflow: "hidden",
-        background: "var(--surface)",
+        background: workspaceOnboarding ? "var(--onboarding-bg)" : "var(--surface)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
         {isNarrow && !contextPanelCollapsed && (
