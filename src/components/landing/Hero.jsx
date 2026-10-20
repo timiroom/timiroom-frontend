@@ -159,9 +159,9 @@ export function Hero() {
               대시보드로 이동 →
             </a>
           ) : (
-            <a href="/dashboard" className="al-pill-purple">
+            <button type="button" className="al-pill-purple" onClick={() => openAuthModal("/dashboard")}>
               무료로 시작하기 →
-            </a>
+            </button>
           )}
           <a href="#agents" className="al-pill-white" onClick={smoothScroll("#agents")}>
             주요 기능 보기

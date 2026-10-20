@@ -1065,7 +1065,7 @@ export default function DashboardPage() {
 
   async function handlePublishSnapshot() {
     setPublishing(true);
-    try { const snapshot = await publishSnapshot(selectedProject.id); showToast("success", `명세 기준 revision ${snapshot.revision}을 발행했습니다.`); setSpecStatusTick((n) => n + 1); }
+    try { const snapshot = await publishSnapshot(selectedProject.id); showToast("success", `기준 명세 ${snapshot.revision}차 발행본을 만들었습니다.`); setSpecStatusTick((n) => n + 1); }
     catch (error) { showToast("error", error.message); }
     finally { setPublishing(false); }
   }

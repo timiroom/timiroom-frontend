@@ -154,7 +154,7 @@ a { text-decoration: none; color: inherit; }
   padding: 18px 36px; border-radius: var(--radius-pill);
   background: var(--grad-purple); color: white;
   font-size: 16px; font-weight: 700;
-  border: none; cursor: pointer;
+  border: none; cursor: pointer; font-family: inherit;
   box-shadow: var(--shadow-btn-purple);
   transition: all .25s ease;
 }
@@ -181,7 +181,7 @@ a { text-decoration: none; color: inherit; }
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.5);
   color: var(--text-dark);
-  font-size: 18px; font-weight: 700;
+  font-size: 18px; font-weight: 700; font-family: inherit;
   cursor: pointer;
   box-shadow: 0 12px 17px rgba(0,0,0,0.22);
   transition: all .25s ease;

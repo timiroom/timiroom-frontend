@@ -20,8 +20,8 @@ export function SpecChangeBar({ projectId, status, pending, canPublish, publishi
         {state === "none" && (canPublish
           ? "아직 명세 기준을 발행하지 않았습니다. 발행하면 이후 수정은 변경안 검토와 승인으로 적용됩니다."
           : "아직 명세 기준이 발행되지 않았습니다. PM이 발행하면 변경안 검토를 쓸 수 있습니다.")}
-        {state === "match" && `기준 revision ${revision} 발행됨. 문서 수정은 변경안 검토와 승인으로 적용합니다.`}
-        {state === "differ" && `화면의 문서가 발행 기준(revision ${revision})과 다릅니다.`}
+        {state === "match" && `기준 명세 ${revision}차 발행본 적용 중. 문서 수정은 변경안 검토와 승인으로 적용합니다.`}
+        {state === "differ" && `화면의 문서가 기준 명세 ${revision}차 발행본과 다릅니다.`}
       </p>
       <div className="spec-bar-actions">
         {pending?.count > 0 && (
