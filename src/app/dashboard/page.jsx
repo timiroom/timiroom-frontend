@@ -226,7 +226,9 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
       alignItems: "center",
       justifyContent: "center",
       padding: 40,
-      background: "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, var(--surface) 100%)",
+      background: hasWorkspace
+        ? "linear-gradient(180deg, color-mix(in srgb, var(--text-1) 3%, transparent) 0%, var(--surface) 100%)"
+        : "radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--accent-fg) 9%, var(--accent)) 0%, var(--accent) 72%)",
     }}>
       <div style={{
         width: "min(520px, 100%)",
@@ -1209,6 +1211,9 @@ export default function DashboardPage() {
     }
   }
 
+  // 워크스페이스가 하나도 없으면 사이드바 없이 가운데 시작 카드만 보여준다
+  const workspaceOnboarding = showWizard && !activeWorkspaceId && !isLoadingWorkspaces;
+
   return (
     <>
       {integrationEnabled && specReview && <SpecChangeReview
@@ -1227,10 +1232,10 @@ export default function DashboardPage() {
         background: "var(--surface)",
         fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       }}>
-        {isNarrow && !contextPanelCollapsed && (
+        {!workspaceOnboarding && isNarrow && !contextPanelCollapsed && (
           <div className="ctx-backdrop" aria-hidden="true" onClick={() => setContextPanelCollapsed(true)} />
         )}
-        <ContextPanel
+        {!workspaceOnboarding && <ContextPanel
           projects={projects}
           selectedProject={selectedProject}
           onSelectProject={handleSelectProject}
@@ -1259,7 +1264,7 @@ export default function DashboardPage() {
           documentSync={documentSync}
           editingDocumentType={editingDocumentType}
           collapsed={contextPanelCollapsed}
-        />
+        />}
 
         {showWizard ? (
           activeWorkspaceId ? (
