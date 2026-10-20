@@ -295,7 +295,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
-      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 10, gap: 16, flexShrink: 0 }}>
+      <div style={{ height: 64, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", paddingLeft: 10, gap: 16, flexShrink: 0 }}>
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
@@ -312,7 +312,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
             <IconPanelToggle />
           </button>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: `2px solid ${accentColor}`, background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
           <span style={{ fontSize: 14 }}>✦</span>
           {phase === "done" ? "생성 완료" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
         </div>
@@ -777,7 +777,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--db-bg-primary)" }}>
 
       {/* 탭 바 */}
-      <div style={{ height: 36, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 10, paddingRight: 12, flexShrink: 0 }}>
+      <div style={{ height: 64, background: "var(--bg)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 10, paddingRight: 12, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, height: "100%" }}>
           {onToggleSidebar && (
             <button
@@ -795,7 +795,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
               <IconPanelToggle />
             </button>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: "2px solid var(--text-1)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-1)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-1)" }}>
             <Icon name="plus" size={13} />
             새 프로젝트 만들기
           </div>
