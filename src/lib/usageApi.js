@@ -43,6 +43,7 @@ export const FEATURE_LABELS = {
   RECOMMENDATION: "추천",
   PR_CONSISTENCY: "PR 정합성 검사",
   SPEC_REVIEW: "변경안 검토",
+  QA_SCENARIO: "QA 시나리오",
 };
 
 export function formatKrw(value) {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { fetchQaScenarios, createQaScenario, generateQaScenarios, runQaScenario, deleteQaScenario } from "@/lib/qaScenarioApi";
 import { useToast } from "@/context/ToastContext";
+import { confirmDialog } from "@/lib/feedback";
+import { ActionButton, AiWorking, Badge, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
 
 /** 프로젝트의 기능 목록을 정규화한다 — featureList가 문자열/객체 배열이거나 PRD의 coreFeatures일 수 있다. */
 function projectFeatures(project) {
@@ -18,10 +20,10 @@ function projectFeatures(project) {
 
 const TYPE_LABEL = { NORMAL: "정상", EXCEPTION: "예외", BOUNDARY: "경계" };
 
-const VERDICT_STYLE = {
-  PASS: { label: "통과", bg: "rgba(52,211,153,0.12)", border: "rgba(52,211,153,0.3)", color: "#059669" },
-  FAIL: { label: "실패", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.3)", color: "#dc2626" },
-  INCONCLUSIVE: { label: "판단 불가", bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.3)", color: "#b45309" },
+const VERDICT = {
+  PASS: { label: "통과", tone: "success" },
+  FAIL: { label: "실패", tone: "danger" },
+  INCONCLUSIVE: { label: "판단 불가", tone: "warning" },
 };
 
 const EMPTY_FORM = { featureName: "", type: "NORMAL", title: "", given: "", when: "", then: "" };
@@ -102,6 +104,7 @@ export function QaTestPanel({ project }) {
   }
 
   async function handleDelete(scenarioId) {
+    if (!await confirmDialog("이 시나리오를 삭제할까요?", { danger: true })) return;
     setDeletingId(scenarioId);
     try {
       await deleteQaScenario(project.id, scenarioId);
@@ -113,145 +116,111 @@ export function QaTestPanel({ project }) {
     }
   }
 
+  const fieldStyle = "ui-input qa-input";
   return (
-    <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"var(--surface)", color:"var(--text-1)" }}>
-      <div style={{
-        height: 52, flexShrink: 0, borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", padding: "0 24px", gap: 10,
-        background: "var(--surface)",
-      }}>
-        {project && (
-          <>
-            <div style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: `${project.color || "var(--text-1)"}22`,
-              border: `1px solid ${project.color || "var(--text-1)"}44`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 900, color: project.color || "#6b6960",
-            }}>{(project.name || "P").charAt(0).toUpperCase()}</div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>{project.name}</span>
-            <span style={{ fontSize: 13, color: "var(--text-3)" }}>›</span>
-          </>
-        )}
-        <span style={{
-          fontSize: 13, fontWeight: 500, color: "#fbbf24",
-          padding: "2px 8px", borderRadius: 6,
-          background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)",
-        }}>QA 테스트</span>
-        <span style={{ fontSize: 11, color: "var(--text-3)", padding: "2px 8px", borderRadius: 10, background: "rgba(0,0,0,0.05)" }}>{scenarios.length}개 시나리오</span>
-        <div style={{ flex: 1 }} />
-        <label style={{ fontSize:12, display:"flex", alignItems:"center", gap:8, color:"var(--text-3)" }}>
-          대상 기능
-          <select aria-label="QA 대상 기능" value={filter} onChange={e=>setFilter(e.target.value)} style={{ padding:"6px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontSize:12, fontFamily:"inherit" }}>
-            <option value="all">전체 기능</option>
-            {features.map(f=><option key={f.id} value={f.name}>{f.name}</option>)}
-          </select>
-        </label>
-        <button
-          type="button" onClick={handleGenerate} disabled={generating || filter === "all"}
-          style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--text-1)", color:"var(--bg)", fontSize:12, fontWeight:700, cursor: generating || filter === "all" ? "not-allowed" : "pointer", opacity: generating || filter === "all" ? 0.5 : 1, fontFamily:"inherit" }}
-        >{generating ? "생성 중…" : "AI로 생성"}</button>
-        <button
-          type="button" onClick={() => setShowAddForm(v => !v)}
-          style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--surface)", color:"var(--text-1)", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
-        >{showAddForm ? "취소" : "+ 직접 추가"}</button>
-      </div>
+    <div className="qa-panel">
+      <PanelHeader project={project} label="QA 테스트">
+        <Badge>{scenarios.length}개 시나리오</Badge>
+        <select className={fieldStyle} aria-label="QA 대상 기능" value={filter} onChange={e=>setFilter(e.target.value)}>
+          <option value="all">전체 기능</option>
+          {features.map(f=><option key={f.id} value={f.name}>{f.name}</option>)}
+        </select>
+        <ActionButton size="sm" variant="primary" onClick={handleGenerate} disabled={generating || filter === "all"}
+          title={filter === "all" ? "대상 기능을 먼저 고르세요" : "선택한 기능의 시나리오를 AI가 만듭니다"}>
+          <Icon name="zap" size={12} /> {generating ? "생성 중…" : "AI로 생성"}
+        </ActionButton>
+        <ActionButton size="sm" onClick={() => setShowAddForm(v => !v)}>
+          {showAddForm ? "취소" : <><Icon name="plus" size={12} /> 직접 추가</>}
+        </ActionButton>
+      </PanelHeader>
 
-      <div style={{ flex:1, overflowY:"auto", padding:32 }}>
-        <p style={{ color:"var(--text-3)", fontSize:13, lineHeight:1.7, margin:"0 0 24px" }}>
-          AI가 기능 명세를 근거로 생성했거나 직접 작성한 시나리오입니다. &ldquo;실행&rdquo;을 누르면 AI가 현재 API/DB 명세와
-          (연결된 레포가 있다면) 관련 코드를 근거로 통과 여부를 판단합니다 — 실제로 코드를 실행하지는 않습니다.
+      <div className="qa-body">
+        <p className="qa-intro">
+          AI가 기능 명세를 근거로 만들었거나 직접 작성한 시나리오입니다. &ldquo;실행&rdquo;을 누르면 AI가 현재 API·DB 명세와
+          (연결된 레포가 있다면) 관련 코드를 근거로 통과 여부를 판단합니다. 실제로 코드를 실행하지는 않습니다.
         </p>
 
+        {generating && (
+          <div className="qa-gap">
+            <AiWorking label={`'${filter}' 시나리오를 만들고 있습니다`} hint="정상·예외·경계 경우를 나눠 만듭니다. 보통 30초~1분 걸립니다." />
+          </div>
+        )}
+
         {showAddForm && (
-          <div style={{ border:"1px solid var(--border)", borderRadius:12, padding:20, marginBottom:20, display:"grid", gap:10 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 140px", gap:10 }}>
-              <label style={{ display:"grid", gap:4, fontSize:12, color:"var(--text-3)" }}>
+          <div className="qa-form">
+            <div className="qa-form__row">
+              <label className="qa-label">
                 대상 기능
-                <select value={form.featureName} onChange={e=>setForm(f=>({...f, featureName:e.target.value}))} style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit" }}>
+                <select className={fieldStyle} value={form.featureName} onChange={e=>setForm(f=>({...f, featureName:e.target.value}))}>
                   <option value="">선택 안 함</option>
                   {features.map(f=><option key={f.id} value={f.name}>{f.name}</option>)}
                 </select>
               </label>
-              <label style={{ display:"grid", gap:4, fontSize:12, color:"var(--text-3)" }}>
+              <label className="qa-label">
                 유형
-                <select value={form.type} onChange={e=>setForm(f=>({...f, type:e.target.value}))} style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit" }}>
+                <select className={fieldStyle} value={form.type} onChange={e=>setForm(f=>({...f, type:e.target.value}))}>
                   <option value="NORMAL">정상</option>
                   <option value="EXCEPTION">예외</option>
                   <option value="BOUNDARY">경계</option>
                 </select>
               </label>
             </div>
-            <input placeholder="제목" value={form.title} onChange={e=>setForm(f=>({...f, title:e.target.value}))}
-              style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit", fontSize:13 }} />
-            <input placeholder="사전 조건 (given)" value={form.given} onChange={e=>setForm(f=>({...f, given:e.target.value}))}
-              style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit", fontSize:13 }} />
-            <input placeholder="수행 절차 (when)" value={form.when} onChange={e=>setForm(f=>({...f, when:e.target.value}))}
-              style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit", fontSize:13 }} />
-            <input placeholder="예상 결과 (then)" value={form.then} onChange={e=>setForm(f=>({...f, then:e.target.value}))}
-              style={{ padding:"8px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", color:"var(--text-1)", fontFamily:"inherit", fontSize:13 }} />
-            <div>
-              <button type="button" onClick={handleCreate} disabled={saving}
-                style={{ padding:"8px 16px", borderRadius:8, border:"none", background:"var(--text-1)", color:"var(--bg)", fontSize:13, fontWeight:700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1, fontFamily:"inherit" }}
-              >{saving ? "추가 중…" : "추가"}</button>
-            </div>
+            <input className={fieldStyle} placeholder="제목" value={form.title} onChange={e=>setForm(f=>({...f, title:e.target.value}))} />
+            <input className={fieldStyle} placeholder="사전 조건 (given)" value={form.given} onChange={e=>setForm(f=>({...f, given:e.target.value}))} />
+            <input className={fieldStyle} placeholder="수행 절차 (when)" value={form.when} onChange={e=>setForm(f=>({...f, when:e.target.value}))} />
+            <input className={fieldStyle} placeholder="예상 결과 (then)" value={form.then} onChange={e=>setForm(f=>({...f, then:e.target.value}))} />
+            <div><ActionButton variant="primary" onClick={handleCreate} disabled={saving}>{saving ? "추가 중…" : "추가"}</ActionButton></div>
           </div>
         )}
 
         {loading ? (
-          <p style={{ color:"var(--text-3)", fontSize:13 }}>불러오는 중…</p>
+          <LoadingState label="QA 시나리오를 불러오는 중…" />
         ) : !features.length && !scenarios.length ? (
-          <p style={{ padding:32, border:"1px dashed var(--border)", borderRadius:12 }}>기능 명세서를 먼저 작성하면 기능별로 AI 시나리오를 생성할 수 있습니다.</p>
+          <EmptyState icon="checklist" title="기능 명세가 필요합니다" description="기능 명세서를 먼저 만들면 기능별로 AI 시나리오를 생성할 수 있습니다." />
         ) : !visible.length ? (
-          <p style={{ padding:32, border:"1px dashed var(--border)", borderRadius:12 }}>아직 시나리오가 없습니다. 대상 기능을 선택하고 &ldquo;AI로 생성&rdquo;하거나 직접 추가해 보세요.</p>
+          <EmptyState icon="checklist" title="아직 시나리오가 없습니다" description="위에서 대상 기능을 고르고 'AI로 생성'을 누르거나, 직접 추가해 보세요." />
         ) : (
-          <div style={{ display:"grid", gap:16 }}>
+          <div className="qa-list">
             {visible.map(scenario => {
-              const verdict = scenario.verdict ? VERDICT_STYLE[scenario.verdict] : null;
+              const verdict = scenario.verdict ? VERDICT[scenario.verdict] : null;
               const running = runningId === scenario.id;
               return (
-                <article key={scenario.id} style={{ border:"1px solid var(--border)", borderRadius:12, padding:22 }}>
-                  <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, color:"var(--text-3)", flexWrap:"wrap" }}>
-                    <span>{TYPE_LABEL[scenario.type] || scenario.type}</span>
+                <article key={scenario.id} className="qa-card">
+                  <div className="qa-card__meta">
+                    <Badge>{TYPE_LABEL[scenario.type] || scenario.type}</Badge>
                     <span>{scenario.source === "AI" ? "AI 생성" : "직접 작성"}</span>
-                    <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
-                      {verdict ? (
-                        <span style={{ background:verdict.bg, color:verdict.color, border:`1px solid ${verdict.border}`, borderRadius:6, padding:"4px 8px", fontWeight:700 }}>{verdict.label}</span>
-                      ) : (
-                        <span style={{ background:"#fff7ed", color:"#9a3412", borderRadius:6, padding:"4px 8px" }}>미실행</span>
-                      )}
-                      <button type="button" onClick={() => handleDelete(scenario.id)} disabled={deletingId === scenario.id}
-                        style={{ border:"none", background:"transparent", color:"var(--text-3)", cursor:"pointer", fontSize:14, lineHeight:1, padding:2 }}
-                        aria-label="시나리오 삭제"
-                      >×</button>
-                    </div>
+                    <span className="qa-card__end">
+                      {verdict ? <Badge tone={verdict.tone}>{verdict.label}</Badge> : <Badge>미실행</Badge>}
+                      <ActionButton size="sm" iconOnly variant="danger" onClick={() => handleDelete(scenario.id)} disabled={deletingId === scenario.id}
+                        title="시나리오 삭제" aria-label="시나리오 삭제"><Icon name="trash" size={12} /></ActionButton>
+                    </span>
                   </div>
-                  <h2 style={{ fontSize:16, margin:"14px 0" }}>{scenario.title}</h2>
-                  <dl style={{ margin:0, display:"grid", gridTemplateColumns:"110px minmax(0,1fr)", gap:"12px 16px", fontSize:13, lineHeight:1.7, overflowWrap:"anywhere" }}>
-                    <dt>대상 기능</dt><dd style={{ margin:0 }}>{scenario.featureName || "—"}</dd>
-                    <dt>사전 조건</dt><dd style={{ margin:0 }}>{scenario.given || "—"}</dd>
-                    <dt>수행 절차</dt><dd style={{ margin:0 }}>{scenario.when || "—"}</dd>
-                    <dt>예상 결과</dt><dd style={{ margin:0 }}>{scenario.then}</dd>
+                  <h2 className="qa-card__title">{scenario.title}</h2>
+                  <dl className="qa-steps">
+                    <dt>대상 기능</dt><dd>{scenario.featureName || "—"}</dd>
+                    <dt>사전 조건</dt><dd>{scenario.given || "—"}</dd>
+                    <dt>수행 절차</dt><dd>{scenario.when || "—"}</dd>
+                    <dt>예상 결과</dt><dd>{scenario.then}</dd>
                     <dt>실행 결과</dt>
-                    <dd style={{ margin:0 }}>
-                      {scenario.verdict ? (
-                        <div style={{ display:"grid", gap:6 }}>
-                          <span style={{ color:"var(--text-1)" }}>{scenario.reasoning}</span>
+                    <dd>
+                      {running ? (
+                        <AiWorking compact label="AI가 판정하고 있습니다" hint="명세와 관련 코드를 근거로 통과 여부를 따집니다. 보통 30초~1분 걸립니다." />
+                      ) : scenario.verdict ? (
+                        <div className="qa-result">
+                          <span>{scenario.reasoning}</span>
                           {scenario.evidence?.length > 0 && (
-                            <ul style={{ margin:0, paddingLeft:18, color:"var(--text-3)" }}>
-                              {scenario.evidence.map((item, i) => <li key={i}>{item}</li>)}
-                            </ul>
+                            <ul>{scenario.evidence.map((item, i) => <li key={i}>{item}</li>)}</ul>
                           )}
                         </div>
                       ) : (
-                        <span style={{ color:"var(--text-3)" }}>미실행 — 아래 버튼으로 AI 판정을 받아 보세요</span>
+                        <span className="qa-muted">아직 실행하지 않았습니다.</span>
                       )}
                     </dd>
                   </dl>
-                  <div style={{ marginTop:14 }}>
-                    <button type="button" onClick={() => handleRun(scenario.id)} disabled={running}
-                      style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border)", background: running ? "var(--surface)" : "var(--text-1)", color: running ? "var(--text-3)" : "var(--bg)", fontSize:12, fontWeight:700, cursor: running ? "not-allowed" : "pointer", fontFamily:"inherit" }}
-                    >{running ? "AI 판단 중…" : scenario.verdict ? "다시 실행" : "실행"}</button>
+                  <div className="qa-card__actions">
+                    <ActionButton size="sm" variant={scenario.verdict ? "secondary" : "primary"} onClick={() => handleRun(scenario.id)} disabled={running || runningId !== null}>
+                      <Icon name="play" size={11} /> {running ? "판정 중…" : scenario.verdict ? "다시 실행" : "실행"}
+                    </ActionButton>
                   </div>
                 </article>
               );
