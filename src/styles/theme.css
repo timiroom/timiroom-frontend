@@ -266,7 +266,7 @@ button, input, select, textarea { font-family: inherit; }
 .ui-search { position: relative; flex: 0 1 360px; min-width: 200px; }
 .ui-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
 .ui-search input {
-  width: 100%; box-sizing: border-box; height: 32px; padding: 0 12px 0 32px;
+  width: 100%; box-sizing: border-box; height: 30px; padding: 0 12px 0 32px;
   border: 1px solid var(--border); border-radius: var(--db-radius-sm); background: var(--surface);
   color: var(--text-1); font: inherit; font-size: 13px; outline: none; transition: var(--db-transition);
 }
@@ -560,7 +560,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .gh-row__meta { font-size: 12px; color: var(--text-3); }
 .gh-row__labels { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .gh-filter { display: flex; gap: 4px; }
-.gh-filter__item { padding: 5px 10px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--text-2); font-family: inherit; font-size: 12.5px; cursor: pointer; }
+.gh-filter__item { display: inline-flex; align-items: center; height: 28px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--text-2); font-family: inherit; font-size: 12.5px; cursor: pointer; }
 .gh-filter__item span { margin-left: 2px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .gh-filter__item:hover { background: var(--db-bg-elevated); color: var(--text-1); }
 .gh-filter__item.is-active { border-color: var(--border); background: var(--surface); color: var(--text-1); font-weight: 600; }
@@ -1082,7 +1082,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 
 /* QA 테스트 화면 */
 .qa-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--content-bg, var(--bg)); color: var(--text-1); }
-.qa-panel .ui-panel-header select.qa-input { min-height: 28px; height: 28px; padding: 0 28px 0 10px; font-size: 12.5px; width: auto; max-width: 220px; }
+.qa-panel .ui-panel-header select.qa-input { min-height: 30px; height: 30px; padding: 0 28px 0 10px; font-size: 12.5px; width: auto; max-width: 220px; }
 .qa-body { flex: 1; overflow-y: auto; padding: 24px 28px 48px; }
 .qa-body > * { max-width: 1064px; }
 .qa-intro { margin: 0 0 18px; max-width: 760px; font-size: 13px; line-height: 1.7; color: var(--text-3); }
@@ -1127,3 +1127,12 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
   .panel-inner { padding: 16px 16px 40px; }
   .kg-body { padding: 12px !important; }
 }
+
+/* 필터 칩 공통: 높이 28px(작은 버튼과 같음) */
+.ui-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-3); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--db-transition); }
+.ui-chip:hover { color: var(--text-1); border-color: var(--border-2); }
+.ui-chip.is-active { border-color: var(--text-1); background: color-mix(in srgb, var(--text-1) 7%, var(--surface)); color: var(--text-1); }
+.ui-chip:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
+/* 프로젝트 설정 본문: 다른 프로젝트 화면처럼 왼쪽 28px에서 시작 */
+.ui-set-page--panel { margin: 0; padding: 24px 28px 48px; }
+@media (max-width: 767px) { .ui-set-page--panel { padding: 16px 16px 40px; } }

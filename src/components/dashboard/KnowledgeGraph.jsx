@@ -754,14 +754,7 @@ function countOf(summary, type) {
 
 function Chip({ active, onClick, children }) {
   return (
-    <button onClick={onClick} style={{
-      display: "flex", alignItems: "center", gap: 6,
-      padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer",
-      border: `1px solid ${active ? "var(--db-purple-400)" : "var(--border)"}`,
-      background: active ? "rgba(13,13,13,.08)" : "var(--surface)",
-      color: active ? "var(--text-1)" : "var(--text-3)",
-      transition: "var(--db-transition)",
-    }}>{children}</button>
+    <button type="button" onClick={onClick} aria-pressed={active} className={`ui-chip${active ? " is-active" : ""}`}>{children}</button>
   );
 }
 

@@ -125,12 +125,12 @@ export function QaTestPanel({ project }) {
           <option value="all">전체 기능</option>
           {features.map(f=><option key={f.id} value={f.name}>{f.name}</option>)}
         </select>
-        <ActionButton size="sm" variant="primary" onClick={handleGenerate} disabled={generating || filter === "all"}
+        <ActionButton onClick={() => setShowAddForm(v => !v)}>
+          {showAddForm ? "취소" : <><Icon name="plus" size={12} /> 직접 추가</>}
+        </ActionButton>
+        <ActionButton variant="primary" onClick={handleGenerate} disabled={generating || filter === "all"}
           title={filter === "all" ? "대상 기능을 먼저 고르세요" : "선택한 기능의 시나리오를 AI가 만듭니다"}>
           <Icon name="zap" size={12} /> {generating ? "생성 중…" : "AI로 생성"}
-        </ActionButton>
-        <ActionButton size="sm" onClick={() => setShowAddForm(v => !v)}>
-          {showAddForm ? "취소" : <><Icon name="plus" size={12} /> 직접 추가</>}
         </ActionButton>
       </PanelHeader>
 
