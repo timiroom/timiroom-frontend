@@ -45,6 +45,7 @@ import { SpecChangeReview } from "@/components/dashboard/SpecChangeReview";
 import { SpecChangeBar } from "@/components/dashboard/SpecChangeBar";
 import { latestSnapshot, publishSnapshot, specChanges } from "@/lib/integrationApi";
 import { sourceMatchesSnapshot } from "@/lib/specSource";
+import { DOC_KEY_BY_TYPE, TYPE_BY_DOC_KEY, changedText, suggestLinkedDocs } from "@/lib/relatedDocs.mjs";
 
 const ROLE_DOCUMENT_PERMISSIONS = {
   PM:       ["PRD", "DB_SCHEMA", "API_SPEC", "FEATURE_LIST", "MARKET_RESEARCH", "QA_REPORT"],
@@ -1077,7 +1078,11 @@ export default function DashboardPage() {
       const source = snapshot.documents.find((item) => item.type === sourceType);
       if (!source) throw new Error("발행 기준에 대상 문서가 없습니다. PM이 기준을 다시 발행해야 합니다.");
       if (!await sourceMatchesSnapshot(selectedProject, sourceType, source)) throw new Error("화면의 문서와 발행 기준이 다릅니다. 문서를 다시 불러온 뒤 수정해 주세요.");
-      const review = { project: selectedProject, draft: { sourceType, document, snapshot } };
+      // 바뀐 부분에 다른 문서의 테이블·경로·기능 이름이 나오면 그 문서를 '함께 수정'에 미리 체크해 둔다
+      const docKey = DOC_KEY_BY_TYPE[sourceType];
+      const before = selectedProject?.[DOCUMENT_FIELDS[sourceType]];
+      const suggestedTargets = suggestLinkedDocs(selectedProject, docKey, changedText(before, document)).map((key) => TYPE_BY_DOC_KEY[key]);
+      const review = { project: selectedProject, draft: { sourceType, document, snapshot, suggestedTargets } };
       if (deferReview) {
         return {
           pendingApproval: true,

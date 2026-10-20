@@ -38,8 +38,10 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [corrections, setCorrections] = useState(null);
-  const [targets, setTargets] = useState(draft ? [draft.sourceType] : []);
+  // 수정된 내용과 이어진 문서(AI 채팅 수정안 기준)는 미리 체크해 둔다. 수정 권한이 없는 문서는 뺀다.
+  const [targets, setTargets] = useState(draft ? [draft.sourceType, ...(draft.suggestedTargets || []).filter((type) => type !== draft.sourceType && allowedTargets.includes(type) && draft.snapshot?.documents?.some((doc) => doc.type === type))] : []);
   const [requestKey] = useState(() => crypto.randomUUID());
+  const [suggested] = useState(() => (draft ? targets.filter((type) => type !== draft.sourceType) : []));
   const dialog = useRef(null);
   const activeId = proposal?.proposalId || proposalId;
   const refresh = useCallback(async (id) => {
@@ -116,6 +118,7 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         <fieldset disabled={busy || Boolean(job)}><legend>수정 허용 범위</legend>{draft.snapshot.documents.filter((item) => allowedTargets.includes(item.type)).map((item) => <label className="scope" key={item.type}>
           <input type="checkbox" checked={targets.includes(item.type)} disabled={item.type === draft.sourceType} onChange={(event) => setTargets((current) => event.target.checked ? [...current, item.type] : current.filter((type) => type !== item.type))} />{labels[item.type]}
         </label>)}</fieldset>
+        {suggested.length > 0 && <p>수정한 내용에 {suggested.map((type) => labels[type]).join(", ")}의 이름이 들어 있어 함께 수정하도록 미리 골라 두었습니다. 필요 없으면 체크를 해제하세요.</p>}
         <p>기준 명세 {draft.snapshot.revision}차 발행본에서 시작합니다.</p>
       </>}
       {proposal && <>

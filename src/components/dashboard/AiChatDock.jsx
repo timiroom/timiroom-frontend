@@ -34,6 +34,7 @@ import { AiWorking } from "@/components/ui";
 import { useUsage, isUsageBlocked, USAGE_WARN_PERCENT } from "@/context/UsageContext";
 import { formatResetDate } from "@/lib/usageApi";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { buildRelatedDocs, relatedDocsPrompt } from "@/lib/relatedDocs.mjs";
 import { sendMessageStream, requestDocumentEdit } from "@/lib/agentApi";
 import { normalizeChatText } from "@/lib/specPresentation.mjs";
 import { SpecDocumentView } from "./SpecDocumentView";
@@ -576,6 +577,7 @@ export function AiChatDock({
         document:    docJson,
         instruction: userMsg.content,
         history:     buildHistory(),
+        related:     buildRelatedDocs(project, contextType),
         projectId:   project?.id,
         signal:      abortRef.current.signal,
       });
@@ -618,7 +620,7 @@ export function AiChatDock({
 
     await sendMessageStream({
       messages: buildHistory(userMsg),
-      systemPrompt: buildContextSystemPrompt(contextType, project, currentContent),
+      systemPrompt: buildContextSystemPrompt(contextType, project, currentContent) + relatedDocsPrompt(buildRelatedDocs(project, contextType)),
       projectId: project?.id,
       projectContext: {
         name:        project?.name || "",
