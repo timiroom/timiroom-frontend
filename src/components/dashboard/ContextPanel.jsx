@@ -37,7 +37,7 @@ const PROJECT_DOCS = [
   { id: "issues",    label: "Issues 전체", icon: "flag" },
   { id: "pulls",     label: "PRs 전체",    icon: "shuffle" },
   { id: "commits",   label: "커밋 기록",   icon: "list" },
-  { id: "qa",        label: "QA 테스트",   icon: "chat" },
+  { id: "qa",        label: "QA 테스트",   icon: "check" },
 ];
 
 /* 문서 목록 맨 아래에 따로 두는 프로젝트 설정. 본문에 가로 탭 화면(ProjectSettingsView)으로 열린다. */
