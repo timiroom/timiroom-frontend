@@ -20,7 +20,7 @@ export function PanelTitle({ project, label, docType }) {
       {project && <span className="ui-panel-header__sep" aria-hidden="true">›</span>}
       <Badge>{label}</Badge>
       {source?.version != null && (
-        <span className="ui-panel-header__version" title={`문서 버전 ${source.version}`}>v{source.version}</span>
+        <span className="ui-panel-header__version" title={`이 문서를 ${source.version}번 저장했습니다. 기준 명세 발행 차수와는 따로 셉니다.`}>저장 v{source.version}</span>
       )}
     </div>
   );

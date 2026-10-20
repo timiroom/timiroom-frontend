@@ -116,10 +116,10 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
         <fieldset disabled={busy || Boolean(job)}><legend>수정 허용 범위</legend>{draft.snapshot.documents.filter((item) => allowedTargets.includes(item.type)).map((item) => <label className="scope" key={item.type}>
           <input type="checkbox" checked={targets.includes(item.type)} disabled={item.type === draft.sourceType} onChange={(event) => setTargets((current) => event.target.checked ? [...current, item.type] : current.filter((type) => type !== item.type))} />{labels[item.type]}
         </label>)}</fieldset>
-        <p>기준 revision {draft.snapshot.revision} · {draft.snapshot.snapshotId}</p>
+        <p>기준 명세 {draft.snapshot.revision}차 발행본에서 시작합니다.</p>
       </>}
       {proposal && <>
-        <p className="review-state"><Badge tone={statusTones[proposal.status] ?? "neutral"}>{statusLabels[proposal.status] ?? proposal.status}</Badge> 변경안 revision {proposal.proposalRevision} · 기준 revision {proposal.base?.revision ?? "-"}</p>
+        <p className="review-state"><Badge tone={statusTones[proposal.status] ?? "neutral"}>{statusLabels[proposal.status] ?? proposal.status}</Badge> 변경안 {proposal.proposalRevision}번째 안 · 기준 명세 {proposal.base?.revision ?? "-"}차 발행본</p>
         {proposal.stale && <p role="status" className="review-error">명세 기준이 변경되었습니다. 최신 명세를 확인하고 새 변경안을 요청해 주세요. 아래 검사는 이전 기준의 기록입니다.</p>}
         <p><a href={`/spec-changes?projectId=${project.id}`}>변경안·검사 기록에서 다시 찾기</a></p>
         <p className={proposal.artifactReviewPassed ? "review-pass" : "review-note"}>문서 교차검증: {proposal.artifactReviewPassed ? "통과" : "통과 전"} · 코드의 PR 검증은 별도로 요청해야 합니다.</p>

@@ -214,14 +214,12 @@ export function Navbar() {
         ) : (
           /* ── 비로그인 상태 ── */
           <>
-            <Button variant="outline" onClick={openAuthModal}>
+            <Button variant="outline" onClick={() => openAuthModal()}>
               로그인
             </Button>
-            <Link href="/dashboard">
-              <Button variant="primary">
-                무료로 시작하기 →
-              </Button>
-            </Link>
+            <Button variant="primary" onClick={() => openAuthModal("/dashboard")}>
+              무료로 시작하기 →
+            </Button>
           </>
         )}
       </div>

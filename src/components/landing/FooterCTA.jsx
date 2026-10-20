@@ -28,9 +28,9 @@ export function FooterCTA() {
               대시보드로 이동 →
             </a>
           ) : (
-            <a href="/dashboard" className="al-pill-glass">
+            <button type="button" className="al-pill-glass" onClick={() => openAuthModal("/dashboard")}>
               무료로 시작하기 →
-            </a>
+            </button>
           )}
         </div>
       </div>
