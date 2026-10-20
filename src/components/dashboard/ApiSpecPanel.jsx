@@ -162,7 +162,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 onChange={e => { setPath(e.target.value); setErrors(p => ({ ...p, path: "" })); }}
                 placeholder="/api/v1/resource/{id}"
                 style={{
-                  ...inp, flex: 1, fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                  ...inp, flex: 1, fontFamily: "var(--font-mono)",
                   borderColor: errors.path ? "rgba(248,113,113,0.5)" : "var(--border)",
                 }}
               />
@@ -235,7 +235,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
                 <input
                   value={p.name} onChange={e => setParam(i, "name", e.target.value)}
                   placeholder="name"
-                  style={{ ...inp, fontFamily: "monospace", fontSize: 12 }}
+                  style={{ ...inp, fontFamily: "var(--font-mono)", fontSize: 12 }}
                 />
                 <select
                   value={p.type} onChange={e => setParam(i, "type", e.target.value)}
@@ -271,7 +271,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               placeholder={'{\n  "key": "value"\n}'}
               rows={5} spellCheck={false}
               style={{
-                ...inp, resize: "vertical", fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                ...inp, resize: "vertical", fontFamily: "var(--font-mono)",
                 fontSize: 12, lineHeight: 1.6,
                 borderColor: errors.body ? "rgba(248,113,113,0.5)" : "var(--border)",
               }}
@@ -288,7 +288,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
               placeholder={'{\n  "id": 1,\n  "name": "string"\n}'}
               rows={5} spellCheck={false}
               style={{
-                ...inp, resize: "vertical", fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                ...inp, resize: "vertical", fontFamily: "var(--font-mono)",
                 fontSize: 12, lineHeight: 1.6,
                 borderColor: errors.success ? "rgba(248,113,113,0.5)" : "var(--border)",
               }}
@@ -382,7 +382,7 @@ function ParamRow({ param, isLast }) {
     }}>
       <div style={{ minWidth: 130, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <code style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: "'JetBrains Mono','Fira Code',monospace" }}>
+          <code style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: "var(--font-mono)" }}>
             {param.name}
           </code>
           {param.required && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 700 }}>*</span>}
@@ -396,7 +396,7 @@ function ParamRow({ param, isLast }) {
           <span style={{
             fontSize: 10, padding: "1px 6px", borderRadius: 4,
             background: `${tint(typeColor, 8)}`, border: `1px solid ${tint(typeColor, 21)}`, color: typeColor,
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono)",
           }}>{param.type || "string"}</span>
         </div>
       </div>
@@ -431,7 +431,7 @@ function SchemaBlock({ data }) {
     <pre style={{
       margin: 0, padding: "10px 12px", background: C.code, borderRadius: 6,
       border: `1px solid ${C.border}`, fontSize: 12, color: "var(--text-3)",
-      fontFamily: "'JetBrains Mono','Fira Code',monospace",
+      fontFamily: "var(--font-mono)",
       lineHeight: 1.7, overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word",
     }}>{text}</pre>
   );
@@ -443,7 +443,7 @@ function StatusBadge({ status }) {
     <span style={{
       fontSize: 11, fontWeight: 800, padding: "2px 7px", borderRadius: 4,
       background: `${tint(color, 9)}`, border: `1px solid ${tint(color, 25)}`, color,
-      fontFamily: "monospace", flexShrink: 0,
+      fontFamily: "var(--font-mono)", flexShrink: 0,
     }}>{status}</span>
   );
 }
@@ -519,7 +519,7 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
           }}>{(endpoint.method || "GET").toUpperCase()}</span>
           <code style={{
             fontSize: 13, color: C.text, flex: 1, minWidth: 0,
-            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            fontFamily: "var(--font-mono)",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{endpoint.path}</code>
           <button
@@ -554,7 +554,7 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
         <div style={{ flex: 1, overflow: "auto", padding: 18, background: C.code }}>
           <pre style={{
             margin: 0, fontSize: 13, lineHeight: 1.65, color: C.text,
-            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            fontFamily: "var(--font-mono)",
             whiteSpace: "pre-wrap", wordBreak: "break-word",
           }}>{code}</pre>
         </div>
@@ -750,7 +750,7 @@ function ApiTestModal({ endpoint, mockBaseUrl, onClose }) {
   const inputStyle = {
     width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 7,
     border: `1px solid ${C.border}`, background: "var(--bg)", color: C.text,
-    fontSize: 12, outline: "none", fontFamily: "'JetBrains Mono','Fira Code',monospace",
+    fontSize: 12, outline: "none", fontFamily: "var(--font-mono)",
   };
 
   function renderParameterInputs(title, items) {
@@ -852,7 +852,7 @@ function ApiTestModal({ endpoint, mockBaseUrl, onClose }) {
                 </div>
 
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.sub, margin: "16px 0 6px" }}>RESPONSE BODY</div>
-                <pre style={{ margin: 0, padding: 12, minHeight: 180, borderRadius: 7, background: "#16181c", color: "#d1d5db", fontSize: 12, lineHeight: 1.65, whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "'JetBrains Mono','Fira Code',monospace" }}>{result.body}</pre>
+                <pre style={{ margin: 0, padding: 12, minHeight: 180, borderRadius: 7, background: "#16181c", color: "#d1d5db", fontSize: 12, lineHeight: 1.65, whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "var(--font-mono)" }}>{result.body}</pre>
               </div>
             ) : (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.sub, fontSize: 12, textAlign: "center", lineHeight: 1.7, padding: 24 }}>
@@ -904,7 +904,7 @@ function EndpointCard({ endpoint, canEdit, onEdit, onDelete, onShowCode, onTest 
 
           <code style={{
             fontSize: 13, fontWeight: 500, color: C.text,
-            fontFamily: "'JetBrains Mono','Fira Code',monospace", flex: 1, minWidth: 0,
+            fontFamily: "var(--font-mono)", flex: 1, minWidth: 0,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             <PathDisplay path={endpoint.path} />

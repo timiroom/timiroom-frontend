@@ -368,7 +368,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {eventLog.slice().reverse().map((item, index) => (
                   <div key={`${item.step}-${index}`} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 11 }}>
-                    <span style={{ minWidth: 92, color: "var(--db-purple-300)", fontFamily: "monospace", fontSize: 10 }}>{item.step}</span>
+                    <span style={{ minWidth: 92, color: "var(--db-purple-300)", fontFamily: "var(--font-mono)", fontSize: 10 }}>{item.step}</span>
                     <span style={{ color: index === 0 ? "var(--text-1)" : "var(--text-3)" }}>{item.message}</span>
                     <span style={{ marginLeft: "auto", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{item.percent}%</span>
                   </div>

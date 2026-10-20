@@ -114,7 +114,7 @@ function CustomTypeSelect({ value, onChange }) {
       >
         <span style={{
           fontSize: 13, color,
-          fontFamily: "'JetBrains Mono','Fira Code',monospace",
+          fontFamily: "var(--font-mono)",
           flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {value || <span style={{ color: "var(--text-3)" }}>타입 선택...</span>}
@@ -152,7 +152,7 @@ function CustomTypeSelect({ value, onChange }) {
                 width: "100%", padding: "5px 9px", borderRadius: 6, boxSizing: "border-box",
                 border: "1px solid var(--border)", background: "var(--surface)",
                 color: "var(--text-1)", fontSize: 12, outline: "none",
-                fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                fontFamily: "var(--font-mono)",
               }}
             />
           </div>
@@ -176,7 +176,7 @@ function CustomTypeSelect({ value, onChange }) {
                       style={{
                         padding: "7px 14px", cursor: "pointer",
                         fontSize: 13, color: tc,
-                        fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                        fontFamily: "var(--font-mono)",
                         background: isSelected ? "rgba(96,165,250,0.12)" : "transparent",
                         display: "flex", alignItems: "center", gap: 8,
                       }}
@@ -239,7 +239,7 @@ function TypeBadge({ type }) {
   const color = typeColor(type);
   return (
     <span style={{
-      fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+      fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
       padding: "2px 7px", borderRadius: 4,
       background: `${tint(color, 9)}`, border: `1px solid ${tint(color, 21)}`, color,
       whiteSpace: "nowrap", letterSpacing: "0.02em",
@@ -314,7 +314,7 @@ function ConstraintChip({ text }) {
     <span style={{
       fontSize: 10, padding: "1px 6px", borderRadius: 3,
       background: `${tint(color, 7)}`, border: `1px solid ${tint(color, 16)}`, color,
-      fontFamily: "monospace", whiteSpace: "nowrap",
+      fontFamily: "var(--font-mono)", whiteSpace: "nowrap",
     }}>
       {text}
     </span>
@@ -488,7 +488,7 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
               background: "color-mix(in srgb, var(--text-2) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--text-2) 15%, transparent)",
               display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
             }}>
-              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "monospace",
+              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)",
                 background: "var(--border)", padding: "3px 9px", borderRadius: 5 }}>{from}</code>
               {(() => { const { bg, bd, c } = cardColor(card); return (
                 <span style={{ fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 5,
@@ -497,7 +497,7 @@ function RelationshipEditDrawer({ initial, isNew, tableNames, onSave, onCancel, 
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2">
                 <path d="M5 12h14M13 6l6 6-6 6"/>
               </svg>
-              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "monospace",
+              <code style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)",
                 background: "var(--border)", padding: "3px 9px", borderRadius: 5 }}>{to}</code>
             </div>
           )}
@@ -637,7 +637,7 @@ function TableEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
     padding: "7px 10px", borderRadius: 7,
     border: "1px solid var(--border)", background: "var(--surface)",
     color: "var(--text-1)", fontSize: 13, outline: "none", boxSizing: "border-box",
-    fontFamily: "'JetBrains Mono','Fira Code',monospace",
+    fontFamily: "var(--font-mono)",
   };
   const lbl = {
     fontSize: 11, fontWeight: 700, color: "var(--text-2)",
@@ -848,7 +848,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
 
           <code style={{
             flex: 1, fontSize: 13, fontWeight: 700, color: C.text,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            fontFamily: "var(--font-mono)",
           }}>
             {table.name}
           </code>
@@ -940,7 +940,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
                         <code style={{
                           fontSize: 12, fontWeight: isPk ? 700 : 500,
                           color: isPk ? "#92400e" : isFk ? "#1d4ed8" : C.text,
-                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                          fontFamily: "var(--font-mono)",
                         }}>{col.name}</code>
                       </div>
                     </td>
@@ -967,7 +967,7 @@ function TableCard({ table, defaultOpen, canEdit, onEdit, onDelete }) {
               <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 5, marginTop: 5 }}>
                 {table.indexes.map((idx, i) => (
                   <span key={i} style={{
-                    fontSize: 11, fontFamily: "monospace",
+                    fontSize: 11, fontFamily: "var(--font-mono)",
                     padding: "2px 8px", borderRadius: 4,
                     background: C.codeBg, border: `1px solid ${C.border}`, color: C.accent,
                   }}>{idx}</span>
@@ -1067,7 +1067,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
                   <>
                     <code style={{
                       fontSize: 12, fontWeight: 600, color: C.text,
-                      fontFamily: "monospace", background: C.codeBg,
+                      fontFamily: "var(--font-mono)", background: C.codeBg,
                       padding: "2px 7px", borderRadius: 4,
                     }}>{from}</code>
                     <span style={{
@@ -1080,7 +1080,7 @@ function RelationshipsSection({ relationships, canEdit, onAdd, onEdit, onDelete 
                     </svg>
                     <code style={{
                       fontSize: 12, fontWeight: 600, color: C.text,
-                      fontFamily: "monospace", background: C.codeBg,
+                      fontFamily: "var(--font-mono)", background: C.codeBg,
                       padding: "2px 7px", borderRadius: 4, flex: 1,
                     }}>{to}</code>
                   </>
@@ -1226,7 +1226,7 @@ function SqlModal({ sql, onClose }) {
         <div style={{ flex: 1, overflowY: "auto" }}>
           <pre style={{
             margin: 0, padding: "20px 24px",
-            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 13, lineHeight: 1.75, color: "#e2e8f0",
             whiteSpace: "pre", overflowX: "auto",
           }}>{sql}</pre>

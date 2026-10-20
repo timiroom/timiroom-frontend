@@ -320,7 +320,7 @@ button, input, select, textarea { font-family: inherit; }
 .ui-input:disabled, .ui-input[readonly] { background: var(--bg); color: var(--text-2); }
 textarea.ui-input { min-height: 84px; resize: vertical; }
 select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
-.ui-input--mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.ui-input--mono { font-family: var(--font-mono); font-size: 12px; }
 
 .ui-set-layout { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 40px; max-width: 1040px; margin: 0 auto; padding: 32px 32px 72px; }
 .ui-set-main { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
@@ -376,7 +376,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ui-avatar--square { border-radius: 10px; }
 .ui-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.ui-code { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--db-radius-sm); background: var(--bg); color: var(--text-1); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; font-weight: 600; letter-spacing: .06em; }
+.ui-code { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--db-radius-sm); background: var(--bg); color: var(--text-1); font-family: var(--font-mono); font-size: 13px; font-weight: 600; letter-spacing: .06em; }
 
 /* 창 크기가 아니라 설정 영역이 실제로 받은 폭에 맞춘다(사이드 패널을 펼치면 좁아지므로). */
 .ui-set-scope { container-type: inline-size; }
@@ -647,7 +647,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .md-preview li { margin: 3px 0; }
 .md-preview li > ul, .md-preview li > ol { margin: 2px 0; }
 .md-preview blockquote { margin: 12px 0; padding: 8px 16px; border-left: 3px solid var(--border-2); background: var(--bg); color: var(--text-2); border-radius: 0 8px 8px 0; }
-.md-preview code { padding: 1px 5px; border-radius: 4px; background: var(--db-bg-elevated); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; }
+.md-preview code { padding: 1px 5px; border-radius: 4px; background: var(--db-bg-elevated); font-family: var(--font-mono); font-size: .88em; }
 .md-preview pre { margin: 12px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); overflow-x: auto; }
 .md-preview pre code { padding: 0; background: none; }
 .md-preview table { width: 100%; margin: 12px 0; border-collapse: collapse; font-size: 13px; }
@@ -883,7 +883,7 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ui-set-section__actions select.ui-input { height: 34px; }
 .adm-table tr.is-clickable { cursor: pointer; }
 .adm-table td.adm-wrap { white-space: normal; min-width: 240px; color: var(--text-2); }
-.adm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.adm-mono { font-family: var(--font-mono); font-size: 12px; }
 .adm-actions__row { display: inline-flex; gap: 4px; }
 .adm-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .adm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
@@ -1138,4 +1138,6 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 /* 글자 크기 단계(문서·작업 화면). 새로 만드는 화면은 이 값만 쓴다.
    10 배지·영문 라벨 · 11 라벨 · 12 보조 정보 · 13 본문 · 14 카드 제목 · 16 소제목 · 20 · 22 쪽 제목·큰 숫자
    굵기: 400 본문 · 500 · 600 강조 · 700 제목·라벨 · 800 쪽 제목·큰 숫자 */
+:root { --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+code, pre, kbd, samp { font-family: var(--font-mono); }
 :root { --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-13: 13px; --fs-14: 14px; --fs-16: 16px; --fs-20: 20px; --fs-22: 22px; }

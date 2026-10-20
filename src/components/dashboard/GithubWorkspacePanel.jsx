@@ -75,7 +75,7 @@ function CommitList({ commits, error }) {
       {commits.slice(0, 6).map((commit) => (
         <a key={commit.sha} href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ display: "block", padding: "9px 10px", borderRadius: 9, color: C.text, textDecoration: "none" }}>
           <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.message?.split("\n")[0] || "메시지 없는 커밋"}</div>
-          <div style={{ display: "flex", gap: 5, marginTop: 4, color: C.muted, fontSize: 10 }}><code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{commit.sha?.slice(0, 7)}</code><span>·</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.authorLogin || commit.authorName || "알 수 없음"}</span><span>·</span><span style={{ whiteSpace: "nowrap" }}>{dateTimeLabel(commit.committedAt)}</span></div>
+          <div style={{ display: "flex", gap: 5, marginTop: 4, color: C.muted, fontSize: 10 }}><code style={{ fontFamily: "var(--font-mono)" }}>{commit.sha?.slice(0, 7)}</code><span>·</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.authorLogin || commit.authorName || "알 수 없음"}</span><span>·</span><span style={{ whiteSpace: "nowrap" }}>{dateTimeLabel(commit.committedAt)}</span></div>
         </a>
       ))}
     </div>
@@ -197,7 +197,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
       </PanelHeader>
 
       <section className="panel-inner panel-inner--scroll" style={{ background: "var(--content-bg)" }}>
-      <div style={{ maxWidth: 1160, margin: "0 auto" }}>
+      <div>
         <div style={{ marginBottom: 20, color: C.muted, fontSize: 13 }}>프로젝트의 여러 레포에서 최근 커밋, Issue, PR 흐름을 한눈에 확인합니다.</div>
 
         {repos.length > 0 && (
