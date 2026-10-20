@@ -48,7 +48,7 @@ function StatusBadge({ children, tone = "neutral" }) {
     purple: { background: "rgba(99,102,241,.09)", color: "#6366f1", border: "rgba(99,102,241,.2)" },
   };
   const selected = tones[tone] || tones.neutral;
-  return <span style={{ padding: "3px 7px", borderRadius: 999, border: `1px solid ${selected.border}`, background: selected.background, color: selected.color, fontSize: 10, fontWeight: 750, whiteSpace: "nowrap" }}>{children}</span>;
+  return <span style={{ padding: "3px 7px", borderRadius: 999, border: `1px solid ${selected.border}`, background: selected.background, color: selected.color, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{children}</span>;
 }
 
 function EmptyColumn({ children }) {
@@ -59,10 +59,10 @@ function ColumnHeader({ title, count, onOpen }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 11 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-        <strong style={{ color: C.text, fontSize: 12.5 }}>{title}</strong>
-        <span style={{ color: C.muted, fontSize: 10.5 }}>{count}</span>
+        <strong style={{ color: C.text, fontSize: 13 }}>{title}</strong>
+        <span style={{ color: C.muted, fontSize: 11 }}>{count}</span>
       </div>
-      {onOpen && <button type="button" onClick={onOpen} style={{ padding: 0, border: "none", background: "transparent", color: C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 →</button>}
+      {onOpen && <button type="button" onClick={onOpen} style={{ padding: 0, border: "none", background: "transparent", color: C.muted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 →</button>}
     </div>
   );
 }
@@ -74,7 +74,7 @@ function CommitList({ commits, error }) {
     <div style={{ display: "grid", gap: 3 }}>
       {commits.slice(0, 6).map((commit) => (
         <a key={commit.sha} href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ display: "block", padding: "9px 10px", borderRadius: 9, color: C.text, textDecoration: "none" }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.message?.split("\n")[0] || "메시지 없는 커밋"}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.message?.split("\n")[0] || "메시지 없는 커밋"}</div>
           <div style={{ display: "flex", gap: 5, marginTop: 4, color: C.muted, fontSize: 10 }}><code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{commit.sha?.slice(0, 7)}</code><span>·</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{commit.authorLogin || commit.authorName || "알 수 없음"}</span><span>·</span><span style={{ whiteSpace: "nowrap" }}>{dateTimeLabel(commit.committedAt)}</span></div>
         </a>
       ))}
@@ -88,7 +88,7 @@ function IssueList({ issues }) {
     <div style={{ display: "grid", gap: 3 }}>
       {issues.slice(0, 6).map((issue) => (
         <a key={`${issue.repoId}-${issue.number}`} href={issue.htmlUrl} target="_blank" rel="noreferrer" style={{ display: "block", minWidth: 0, maxWidth: "100%", overflow: "hidden", boxSizing: "border-box", padding: "9px 10px", borderRadius: 9, color: C.text, textDecoration: "none", opacity: issue.state === "closed" ? .65 : 1 }}>
-          <div style={{ display: "flex", width: "100%", minWidth: 0, overflow: "hidden", alignItems: "flex-start", gap: 7 }}><span style={{ color: issue.state === "closed" ? "#16a34a" : "#2563eb", fontSize: 11, fontWeight: 850 }}>{issue.state === "closed" ? "✓" : "○"}</span><div style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%", fontSize: 11.5, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{issue.title}</div></div>
+          <div style={{ display: "flex", width: "100%", minWidth: 0, overflow: "hidden", alignItems: "flex-start", gap: 7 }}><span style={{ color: issue.state === "closed" ? "#16a34a" : "#2563eb", fontSize: 11, fontWeight: 800 }}>{issue.state === "closed" ? "✓" : "○"}</span><div style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%", fontSize: 12, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{issue.title}</div></div>
           <div style={{ marginTop: 4, paddingLeft: 18, color: C.muted, fontSize: 10 }}>#{issue.number} · {issue.authorLogin || "알 수 없음"} · {dateTimeLabel(issue.createdAt)}</div>
         </a>
       ))}
@@ -102,7 +102,7 @@ function PullRequestList({ pulls }) {
     <div style={{ display: "grid", gap: 3 }}>
       {pulls.slice(0, 6).map((pull) => (
         <a key={`${pull.repoId}-${pull.number}`} href={pull.htmlUrl} target="_blank" rel="noreferrer" style={{ display: "block", minWidth: 0, maxWidth: "100%", overflow: "hidden", boxSizing: "border-box", padding: "9px 10px", borderRadius: 9, color: C.text, textDecoration: "none" }}>
-          <div style={{ display: "flex", width: "100%", minWidth: 0, overflow: "hidden", alignItems: "flex-start", gap: 7 }}><span style={{ color: "#6366f1", fontSize: 11, fontWeight: 850 }}>⇄</span><div style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%", fontSize: 11.5, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pull.title}</div></div>
+          <div style={{ display: "flex", width: "100%", minWidth: 0, overflow: "hidden", alignItems: "flex-start", gap: 7 }}><span style={{ color: "#6366f1", fontSize: 11, fontWeight: 800 }}>⇄</span><div style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%", fontSize: 12, fontWeight: 700, lineHeight: 1.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pull.title}</div></div>
           <div style={{ marginTop: 4, paddingLeft: 18, color: C.muted, fontSize: 10 }}>#{pull.number} · {pull.headRef} → {pull.baseRef}{pull.draft ? " · Draft" : ""}</div>
         </a>
       ))}
@@ -118,11 +118,11 @@ function RepoCard({ repo, commitsState, issues, pulls, onSelectView }) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, padding: "16px 18px", borderBottom: `1px solid ${C.border}`, background: "linear-gradient(135deg, var(--surface), var(--bg))" }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <strong style={{ color: C.text, fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis" }}>{repo.fullName}</strong>
+            <strong style={{ color: C.text, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{repo.fullName}</strong>
             <StatusBadge tone="purple">{ROLE_LABELS[repo.roleHint] || repo.roleHint || "공통"}</StatusBadge>
             {repo.isPrivate && <StatusBadge>Private</StatusBadge>}
           </div>
-          <div style={{ marginTop: 6, color: C.muted, fontSize: 10.5 }}>기본 브랜치 · {commitsState?.branch || repo.defaultBranch || "main"}</div>
+          <div style={{ marginTop: 6, color: C.muted, fontSize: 11 }}>기본 브랜치 · {commitsState?.branch || repo.defaultBranch || "main"}</div>
         </div>
         <a href={`https://github.com/${repo.fullName}`} target="_blank" rel="noreferrer" style={{ flexShrink: 0, color: C.text2, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>GitHub ↗</a>
       </div>
@@ -204,7 +204,7 @@ export function GithubWorkspacePanel({ project, onSelectView }) {
           <div style={{ marginBottom: 16 }}><StatGrid items={[{ label: "연결 레포", value: repos.length }, { label: "최근 커밋", value: recentCommitCount }, { label: "열린 Issue", value: openIssueCount }, { label: "열린 PR", value: pulls.length }]} /></div>
         )}
 
-        {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
+        {repos.length > 1 && <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 15 }}><button type="button" onClick={() => setSelectedRepoId("all")} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selectedRepoId === "all" ? C.text : C.border}`, background: selectedRepoId === "all" ? C.text : C.surface, color: selectedRepoId === "all" ? C.bg : C.muted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>전체 레포</button>{repos.map((repo) => { const selected = selectedRepoId === String(repo.id); return <button key={repo.id} type="button" onClick={() => setSelectedRepoId(String(repo.id))} style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${selected ? C.text : C.border}`, background: selected ? C.text : C.surface, color: selected ? C.bg : C.muted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{shortRepoName(repo.fullName)}</button>; })}</div>}
 
         {error && <div style={{ marginBottom: 15, padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(220,38,38,.2)", color: "#dc2626", fontSize: 12 }}>{error}</div>}
         {loading ? <div style={{ padding: 54, textAlign: "center", color: C.muted, fontSize: 13 }}>GitHub 작업 현황을 불러오는 중…</div> : repos.length === 0 ? <RepoConnectEmpty projectId={project?.id} message="레포를 연결하면 브랜치·이슈·PR 현황을 한 화면에서 볼 수 있습니다." /> : <div style={{ display: "grid", gap: 14 }}>{visibleRepos.map((repo) => <RepoCard key={repo.id} repo={repo} commitsState={histories[String(repo.id)]} issues={issues.filter((issue) => String(issue.repoId) === String(repo.id))} pulls={pulls.filter((pull) => String(pull.repoId) === String(repo.id))} onSelectView={onSelectView} />)}</div>}

@@ -168,14 +168,14 @@ function SectionDiff({ edit }) {
       <div style={{
         padding: "0 0 7px", display: "flex", alignItems: "center", gap: 7,
       }}>
-        <span style={{ fontSize: 12, fontWeight: 750, color: C.text }}>{edit.label}</span>
-        <span style={{ fontSize: 10.5, color: C.addText, fontWeight: 650 }}>추가 {added}</span>
-        <span style={{ fontSize: 10.5, color: C.delText, fontWeight: 650 }}>삭제 {removed}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{edit.label}</span>
+        <span style={{ fontSize: 11, color: C.addText, fontWeight: 600 }}>추가 {added}</span>
+        <span style={{ fontSize: 11, color: C.delText, fontWeight: 600 }}>삭제 {removed}</span>
       </div>
 
       <div style={{ display: "grid", gap: 8 }}>
         <details style={{ border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-          <summary style={{ padding: "8px 10px", cursor: "pointer", fontSize: 11, fontWeight: 750, color: C.muted }}>
+          <summary style={{ padding: "8px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, color: C.muted }}>
             변경 전 내용 보기
           </summary>
           <div style={{ maxHeight: 250, overflow: "auto", padding: 8, borderTop: `1px solid ${C.border}` }}>
@@ -240,7 +240,7 @@ function EditProposal({ msg, onApply, onDismiss, applying }) {
           fontSize: 12, color: C.muted,
         }}>
           {msg.pendingApproval ? <>
-            <div style={{ color: C.text, fontWeight: 750, marginBottom: 3 }}>변경안이 준비되었습니다.</div>
+            <div style={{ color: C.text, fontWeight: 700, marginBottom: 3 }}>변경안이 준비되었습니다.</div>
             <div style={{ lineHeight: 1.55 }}>아직 원본에는 반영되지 않았습니다. PM 검토가 필요할 때 아래 버튼으로 여세요.</div>
             {msg.openReview && <div style={{ marginTop: 9 }}>
               <CardBtn primary onClick={msg.openReview}>PM 검토 열기</CardBtn>
@@ -265,8 +265,8 @@ function EditProposal({ msg, onApply, onDismiss, applying }) {
         borderRadius: "6px 14px 14px 14px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>요구사항 분석 완료</div>
-          <span style={{ fontSize: 10.5, color: C.aiColor, fontWeight: 700 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>요구사항 분석 완료</div>
+          <span style={{ fontSize: 11, color: C.aiColor, fontWeight: 700 }}>
             {msg.edits.length}개 영역 변경
           </span>
         </div>
@@ -279,28 +279,28 @@ function EditProposal({ msg, onApply, onDismiss, applying }) {
         )}
 
         <div style={{ marginBottom: 9 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 750, color: C.muted, marginBottom: 3 }}>분석 결과</div>
-          <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 3 }}>분석 결과</div>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
             {analysis.summary || msg.reply}
           </div>
         </div>
         {analysis.reason && (
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 750, color: C.muted, marginBottom: 3 }}>수정 이유</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 3 }}>수정 이유</div>
             <div style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>{analysis.reason}</div>
           </div>
         )}
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 11 }}>
           {affected.map(label => <span key={label} style={{
             padding: "3px 7px", border: `1px solid ${C.analysisBorder}`,
-            background: "white", color: C.muted, fontSize: 10.5, fontWeight: 650,
+            background: "white", color: C.muted, fontSize: 11, fontWeight: 600,
           }}>{label}</span>)}
         </div>
 
         <button type="button" onClick={() => setShowChanges(value => !value)} style={{
           width: "100%", minHeight: 36, padding: "8px 10px", marginBottom: showChanges ? 5 : 0,
           border: `1px solid ${C.analysisBorder}`, background: "var(--surface)", color: C.text,
-          fontSize: 11.5, fontWeight: 750, cursor: "pointer", textAlign: "left",
+          fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left",
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
         }}>
           <span>{showChanges ? "변경사항 접기" : "변경사항 보기"}</span>
@@ -310,7 +310,7 @@ function EditProposal({ msg, onApply, onDismiss, applying }) {
           {msg.edits.map(edit => <SectionDiff key={edit.section} edit={edit} />)}
         </div>}
 
-        <div style={{ padding: "8px 10px", background: C.warningBg, color: C.warningText, fontSize: 10.5, lineHeight: 1.5, marginTop: 9 }}>
+        <div style={{ padding: "8px 10px", background: C.warningBg, color: C.warningText, fontSize: 11, lineHeight: 1.5, marginTop: 9 }}>
           적용 후 저장되며, 발행된 명세는 변경안 검토와 PM 승인을 거칩니다.
         </div>
         <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
@@ -732,7 +732,7 @@ export function AiChatDock({
           <AiAvatar size={26} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>명세 분석 및 수정</div>
-            <div style={{ fontSize: 10.5, color: C.muted }}>{meta.docLabel} · 요구사항 기반 검토</div>
+            <div style={{ fontSize: 11, color: C.muted }}>{meta.docLabel} · 요구사항 기반 검토</div>
           </div>
           <span style={{
             fontSize: 10, padding: "2px 7px", borderRadius: 10,
@@ -794,7 +794,7 @@ export function AiChatDock({
       {/* 입력창 */}
       <div style={{ padding: "10px 12px 11px", borderTop: `1px solid ${C.border}`, flexShrink: 0, background: "var(--bg)" }}>
         <UsageNotice usage={usage} />
-        <label htmlFor={`ai-chat-input-${contextType}`} style={{ display: "block", fontSize: 10.5, fontWeight: 750, color: C.muted, margin: "0 0 6px 2px" }}>
+        <label htmlFor={`ai-chat-input-${contextType}`} style={{ display: "block", fontSize: 11, fontWeight: 700, color: C.muted, margin: "0 0 6px 2px" }}>
           {editMode ? "요구사항 또는 수정 요청" : "문서에 대한 질문"}
         </label>
         <div style={{
@@ -842,7 +842,7 @@ export function AiChatDock({
             )}
           </button>
         </div>
-        <div style={{ margin: "5px 2px 0", fontSize: 9.5, color: C.muted }}>Enter 전송 · Shift+Enter 줄바꿈</div>
+        <div style={{ margin: "5px 2px 0", fontSize: 10, color: C.muted }}>Enter 전송 · Shift+Enter 줄바꿈</div>
       </div>
 
       </div>

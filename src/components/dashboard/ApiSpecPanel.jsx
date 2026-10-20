@@ -129,7 +129,7 @@ function EndpointEditDrawer({ initial, isNew, onSave, onCancel, saving }) {
           padding: "16px 24px", borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "var(--text-1)", fontWeight: 700, fontSize: 16 }}>
             {isNew ? "API 엔드포인트 추가" : "API 엔드포인트 수정"}
           </span>
           <button onClick={onCancel} style={{
@@ -382,7 +382,7 @@ function ParamRow({ param, isLast }) {
     }}>
       <div style={{ minWidth: 130, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <code style={{ fontSize: 12.5, fontWeight: 700, color: C.text, fontFamily: "'JetBrains Mono','Fira Code',monospace" }}>
+          <code style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: "'JetBrains Mono','Fira Code',monospace" }}>
             {param.name}
           </code>
           {param.required && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 700 }}>*</span>}
@@ -430,7 +430,7 @@ function SchemaBlock({ data }) {
   return (
     <pre style={{
       margin: 0, padding: "10px 12px", background: C.code, borderRadius: 6,
-      border: `1px solid ${C.border}`, fontSize: 11.5, color: "var(--text-3)",
+      border: `1px solid ${C.border}`, fontSize: 12, color: "var(--text-3)",
       fontFamily: "'JetBrains Mono','Fira Code',monospace",
       lineHeight: 1.7, overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word",
     }}>{text}</pre>
@@ -553,7 +553,7 @@ function CodeGenModal({ endpoint, mockBaseUrl, onClose }) {
         {/* 코드 */}
         <div style={{ flex: 1, overflow: "auto", padding: 18, background: C.code }}>
           <pre style={{
-            margin: 0, fontSize: 12.5, lineHeight: 1.65, color: C.text,
+            margin: 0, fontSize: 13, lineHeight: 1.65, color: C.text,
             fontFamily: "'JetBrains Mono','Fira Code',monospace",
             whiteSpace: "pre-wrap", wordBreak: "break-word",
           }}>{code}</pre>

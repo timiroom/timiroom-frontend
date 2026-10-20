@@ -183,10 +183,10 @@ function ProjectCommitItem({ commit, author, isLatest }) {
         <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4, background: isLatest ? C.commit : "rgba(0,0,0,0.15)", border: isLatest ? "2px solid color-mix(in srgb, var(--text-1) 40%, transparent)" : "none" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflowWrap: "anywhere" }}>{commit.summary}</div>
-          {commit.description && <div style={{ marginTop: 4, fontSize: 12.5, lineHeight: 1.6, color: "var(--text-2)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{commit.description}</div>}
+          {commit.description && <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.6, color: "var(--text-2)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{commit.description}</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-            <span style={{ fontSize: 11.5, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{author || ""}</span>
-            <span style={{ fontSize: 11.5, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
+            <span style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{author || ""}</span>
+            <span style={{ fontSize: 12, color: C.sub, flexShrink: 0 }}>{commit.time}</span>
           </div>
         </div>
       </div>

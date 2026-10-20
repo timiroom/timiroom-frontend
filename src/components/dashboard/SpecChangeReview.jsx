@@ -202,14 +202,14 @@ export function SpecChangeReview({ project, proposalId, draft, canApprove, allow
       .review-backdrop { position:fixed; inset:0; z-index:1000; background:color-mix(in srgb, var(--text-1) 38%, transparent); display:flex; align-items:center; justify-content:center; padding:24px; }
       .review-dialog { width:min(1100px,100%); max-height:90vh; background:var(--bg); color:var(--text-1); border:1px solid var(--border); border-radius:16px; display:flex; flex-direction:column; box-shadow:0 24px 80px #0002; outline:none; }
       header,footer { padding:20px 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; } header { justify-content:space-between; border-bottom:1px solid var(--border); } footer { border-top:1px solid var(--border); }
-      h2 { font-size:22px; margin:4px 0; } h3 { font-size:17px; margin:24px 0 8px; } h4 { font-size:12px; color:var(--text-2); } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:var(--text-2); }
+      h2 { font-size:22px; margin:4px 0; } h3 { font-size:16px; margin:24px 0 8px; } h4 { font-size:12px; color:var(--text-2); } p { font-size:13px; line-height:1.7; } .eyebrow { margin:0; color:var(--text-2); }
       .review-body { overflow:auto; padding:16px 24px; } .review-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .review-columns>div { min-width:0; }
       .review-preview { border:1px solid var(--border); border-radius:8px; padding:12px; background:var(--surface); overflow:auto; max-height:520px; }
       button { padding:10px 15px; border:1px solid var(--border-2); border-radius:8px; color:var(--text-1); background:var(--surface); font:inherit; font-size:13px; cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
       .review-primary { background:var(--text-1); color:white; border-color:var(--text-1); } button:focus-visible,input:focus-visible,.review-preview:focus-visible,a:focus-visible { outline:2px solid var(--text-1); outline-offset:3px; }
       a { color:var(--text-1); text-decoration:underline; text-decoration-color:var(--border-2); text-underline-offset:3px; } a:hover { text-decoration-color:var(--text-1); }
       .review-progress { margin:8px 0 14px; }
-      .review-gate { flex-basis:100%; margin:0; font-size:12.5px; color:var(--text-2); }
+      .review-gate { flex-basis:100%; margin:0; font-size:13px; color:var(--text-2); }
       .review-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
       .review-count { margin-left:6px; font-size:12px; font-weight:500; color:var(--text-3); }
       .review-field { margin:12px 0 18px; } .review-key { margin:0 0 6px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--text-1); }

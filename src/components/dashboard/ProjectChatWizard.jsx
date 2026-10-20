@@ -126,7 +126,7 @@ function FlowNode({ step, status }) {
             {step.agents}
           </span>
         )}
-        <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
           {isError ? "실패" : isDone ? "완료" : isRunning ? "실행 중" : "대기"}
         </span>
       </div>
@@ -911,7 +911,7 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
                   position: "absolute", top: -2, right: -2,
                   width: 14, height: 14, borderRadius: "50%",
                   background: "var(--db-purple-400)", color: "white",
-                  fontSize: 9, fontWeight: 800,
+                  fontSize: 10, fontWeight: 800,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {attachedFiles.length}

@@ -427,7 +427,7 @@ function ProgressCell({ progress }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 5 }}>
-        <span style={{ fontSize: 10, fontWeight: 750, color: progress.color }}>{progress.label}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: progress.color }}>{progress.label}</span>
         <span style={{ fontSize: 10, color: C.sub }}>{progress.value}%</span>
       </div>
       <div style={{ height: 5, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
@@ -458,17 +458,17 @@ function FeatureScheduleTable({
     <section style={{ marginBottom: 26, border: `1px solid ${C.border}`, borderRadius: 12, background: C.card, overflow: "hidden" }}>
       <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", background: C.surface }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 750, color: C.text }}>기능별 구현 작업 · 일정 · GitHub</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>기능별 구현 작업 · 일정 · GitHub</div>
           <div style={{ fontSize: 11, color: C.sub, marginTop: 4 }}>
             PRD 기술 스택과 기능 내용을 기준으로 레포를 추천합니다. 담당자·일정은 직접 지정하고, 진척률은 필수 작업의 Issue 상태로 자동 계산됩니다.
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-          <button type="button" onClick={onRefresh} disabled={refreshing} style={{ padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 11, fontWeight: 650, cursor: refreshing ? "wait" : "pointer", fontFamily: "inherit" }}>
+          <button type="button" onClick={onRefresh} disabled={refreshing} style={{ padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 11, fontWeight: 600, cursor: refreshing ? "wait" : "pointer", fontFamily: "inherit" }}>
             {refreshing ? "동기화 중…" : "진척률 새로고침"}
           </button>
           {canCreateIssues && missingCount > 0 && (
-            <button type="button" onClick={onCreateMissingIssues} disabled={bulkCreating} style={{ padding: "7px 11px", borderRadius: 7, border: "1px solid rgba(37,99,235,.25)", background: "#eff6ff", color: "#2563eb", fontSize: 11, fontWeight: 750, cursor: bulkCreating ? "wait" : "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={onCreateMissingIssues} disabled={bulkCreating} style={{ padding: "7px 11px", borderRadius: 7, border: "1px solid rgba(37,99,235,.25)", background: "#eff6ff", color: "#2563eb", fontSize: 11, fontWeight: 700, cursor: bulkCreating ? "wait" : "pointer", fontFamily: "inherit" }}>
               {bulkCreating ? "Issue 생성 중…" : `미생성 Issue ${missingCount}개 만들기`}
             </button>
           )}
@@ -477,9 +477,9 @@ function FeatureScheduleTable({
 
       {routingSummary.length > 0 && (
         <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", background: "#fbfdff" }}>
-          <span style={{ marginRight: 2, color: C.sub, fontSize: 10, fontWeight: 750 }}>PRD 자동 매칭</span>
+          <span style={{ marginRight: 2, color: C.sub, fontSize: 10, fontWeight: 700 }}>PRD 자동 매칭</span>
           {routingSummary.map(({ role, repo, stackKeys }) => (
-            <span key={role} style={{ padding: "4px 8px", borderRadius: 999, border: `1px solid ${repo ? "rgba(37,99,235,.18)" : "rgba(217,119,6,.22)"}`, background: repo ? "#eff6ff" : "#fffbeb", color: repo ? "#2563eb" : "#b45309", fontSize: 9.5, fontWeight: 700 }}>
+            <span key={role} style={{ padding: "4px 8px", borderRadius: 999, border: `1px solid ${repo ? "rgba(37,99,235,.18)" : "rgba(217,119,6,.22)"}`, background: repo ? "#eff6ff" : "#fffbeb", color: repo ? "#2563eb" : "#b45309", fontSize: 10, fontWeight: 700 }}>
               {stackKeys.length ? `${stackKeys.slice(0, 2).join(" · ")} → ` : ""}{roleLabel(role)} → {repo?.fullName?.split("/").at(-1) || "연결 레포 없음"}
             </span>
           ))}
@@ -491,7 +491,7 @@ function FeatureScheduleTable({
           <thead>
             <tr style={{ background: "#eef3fb" }}>
               {[["코드", 65], ["기능 / 구현 작업 / 레포", 285], ["담당자", 140], ["시작일", 105], ["종료일", 105], ["기간", 55], ["진척률", 105], ["GitHub", 75], ["", 35]].map(([label, width]) => (
-                <th key={`${label}-${width}`} style={{ width, padding: "9px 10px", borderBottom: `1px solid ${C.border}`, textAlign: "left", fontSize: 10, letterSpacing: ".02em", color: C.muted, fontWeight: 750 }}>{label}</th>
+                <th key={`${label}-${width}`} style={{ width, padding: "9px 10px", borderBottom: `1px solid ${C.border}`, textAlign: "left", fontSize: 10, letterSpacing: ".02em", color: C.muted, fontWeight: 700 }}>{label}</th>
               ))}
             </tr>
           </thead>
@@ -517,13 +517,13 @@ function FeatureScheduleTable({
                   <tr style={{ borderBottom: `1px solid ${C.border}`, background: "#f8fafc" }}>
                     <td style={{ padding: "11px 10px", fontSize: 11, fontWeight: 800, color: "#334155" }}>F-{String(index + 1).padStart(2, "0")}</td>
                     <td style={{ padding: "10px" }}>
-                      <div title={feature.name} style={{ fontSize: 12, fontWeight: 750, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{feature.name}</div>
-                      <div style={{ marginTop: 5, color: missingRoleLabels.length ? "#b45309" : C.sub, fontSize: 9.5, lineHeight: 1.45 }}>
+                      <div title={feature.name} style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{feature.name}</div>
+                      <div style={{ marginTop: 5, color: missingRoleLabels.length ? "#b45309" : C.sub, fontSize: 10, lineHeight: 1.45 }}>
                         추천 역할 · {recommendedRoles.map(roleLabel).join(" · ") || "공통"}{missingRoleLabels.length ? ` · 연결 레포 없음: ${missingRoleLabels.join(", ")}` : ""}
                       </div>
                       <div style={{ display: "flex", gap: 5, marginTop: 7, flexWrap: "wrap" }}>
-                        <button type="button" disabled={!canEdit || !canAutoPlace} title={!canAutoPlace ? (missingRoleLabels.length ? "추천 역할의 연결 레포가 없습니다." : "추천 레포 작업이 이미 배치됐습니다.") : ""} onClick={() => onAddRepoTasks(index)} style={{ padding: "4px 7px", borderRadius: 6, border: "1px solid rgba(37,99,235,.2)", background: "#eff6ff", color: "#2563eb", fontSize: 9, fontWeight: 700, cursor: !canEdit || !canAutoPlace ? "not-allowed" : "pointer", fontFamily: "inherit" }}>PRD 기준 자동 배치</button>
-                        <button type="button" disabled={!canEdit} onClick={() => onAddTask(index)} style={{ padding: "4px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 9, fontWeight: 700, cursor: canEdit ? "pointer" : "not-allowed", fontFamily: "inherit" }}>+ 구현 작업</button>
+                        <button type="button" disabled={!canEdit || !canAutoPlace} title={!canAutoPlace ? (missingRoleLabels.length ? "추천 역할의 연결 레포가 없습니다." : "추천 레포 작업이 이미 배치됐습니다.") : ""} onClick={() => onAddRepoTasks(index)} style={{ padding: "4px 7px", borderRadius: 6, border: "1px solid rgba(37,99,235,.2)", background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 700, cursor: !canEdit || !canAutoPlace ? "not-allowed" : "pointer", fontFamily: "inherit" }}>PRD 기준 자동 배치</button>
+                        <button type="button" disabled={!canEdit} onClick={() => onAddTask(index)} style={{ padding: "4px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 10, fontWeight: 700, cursor: canEdit ? "pointer" : "not-allowed", fontFamily: "inherit" }}>+ 구현 작업</button>
                       </div>
                     </td>
                     <td style={{ padding: "10px", fontSize: 10, color: C.muted }}>{new Set(tasks.map(task => task.ownerMemberId).filter(Boolean)).size}명</td>
@@ -557,7 +557,7 @@ function FeatureScheduleTable({
                       <tr key={task.taskKey} style={{ borderBottom: `1px solid ${C.border}`, background: C.card, verticalAlign: "top" }}>
                         <td style={{ padding: "13px 10px", fontSize: 10, fontWeight: 700, color: C.sub }}>F-{String(index + 1).padStart(2, "0")}.{taskIndex + 1}</td>
                         <td style={{ padding: "8px 10px" }}>
-                          <input value={task.name} disabled={!canEdit} onChange={event => onTaskUpdate(index, taskIndex, "name", event.target.value)} aria-label={`${feature.name} ${taskIndex + 1} 구현 작업명`} style={{ ...scheduleInputStyle, fontWeight: 650, marginBottom: 5 }} />
+                          <input value={task.name} disabled={!canEdit} onChange={event => onTaskUpdate(index, taskIndex, "name", event.target.value)} aria-label={`${feature.name} ${taskIndex + 1} 구현 작업명`} style={{ ...scheduleInputStyle, fontWeight: 600, marginBottom: 5 }} />
                           <div style={{ display: "grid", gridTemplateColumns: "104px minmax(0, 1fr)", gap: 5 }}>
                             <select value={task.type} disabled={!canEdit || !!task.githubIssueNumber} onChange={event => onTaskUpdate(index, taskIndex, "type", event.target.value)} aria-label={`${task.name} 작업 유형`} style={scheduleInputStyle}>
                               {Object.entries(TASK_TYPE_META).map(([type, meta]) => <option key={type} value={type}>{meta.label}</option>)}
@@ -568,11 +568,11 @@ function FeatureScheduleTable({
                             </select>
                           </div>
                           {recommendedRepo && (
-                            <div style={{ marginTop: 5, color: selectedRepoIsRecommended ? "#2563eb" : C.sub, fontSize: 9 }}>
+                            <div style={{ marginTop: 5, color: selectedRepoIsRecommended ? "#2563eb" : C.sub, fontSize: 10 }}>
                               {selectedRepoIsRecommended ? "PRD·작업 유형에 맞는 추천 레포" : `추천 레포: ${recommendedRepo.fullName}`}
                             </div>
                           )}
-                          <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 9, color: C.sub, cursor: canEdit ? "pointer" : "default" }}>
+                          <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 10, color: C.sub, cursor: canEdit ? "pointer" : "default" }}>
                             <input type="checkbox" checked={task.required !== false} disabled={!canEdit} onChange={event => onTaskUpdate(index, taskIndex, "required", event.target.checked)} /> 필수 작업
                           </label>
                         </td>
@@ -581,7 +581,7 @@ function FeatureScheduleTable({
                             <option value="">미지정</option>
                             {members.map(member => <option key={member.memberId} value={member.memberId}>{member.displayName}{member.githubLogin ? ` (@${member.githubLogin})` : ""}</option>)}
                           </select>
-                          {owner && <div style={{ fontSize: 9, marginTop: 5, color: owner.githubLogin ? "#059669" : "#d97706" }}>{owner.githubLogin ? `Issue 담당자 @${owner.githubLogin}` : "GitHub 계정 미등록 · 미할당 생성"}</div>}
+                          {owner && <div style={{ fontSize: 10, marginTop: 5, color: owner.githubLogin ? "#059669" : "#d97706" }}>{owner.githubLogin ? `Issue 담당자 @${owner.githubLogin}` : "GitHub 계정 미등록 · 미할당 생성"}</div>}
                         </td>
                         <td style={{ padding: "8px 7px" }}><input type="date" value={task.startDate} disabled={!canEdit} onInput={event => onTaskUpdate(index, taskIndex, "startDate", event.currentTarget.value)} aria-label={`${task.name} 시작일`} style={scheduleInputStyle} /></td>
                         <td style={{ padding: "8px 7px" }}><input type="date" value={task.endDate} disabled={!canEdit} onInput={event => onTaskUpdate(index, taskIndex, "endDate", event.currentTarget.value)} aria-label={`${task.name} 종료일`} style={scheduleInputStyle} /></td>
@@ -589,9 +589,9 @@ function FeatureScheduleTable({
                         <td style={{ padding: "13px 10px" }}><ProgressCell progress={progress} /></td>
                         <td style={{ padding: "11px 7px", textAlign: "center" }}>
                           {task.githubIssueNumber ? (
-                            <a href={issueUrl || "#"} target={issueUrl ? "_blank" : undefined} rel="noreferrer" style={{ display: "inline-flex", padding: "5px 8px", borderRadius: 7, textDecoration: "none", background: progress.background, color: progress.color, fontSize: 11, fontWeight: 750 }}>#{task.githubIssueNumber}</a>
+                            <a href={issueUrl || "#"} target={issueUrl ? "_blank" : undefined} rel="noreferrer" style={{ display: "inline-flex", padding: "5px 8px", borderRadius: 7, textDecoration: "none", background: progress.background, color: progress.color, fontSize: 11, fontWeight: 700 }}>#{task.githubIssueNumber}</a>
                           ) : (
-                            <button type="button" onClick={() => onCreateIssue(index, taskIndex)} disabled={!canCreateIssues || !task.repoId || isCreating || bulkCreating} title={!task.repoId ? "작업 레포를 먼저 지정하세요." : !canCreateIssues ? "Issue 생성은 프로젝트 PM만 가능합니다." : ""} style={{ padding: "5px 7px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 9, fontWeight: 700, cursor: !canCreateIssues || !task.repoId || isCreating ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{isCreating ? "생성 중…" : "Issue 생성"}</button>
+                            <button type="button" onClick={() => onCreateIssue(index, taskIndex)} disabled={!canCreateIssues || !task.repoId || isCreating || bulkCreating} title={!task.repoId ? "작업 레포를 먼저 지정하세요." : !canCreateIssues ? "Issue 생성은 프로젝트 PM만 가능합니다." : ""} style={{ padding: "5px 7px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 10, fontWeight: 700, cursor: !canCreateIssues || !task.repoId || isCreating ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{isCreating ? "생성 중…" : "Issue 생성"}</button>
                           )}
                         </td>
                         <td style={{ padding: "10px 5px", textAlign: "center" }}>
@@ -665,7 +665,7 @@ function FeaturePlanningCard({
         <div style={{
           width: 42, height: 42, borderRadius: 12, flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          background: "#111827", color: "#fff", fontSize: 13, fontWeight: 850,
+          background: "#111827", color: "#fff", fontSize: 13, fontWeight: 800,
           letterSpacing: ".04em",
         }}>
           {String(index + 1).padStart(2, "0")}
@@ -682,17 +682,17 @@ function FeaturePlanningCard({
             }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 6 }}>
-            <span style={{ color: C.sub, fontSize: 10.5 }}>
+            <span style={{ color: C.sub, fontSize: 11 }}>
               구현 작업 {tasks.length}개 · Issue {tasks.filter(task => task.githubIssueNumber).length}개
             </span>
             {recommendedRoles.map(role => (
               <span key={role} style={{
                 padding: "3px 7px", borderRadius: 999, background: "#eef2ff",
-                color: "#4f46e5", fontSize: 9, fontWeight: 750,
+                color: "#4f46e5", fontSize: 10, fontWeight: 700,
               }}>{roleLabel(role)}</span>
             ))}
             {missingRoles.length > 0 && (
-              <span style={{ color: "#b45309", fontSize: 9.5 }}>연결 레포 필요: {missingRoles.join(", ")}</span>
+              <span style={{ color: "#b45309", fontSize: 10 }}>연결 레포 필요: {missingRoles.join(", ")}</span>
             )}
           </div>
         </div>
@@ -722,7 +722,7 @@ function FeaturePlanningCard({
               {canEdit && (
                 <button type="button" onClick={() => updateFeature("requirements", [...requirements, ""])} style={{
                   border: "none", background: "transparent", color: "#2563eb", padding: 0,
-                  fontFamily: "inherit", fontSize: 10, fontWeight: 750, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 10, fontWeight: 700, cursor: "pointer",
                 }}>+ 요구사항</button>
               )}
             </div>
@@ -742,7 +742,7 @@ function FeaturePlanningCard({
                     onChange={event => updateRequirement(requirementIndex, event.target.value)}
                     aria-label={`${feature.name} 요구사항 ${requirementIndex + 1}`}
                     placeholder="완료 조건이나 필요한 동작을 입력하세요."
-                    style={{ ...scheduleInputStyle, flex: 1, fontSize: 11.5 }}
+                    style={{ ...scheduleInputStyle, flex: 1, fontSize: 12 }}
                   />
                   {canEdit && (
                     <button type="button" onClick={() => removeRequirement(requirementIndex)} aria-label="요구사항 삭제" style={{
@@ -760,7 +760,7 @@ function FeaturePlanningCard({
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>구현 작업 · 담당자 · 일정 · GitHub</div>
-              <div style={{ marginTop: 4, color: C.sub, fontSize: 10.5 }}>
+              <div style={{ marginTop: 4, color: C.sub, fontSize: 11 }}>
                 필요한 레포별 작업을 만든 뒤 담당자와 일정을 지정하세요. Issue 상태로 진척률이 자동 반영됩니다.
               </div>
             </div>
@@ -772,14 +772,14 @@ function FeaturePlanningCard({
                 title={!canAutoPlace ? "추천 레포 작업이 이미 배치됐거나 연결된 레포가 없습니다." : "PRD 기술 스택과 기능 내용으로 필요한 레포를 자동 배치합니다."}
                 style={{
                   padding: "7px 10px", borderRadius: 8, border: "1px solid rgba(37,99,235,.2)",
-                  background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 750,
+                  background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 700,
                   cursor: !canEdit || !canAutoPlace ? "not-allowed" : "pointer", fontFamily: "inherit",
                   opacity: !canEdit || !canAutoPlace ? .55 : 1,
                 }}
               >필요 레포 자동 배치</button>
               <button type="button" disabled={!canEdit} onClick={() => onAddTask(index)} style={{
                 padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`,
-                background: C.card, color: C.muted, fontSize: 10, fontWeight: 750,
+                background: C.card, color: C.muted, fontSize: 10, fontWeight: 700,
                 cursor: canEdit ? "pointer" : "not-allowed", fontFamily: "inherit",
               }}>+ 작업 직접 추가</button>
               {canCreateIssues && missingIssueRefs.length > 1 && (
@@ -820,7 +820,7 @@ function FeaturePlanningCard({
                   gap: 9, alignItems: "start", padding: "12px", borderRadius: 11,
                   border: `1px solid ${C.border}`, background: "#fcfcfb",
                 }}>
-                  <div style={{ gridArea: "code", paddingTop: 8, color: "#64748b", fontSize: 10, fontWeight: 850 }}>
+                  <div style={{ gridArea: "code", paddingTop: 8, color: "#64748b", fontSize: 10, fontWeight: 800 }}>
                     {String(index + 1).padStart(2, "0")}.{taskIndex + 1}
                   </div>
                   <div style={{ gridArea: "task" }}>
@@ -841,13 +841,13 @@ function FeaturePlanningCard({
                       >
                         {Object.entries(TASK_TYPE_META).map(([type, meta]) => <option key={type} value={type}>{meta.label}</option>)}
                       </select>
-                      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, color: C.sub, fontSize: 9.5 }}>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, color: C.sub, fontSize: 10 }}>
                         <input type="checkbox" checked={task.required !== false} disabled={!canEdit} onChange={event => onTaskUpdate(index, taskIndex, "required", event.target.checked)} /> 필수 작업
                       </label>
                     </div>
                   </div>
                   <div style={{ gridArea: "repo" }}>
-                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 9, fontWeight: 750 }}>대상 레포</div>
+                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 10, fontWeight: 700 }}>대상 레포</div>
                     <select
                       value={task.repoId}
                       disabled={!canEdit || !!task.githubIssueNumber}
@@ -863,13 +863,13 @@ function FeaturePlanningCard({
                       ))}
                     </select>
                     {recommendedRepo && !task.githubIssueNumber && (
-                      <div style={{ marginTop: 5, color: String(recommendedRepo.id) === String(task.repoId) ? "#2563eb" : C.sub, fontSize: 8.5 }}>
+                      <div style={{ marginTop: 5, color: String(recommendedRepo.id) === String(task.repoId) ? "#2563eb" : C.sub, fontSize: 10 }}>
                         {String(recommendedRepo.id) === String(task.repoId) ? "PRD에 맞는 추천 레포" : `추천: ${recommendedRepo.fullName}`}
                       </div>
                     )}
                   </div>
                   <div style={{ gridArea: "owner" }}>
-                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 9, fontWeight: 750 }}>담당자</div>
+                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 10, fontWeight: 700 }}>담당자</div>
                     <select
                       value={task.ownerMemberId}
                       disabled={!canEdit}
@@ -884,17 +884,17 @@ function FeaturePlanningCard({
                         </option>
                       ))}
                     </select>
-                    {owner && <div style={{ marginTop: 5, color: owner.githubLogin ? "#059669" : "#d97706", fontSize: 8.5 }}>
+                    {owner && <div style={{ marginTop: 5, color: owner.githubLogin ? "#059669" : "#d97706", fontSize: 10 }}>
                       {owner.githubLogin ? `Issue에 @${owner.githubLogin} 지정` : "GitHub 계정 미등록 · 미할당 생성"}
                     </div>}
                   </div>
                   <div style={{ gridArea: "schedule" }}>
-                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 9, fontWeight: 750 }}>일정</div>
+                    <div style={{ marginBottom: 5, color: C.sub, fontSize: 10, fontWeight: 700 }}>일정</div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(120px, 100%), 1fr))", gap: 6 }}>
                       <input type="date" value={task.startDate} disabled={!canEdit} onInput={event => onTaskUpdate(index, taskIndex, "startDate", event.currentTarget.value)} aria-label={`${task.name} 시작일`} style={scheduleInputStyle} />
                       <input type="date" value={task.endDate} disabled={!canEdit} onInput={event => onTaskUpdate(index, taskIndex, "endDate", event.currentTarget.value)} aria-label={`${task.name} 종료일`} style={scheduleInputStyle} />
                     </div>
-                    <div style={{ marginTop: 5, color: C.sub, fontSize: 8.5 }}>
+                    <div style={{ marginTop: 5, color: C.sub, fontSize: 10 }}>
                       {durationDays(task.startDate, task.endDate) == null ? "시작일과 종료일을 선택하세요." : `${durationDays(task.startDate, task.endDate)}일 일정`}
                     </div>
                   </div>
@@ -1497,13 +1497,13 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
                   }}>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>기능별 개발 계획</div>
-                      <div style={{ marginTop: 3, color: C.sub, fontSize: 10.5 }}>
+                      <div style={{ marginTop: 3, color: C.sub, fontSize: 11 }}>
                         각 기능 아래에서 필요한 레포를 나누고 담당자·일정·Issue를 한 번에 관리합니다.
                       </div>
                     </div>
                     <button type="button" onClick={loadPlanningContext} disabled={planningLoading} style={{
                       padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`,
-                      background: C.card, color: C.muted, fontFamily: "inherit", fontSize: 10, fontWeight: 750,
+                      background: C.card, color: C.muted, fontFamily: "inherit", fontSize: 10, fontWeight: 700,
                       cursor: planningLoading ? "wait" : "pointer",
                     }}>{planningLoading ? "동기화 중…" : "GitHub 진척률 새로고침"}</button>
                   </div>
