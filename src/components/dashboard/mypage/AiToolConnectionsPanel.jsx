@@ -10,7 +10,7 @@ const SLACK_EVENTS = [
   { id: "REVIEW", label: "교차검증 결과" },
   { id: "PR", label: "PR 검사 결과" },
 ];
-const scopeNames = { "projects:read": "프로젝트 조회", "specs:read": "명세 조회", "specs:propose": "문서 수정 제안", "consistency:run": "정합성 검사 요청", "consistency:read": "검사 결과 조회" };
+const scopeNames = { "projects:read": "프로젝트 정보 조회", "specs:read": "명세 조회", "specs:propose": "수정안 작성", "consistency:run": "검사 요청", "consistency:read": "검사 결과 조회" };
 
 export function AiToolConnectionsPanel({ projects = [] }) {
   const [items, setItems] = useState([]);
@@ -116,7 +116,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
               clientId,
               projectIds: [...new Set(grants.flatMap(item => item.projectIds))].map(String),
               scopes: [...new Set(grants.flatMap(item => item.scopes))],
-            })}>{editing?.clientId === clientId ? "수정 닫기" : "범위 수정"}</button>
+            })}>{editing?.clientId === clientId ? "닫기" : "권한 변경"}</button>
             <button disabled={busy} onClick={() => run(async () => {
               for (const grant of grants) await revokeConnection(grant.connectionId);
             }, "AI 도구 연결을 해제했습니다.")}>연결 해제</button>
@@ -124,25 +124,25 @@ export function AiToolConnectionsPanel({ projects = [] }) {
             : <button disabled={busy || !loaded} onClick={() => startAiConnection(clientId)}>연결</button>}
           {editing?.clientId === clientId && grants.length > 0 && (
             <div className="connection-edit">
-              <fieldset><legend>연결할 프로젝트</legend>
+              <fieldset><legend>프로젝트</legend>
                 {projects.map((p) => { const id = String(p.projectId ?? p.id); return (
                   <label key={id}><input type="checkbox" checked={editing.projectIds.includes(id)}
                     onChange={(e) => setEditing({ ...editing, projectIds: e.target.checked ? [...editing.projectIds, id] : editing.projectIds.filter((v) => v !== id) })} />{p.projectName ?? p.name}</label>
                 ); })}
               </fieldset>
-              <fieldset><legend>허용할 기능</legend>
+              <fieldset><legend>권한</legend>
                 {Object.entries(scopeNames).map(([scope, label]) => (
                   <label key={scope}><input type="checkbox" checked={editing.scopes.includes(scope)}
                     onChange={(e) => setEditing({ ...editing, scopes: e.target.checked ? [...editing.scopes, scope] : editing.scopes.filter((v) => v !== scope) })} />{label}</label>
                 ))}
               </fieldset>
-              <p className="connection-meta">저장하면 다시 로그인하지 않아도 다음 요청부터 바로 적용됩니다.</p>
+              <p className="connection-meta">저장하면 다시 연결하지 않아도 바로 적용됩니다.</p>
               <div className="connection-actions">
                 <button disabled={busy} onClick={() => setEditing(null)}>취소</button>
                 <button className="primary" disabled={busy || !editing.projectIds.length || !editing.scopes.length} onClick={() => run(async () => {
                   for (const grant of grants) await updateConnection(grant.connectionId, editing.projectIds.map(Number), editing.scopes);
                   setEditing(null);
-                }, "연결 범위를 바꿨습니다.")}>저장</button>
+                }, "연결 권한을 변경했습니다.")}>저장</button>
               </div>
             </div>
           )}
