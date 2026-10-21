@@ -1183,6 +1183,12 @@ function SchemaSummary({ schema }) {
   );
 }
 
+/* 관계도 위에 한 줄로 보여 줄 통계 */
+function schemaSummaryText(schema) {
+  const cols = schema.tables.reduce((s, t) => s + (t.columns?.length ?? 0), 0);
+  return `테이블 ${schema.tables.length} · 컬럼 ${cols} · 관계 ${schema.relationships?.length ?? 0}`;
+}
+
 /* ── DB 스키마 → 텍스트 ── */
 function schemaToText(schema) {
   if (!schema?.tables?.length) return "";
@@ -1500,6 +1506,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
 
   const tableNames     = useMemo(() => (schema?.tables || []).map(t => t.name), [schema]);
   const edges          = useMemo(() => buildEdges(schema), [schema]);
+  const diagramView    = Boolean(schema) && mode === "diagram" && !search;
   const linksOf        = useMemo(() => {
     const m = new Map();
     const at = (n) => { if (!m.has(n)) m.set(n, { parents: [], children: [] }); return m.get(n); };
@@ -1580,16 +1587,16 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
           </PanelToolbar>
         )}
 
-        {/* 본문 */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        {/* 본문 — 관계도는 남은 높이를 꽉 채우고 그 안에서만 움직인다(페이지가 한 번 더 스크롤되지 않게) */}
+        <div className={diagramView ? "erd-fill" : undefined} style={{ flex: 1, overflowY: "auto" }}>
           {!schema ? (
             <EmptyState canEdit={canEdit} onAdd={handleAddTable} />
           ) : (
             <div className="panel-inner">
               <WarningBanner warnings={warnings} />
-              {!search && <SchemaSummary schema={schema} />}
-              {mode === "diagram" && !search ? (
-                <ErdDiagram tables={schema.tables} edges={edges} roleOf={roleOfColumn} onSelect={jumpToTable} />
+              {!search && !diagramView && <SchemaSummary schema={schema} />}
+              {diagramView ? (
+                <ErdDiagram tables={schema.tables} edges={edges} roleOf={roleOfColumn} onSelect={jumpToTable} summary={schemaSummaryText(schema)} />
               ) : (<>
               {!search && (
                 <RelationshipsSection

@@ -93,11 +93,53 @@ function rowY(node, columnName) {
   return i >= 0 ? node.y + HEAD + i * ROW + ROW / 2 : node.y + HEAD / 2;
 }
 
-export function ErdDiagram({ tables, edges, roleOf, onSelect }) {
+export function ErdDiagram({ tables, edges, roleOf, onSelect, summary }) {
   const { nodes, width, height } = useLayout(tables, edges, roleOf);
   const [hovered, setHovered] = useState(null);
   const [scale, setScale] = useState(1);
+  const [panning, setPanning] = useState(false);
   const wrapRef = useRef(null);
+  const dragRef = useRef(null);   // { x, y, left, top, moved }
+
+  /* 빈 곳을 끌어 화면을 옮긴다. 조금이라도 움직였으면 그 뒤의 클릭(표 이동)은 무시한다. */
+  function onPointerDown(e) {
+    if (e.button !== 0 || e.pointerType === "touch") return;   // 터치는 브라우저 기본 스크롤을 쓴다
+    const el = wrapRef.current;
+    dragRef.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop, moved: false };
+  }
+  function onPointerMove(e) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+    if (!d.moved) { d.moved = true; setPanning(true); wrapRef.current.setPointerCapture?.(e.pointerId); }
+    wrapRef.current.scrollLeft = d.left - dx;
+    wrapRef.current.scrollTop = d.top - dy;
+  }
+  function onPointerUp() {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d?.moved) {
+      setPanning(false);
+      // 끌기를 마친 자리의 클릭이 표 이동으로 이어지지 않게 한 번 막는다
+      const stop = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      window.addEventListener("click", stop, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 0);
+    }
+  }
+
+  /* Ctrl(⌘)+휠은 확대·축소, 그냥 휠은 평소처럼 스크롤 */
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setScale(v => Math.min(1.4, Math.max(0.5, Math.round((v - Math.sign(e.deltaY) * 0.1) * 10) / 10)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   // 처음 열 때 화면 너비에 맞추되, 글씨가 읽히도록 80% 아래로는 줄이지 않는다(넘치면 가로로 스크롤).
   useEffect(() => {
@@ -116,15 +158,20 @@ export function ErdDiagram({ tables, edges, roleOf, onSelect }) {
   }, [hovered, edges]);
 
   const zoom = (d) => setScale(v => Math.min(1.4, Math.max(0.5, Math.round((v + d) * 10) / 10)));
+  // 맞춤은 가로·세로 모두 한 화면에 들어오게 한다
   const fit = () => {
     const w = wrapRef.current?.clientWidth || width;
-    setScale(Math.min(1, Math.max(0.5, Math.floor((w / width) * 20) / 20)));
+    const h = wrapRef.current?.clientHeight || height;
+    setScale(Math.min(1, Math.max(0.5, Math.floor(Math.min(w / width, h / height) * 20) / 20)));
   };
 
   return (
     <div className="erd-diagram">
       <div className="erd-diagram__bar">
-        <span className="erd-diagram__hint">표를 누르면 상세 컬럼으로 이동합니다 · 관계 {edges.length}개</span>
+        <span className="erd-diagram__hint">
+          {summary && <strong className="erd-diagram__summary">{summary}</strong>}
+          표를 누르면 상세 컬럼으로, 빈 곳을 끌면 화면이 움직입니다
+        </span>
         <div className="erd-diagram__zoom" role="group" aria-label="확대·축소">
           <button type="button" onClick={() => zoom(-0.1)} aria-label="축소">−</button>
           <button type="button" onClick={() => setScale(1)} className="erd-diagram__pct">{Math.round(scale * 100)}%</button>
@@ -132,7 +179,14 @@ export function ErdDiagram({ tables, edges, roleOf, onSelect }) {
           <button type="button" onClick={fit}>맞춤</button>
         </div>
       </div>
-      <div className="erd-diagram__canvas" ref={wrapRef}>
+      <div
+        className={`erd-diagram__canvas${panning ? " is-panning" : ""}`}
+        ref={wrapRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
         <div style={{ width: width * scale, height: height * scale }}>
           <div style={{ width, height, position: "relative", transform: `scale(${scale})`, transformOrigin: "0 0" }}>
             <svg width={width} height={height} style={{ position: "absolute", inset: 0, overflow: "visible" }} aria-hidden="true">
