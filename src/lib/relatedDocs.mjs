@@ -7,7 +7,9 @@
  */
 
 const DOC_KEYS = ["prd", "features", "api", "erd"];
-const PER_DOC_CHARS = 4000;
+// 문서마다 실을 수 있는 글자 수. ERD는 테이블이 많으면 뒤쪽 테이블이 잘리므로 넉넉히 둔다.
+// (AI 서버는 합쳐서 16,000자까지 받는다)
+const DOC_CHARS = { prd: 2000, features: 3000, api: 5000, erd: 8000 };
 
 const text = (v) => (typeof v === "string" ? v.trim() : "");
 const list = (v) => (Array.isArray(v) ? v : []);
@@ -79,7 +81,7 @@ export function buildRelatedDocs(project, current) {
   DOC_KEYS.forEach((key) => {
     if (key === current) return;
     const value = summaries[key];
-    if (value) out[key] = clip(value, PER_DOC_CHARS);
+    if (value) out[key] = clip(value, DOC_CHARS[key]);
   });
   return out;
 }

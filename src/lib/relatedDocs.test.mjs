@@ -35,3 +35,12 @@ test("바뀐 내용에 다른 문서의 이름이 나오면 그 문서를 함께
   assert.deepEqual(suggestLinkedDocs(project, "erd", "POST /api/v1/posters 응답"), ["api"]);
   assert.deepEqual(suggestLinkedDocs(project, "api", "설명 문구만 수정"), []);
 });
+
+test("테이블이 많아도 ERD 요약이 뒤쪽 테이블까지 담는다", () => {
+  const tables = Array.from({ length: 16 }, (_, i) => ({
+    name: `table_${String(i).padStart(2, "0")}`,
+    columns: Array.from({ length: 20 }, (_, j) => ({ name: `column_name_${j}`, constraints: j === 0 ? "PRIMARY_KEY" : "NOT_NULL" })),
+  }));
+  const related = buildRelatedDocs({ dbSchema: { tables, relationships: [] } }, "api");
+  assert.match(related.erd, /table_15/);
+});
