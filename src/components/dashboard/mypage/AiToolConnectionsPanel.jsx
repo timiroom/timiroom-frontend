@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/authConfig";
 import { aiClients, aiConnectionLink, connectionRows } from "@/lib/aiConnectionLinks.mjs";
-import { connections, revokeConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
+import { connections, revokeConnection, updateConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
 // 채널마다 골라 받을 수 있는 알림 종류
 const SLACK_EVENTS = [
   { id: "CHANGE", label: "변경안 승인 요청" },
@@ -20,6 +20,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [pendingClient, setPendingClient] = useState(null);
+  const [editing, setEditing] = useState(null);   // 연결 범위 수정 중인 도구 { clientId, projectIds, scopes }
   const [project, setProject] = useState("");
   const [channel, setChannel] = useState("");
   const loadGeneration = useRef(0);
@@ -110,10 +111,41 @@ export function AiToolConnectionsPanel({ projects = [] }) {
             {grants.length > 0 && <><p className="connection-meta">{[...new Set(grants.flatMap(item => item.projectIds))].map(projectName).join(", ")}</p>
               <p className="connection-meta">{[...new Set(grants.flatMap(item => item.scopes))].map(scope => scopeNames[scope] || scope).join(", ")}</p></>}
           </div>
-          {grants.length > 0 ? <button disabled={busy} onClick={() => run(async () => {
-            for (const grant of grants) await revokeConnection(grant.connectionId);
-          }, "AI 도구 연결을 해제했습니다.")}>연결 해제</button>
+          {grants.length > 0 ? <div className="connection-actions">
+            <button disabled={busy} onClick={() => setEditing(editing?.clientId === clientId ? null : {
+              clientId,
+              projectIds: [...new Set(grants.flatMap(item => item.projectIds))].map(String),
+              scopes: [...new Set(grants.flatMap(item => item.scopes))],
+            })}>{editing?.clientId === clientId ? "수정 닫기" : "범위 수정"}</button>
+            <button disabled={busy} onClick={() => run(async () => {
+              for (const grant of grants) await revokeConnection(grant.connectionId);
+            }, "AI 도구 연결을 해제했습니다.")}>연결 해제</button>
+          </div>
             : <button disabled={busy || !loaded} onClick={() => startAiConnection(clientId)}>연결</button>}
+          {editing?.clientId === clientId && grants.length > 0 && (
+            <div className="connection-edit">
+              <fieldset><legend>연결할 프로젝트</legend>
+                {projects.map((p) => { const id = String(p.projectId ?? p.id); return (
+                  <label key={id}><input type="checkbox" checked={editing.projectIds.includes(id)}
+                    onChange={(e) => setEditing({ ...editing, projectIds: e.target.checked ? [...editing.projectIds, id] : editing.projectIds.filter((v) => v !== id) })} />{p.projectName ?? p.name}</label>
+                ); })}
+              </fieldset>
+              <fieldset><legend>허용할 기능</legend>
+                {Object.entries(scopeNames).map(([scope, label]) => (
+                  <label key={scope}><input type="checkbox" checked={editing.scopes.includes(scope)}
+                    onChange={(e) => setEditing({ ...editing, scopes: e.target.checked ? [...editing.scopes, scope] : editing.scopes.filter((v) => v !== scope) })} />{label}</label>
+                ))}
+              </fieldset>
+              <p className="connection-meta">저장하면 다시 로그인하지 않아도 다음 요청부터 바로 적용됩니다.</p>
+              <div className="connection-actions">
+                <button disabled={busy} onClick={() => setEditing(null)}>취소</button>
+                <button className="primary" disabled={busy || !editing.projectIds.length || !editing.scopes.length} onClick={() => run(async () => {
+                  for (const grant of grants) await updateConnection(grant.connectionId, editing.projectIds.map(Number), editing.scopes);
+                  setEditing(null);
+                }, "연결 범위를 바꿨습니다.")}>저장</button>
+              </div>
+            </div>
+          )}
         </li>)}</ul>
       )}
       {slackEnabled && <div className="integration-slack">
@@ -215,6 +247,15 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         .connection-status { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:var(--db-radius-sm); background:var(--bg); color:var(--text-2); font-size:11px; font-weight:600; }
         .connection-status.active::before { content:""; width:5px; height:5px; border-radius:50%; background:var(--db-green); }
         .connection-meta { margin:0; font-size:12px; }
+        .connection-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .connection-edit { flex-basis:100%; display:grid; gap:12px; padding:16px; border-radius:var(--db-radius); background:var(--bg); }
+        .connection-edit fieldset { display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:0; border:0; min-width:0; }
+        .connection-edit legend { width:100%; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--text-3); }
+        .connection-edit label { display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid var(--border-2); border-radius:999px; background:var(--surface); font-size:13px; cursor:pointer; }
+        .connection-edit label:has(input:checked) { border-color:var(--text-1); font-weight:600; }
+        .connection-edit input[type=checkbox] { width:15px; min-height:0; height:15px; margin:0; padding:0; accent-color:var(--text-1); }
+        .connection-edit .connection-actions { justify-content:flex-end; }
+        .connection-edit button.primary { background:var(--text-1); border-color:var(--text-1); color:var(--bg); }
         .integration-row { justify-content:space-between; padding:16px; background:var(--bg); border-radius:var(--db-radius); }
         .integration-slack { margin-top:24px; border-top:1px solid var(--border); padding-top:24px; }
         .integration-slack ul + p { margin-top:16px; margin-bottom:0; }

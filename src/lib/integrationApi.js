@@ -31,6 +31,8 @@ export async function integrationRequest(path, { method = "GET", body } = {}) {
 }
 
 export const connections = () => integrationRequest("/api/v1/integrations/connections");
+// 다시 로그인하지 않고 연결의 프로젝트·기능 범위를 바꾼다(다음 요청부터 적용)
+export const updateConnection = (id, projectIds, scopes) => integrationRequest(`/api/v1/integrations/connections/${encodeURIComponent(id)}`, { method: "PATCH", body: { projectIds, scopes } });
 export const revokeConnection = (id) => integrationRequest(`/api/v1/integrations/connections/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const slackConnection = () => integrationRequest("/api/v1/integrations/slack");
 export const connectSlack = () => integrationRequest("/api/v1/integrations/slack/connect", { method: "POST" });
