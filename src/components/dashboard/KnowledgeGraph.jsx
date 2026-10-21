@@ -938,7 +938,7 @@ function Empty({ message }) {
   return (
     <div style={{
       flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: C.bg, color: C.muted, fontSize: 14,
+      height: "100%", background: C.bg, color: C.muted, fontSize: 14,
     }}>{message}</div>
   );
 }
