@@ -1365,3 +1365,25 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .erd-diagram__summary { font-size: 12px; margin-right: 0; }
   .erd-diagram__bar { justify-content: space-between; }
 }
+
+/* ── 설정 메뉴: 좁은 화면(휴대폰)용 두 단계 메뉴 ──
+   넓을 때는 왼쪽 세로 목록 그대로. 좁으면 위 탭에서 내 계정/워크스페이스를 고르고,
+   고른 쪽 메뉴만 한 줄로 보인다. 워크스페이스를 고르면 전환 드롭다운이 그 위에 온다. */
+.ui-set-nav__tabs { display: none; }
+.ui-set-nav__items { display: flex; flex-direction: column; gap: 2px; }
+@container (max-width: 820px) {
+  .ui-set-layout { padding-top: 0 !important; gap: 16px; }
+  .ui-set-nav { flex-direction: column; gap: 10px; overflow: visible; padding-top: 10px; padding-bottom: 10px; }
+  .ui-set-nav__tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 3px; border-radius: 10px; background: var(--db-bg-elevated); }
+  .ui-set-nav__tab { height: 34px; border: 0; border-radius: 8px; background: none; color: var(--text-3); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .ui-set-nav__tab.is-active { background: var(--surface); color: var(--text-1); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .ui-set-nav__tab:focus-visible { outline: 2px solid var(--text-1); outline-offset: 1px; }
+  .ui-set-nav__group { display: none; }
+  .ui-set-nav__group.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+  .ui-set-nav__group + .ui-set-nav__group { margin: 0; padding: 0; border: 0; }
+  .ui-set-nav__items { flex-direction: row; gap: 4px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; }
+  .ui-set-nav__items::-webkit-scrollbar { display: none; }
+  .ui-set-nav__items .ui-set-nav__item { flex-shrink: 0; min-height: 34px; padding: 0 12px; }
+  .ui-set-nav__switch { min-width: 0; margin: 0; }
+  .ui-set-nav__switch .ws-switch__trigger { padding: 6px 10px; border-color: var(--border); background: var(--surface); }
+}
