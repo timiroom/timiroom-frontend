@@ -1229,7 +1229,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .erd-diagram__zoom button:first-child { border-left: 0; }
 .erd-diagram__zoom button:hover { background: color-mix(in srgb, var(--text-1) 5%, var(--surface)); color: var(--text-1); }
 .erd-diagram__pct { min-width: 48px !important; font-variant-numeric: tabular-nums; }
-.erd-diagram__canvas { overflow: auto; max-height: calc(100dvh - 300px); min-height: 360px; background-color: var(--content-bg); background-image: radial-gradient(color-mix(in srgb, var(--text-1) 10%, transparent) 1px, transparent 1px); background-size: 16px 16px; overscroll-behavior: contain; }
+.erd-diagram__canvas { overflow: auto; max-height: calc(100dvh - 300px); min-height: 360px; cursor: grab; background-color: var(--content-bg); background-image: radial-gradient(color-mix(in srgb, var(--text-1) 10%, transparent) 1px, transparent 1px); background-size: 16px 16px; overscroll-behavior: contain; }
 
 .erd-edge path { stroke: color-mix(in srgb, var(--text-1) 28%, transparent); stroke-width: 1.4; transition: stroke .15s, opacity .15s; }
 .erd-edge line { stroke: color-mix(in srgb, var(--text-1) 40%, transparent); stroke-width: 1.4; }
@@ -1284,7 +1284,6 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 @media (max-width: 767px) {
   .erd-diagram__hint { display: none; }
   .erd-diagram__bar { justify-content: flex-end; }
-  .erd-diagram__canvas { max-height: calc(100dvh - 260px); }
   .erd-rel-group { flex-direction: column; gap: 6px; }
   .erd-rel-group > .erd-link { min-width: 0; }
   .erd-rel-group__arrow { display: none; }
@@ -1351,3 +1350,18 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .empty-cta:focus-visible { outline: 2px solid var(--text-1); outline-offset: 3px; }
 .empty-cta:disabled { opacity: .6; cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .empty-cta { transition: none; } .empty-cta:hover, .empty-cta:active { transform: none; } }
+
+/* ERD 관계도 보기: 남은 높이를 꽉 채우고, 페이지 대신 관계도 안에서만 스크롤·끌기 */
+.erd-fill { display: flex; flex-direction: column; }
+.erd-fill > .panel-inner { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.erd-fill .erd-diagram { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+.erd-fill .erd-diagram__canvas { flex: 1; min-height: 240px; max-height: none; }
+.erd-diagram__canvas.is-panning { cursor: grabbing; user-select: none; }
+.erd-diagram__canvas .erd-node { cursor: pointer; }
+.erd-diagram__summary { margin-right: 10px; color: var(--text-1); font-weight: 700; }
+@media (max-width: 767px) {
+  .erd-diagram__hint { display: inline; }
+  .erd-diagram__hint { font-size: 0; }
+  .erd-diagram__summary { font-size: 12px; margin-right: 0; }
+  .erd-diagram__bar { justify-content: space-between; }
+}
