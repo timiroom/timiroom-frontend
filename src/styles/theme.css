@@ -1387,3 +1387,46 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .ui-set-nav__switch { min-width: 0; margin: 0; }
   .ui-set-nav__switch .ws-switch__trigger { padding: 6px 10px; border-color: var(--border); background: var(--surface); }
 }
+
+/* ── AI 도구 연결 화면 (/connect/consent, /connect/login) ── */
+.connect-root { min-height: 100dvh; background: var(--content-bg); color: var(--text-1); }
+.connect-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.connect-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--text-1); font-size: 15px; font-weight: 800; letter-spacing: -.02em; text-decoration: none; }
+.connect-brand__mark { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--text-1); color: var(--surface); font-size: 13px; font-weight: 900; }
+.connect-back { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--border-2); border-radius: 8px; color: var(--text-2); font-size: 13px; font-weight: 600; text-decoration: none; }
+.connect-back:hover { background: var(--bg); color: var(--text-1); }
+.connect-card { box-sizing: border-box; width: calc(100% - 32px); max-width: 560px; margin: 48px auto 64px; padding: 32px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.connect-card__icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-bottom: 16px; border-radius: 12px; background: var(--db-bg-elevated); color: var(--text-1); }
+.connect-card__title { margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1.35; }
+.connect-card__desc { margin: 0 0 24px; color: var(--text-2); font-size: 14px; line-height: 1.65; }
+.connect-card__desc strong { color: var(--text-1); }
+.connect-section { margin: 0 0 20px; }
+.connect-section__title { display: flex; align-items: center; justify-content: space-between; margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--text-3); }
+.connect-link { border: 0; background: none; padding: 4px 0; color: var(--text-2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.connect-link:hover { color: var(--text-1); text-decoration: underline; }
+.connect-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.connect-check { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 12px 14px; cursor: pointer; }
+.connect-check + .connect-check { border-top: 1px solid var(--border); }
+.connect-check:hover { background: var(--bg); }
+.connect-check input { flex-shrink: 0; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--text-1); cursor: pointer; }
+.connect-check b { display: block; font-size: 14px; font-weight: 600; }
+.connect-check small { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5; color: var(--text-3); }
+.connect-empty { padding: 16px; font-size: 13px; color: var(--text-3); }
+.connect-notice { margin: 0 0 24px; padding: 12px 14px; border-radius: 10px; background: var(--bg); font-size: 12px; color: var(--text-2); line-height: 1.6; }
+.connect-actions { display: flex; gap: 8px; }
+.connect-btn { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 0 18px; border: 1px solid var(--border-2); border-radius: 10px; background: var(--surface); color: var(--text-2); font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.connect-btn:hover { background: var(--bg); color: var(--text-1); }
+.connect-btn--primary { flex: 1; border-color: var(--text-1); background: var(--text-1); color: var(--surface); }
+.connect-btn--primary:hover { background: #2b2b2b; color: var(--surface); }
+.connect-btn:disabled { opacity: .45; cursor: not-allowed; }
+.connect-btn:focus-visible, .connect-back:focus-visible, .connect-check input:focus-visible { outline: 2px solid var(--text-1); outline-offset: 2px; }
+.connect-providers { display: grid; gap: 10px; margin-bottom: 16px; }
+.connect-provider { width: 100%; min-height: 48px; color: var(--text-1); }
+.connect-hint { margin: 10px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }
+@media (max-width: 480px) {
+  .connect-top { padding: 0 16px; }
+  .connect-back { padding: 0 10px; font-size: 12px; }
+  .connect-card { margin: 16px auto 40px; padding: 24px 20px; }
+  .connect-card__title { font-size: 20px; }
+  .connect-actions { flex-direction: column-reverse; }
+}
