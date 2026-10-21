@@ -288,7 +288,7 @@ export function AgentPanel({ project, view }) {
   return (
     <div style={{
       flex: 1, display: "flex", flexDirection: "column",
-      height: "100vh", background: "var(--content-bg)", overflow: "hidden",
+      height: "100%", minHeight: 0, background: "var(--content-bg)", overflow: "hidden",
       position: "relative",
       fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>

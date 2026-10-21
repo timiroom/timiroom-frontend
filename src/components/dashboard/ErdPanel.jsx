@@ -1522,7 +1522,7 @@ export function ErdPanel({ project, readOnly = false, onDocumentSaved, onDocumen
 
   return (
     <div style={{
-      flex: 1, display: "flex", height: "100vh", overflow: "hidden",
+      flex: 1, display: "flex", height: "100%", minHeight: 0, overflow: "hidden",
       background: "var(--content-bg)", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
     }}>
       {/* 테이블 드로어 */}
