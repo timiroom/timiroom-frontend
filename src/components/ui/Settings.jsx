@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 
 /**
@@ -33,23 +34,56 @@ export function SettingsLayout({ nav, children }) {
  *   top에는 그룹 맨 위에 둘 요소(내 계정 카드, 워크스페이스 선택)를 넣는다. 그룹 사이에는 구분선이 들어간다.
  */
 export function SettingsNav({ groups, active, label = "설정 메뉴" }) {
+  // 좁은 화면에서는 그룹(내 계정 / 워크스페이스)을 위 탭으로 고르고, 고른 그룹의 메뉴만 한 줄로 보여 준다.
+  const activeGroup = Math.max(0, groups.findIndex((group) => group.items.some((item) => item.key === active)));
+  const [openGroup, setOpenGroup] = useState(activeGroup);
+  useEffect(() => { setOpenGroup(activeGroup); }, [activeGroup]);
+  const navRef = useRef(null);
+
+  // 지금 보고 있는 메뉴가 가로 줄 밖에 있으면 보이는 곳으로 옮긴다
+  useEffect(() => {
+    const item = navRef.current?.querySelector(".ui-set-nav__group.is-open .ui-set-nav__item.is-active");
+    const row = item?.parentElement;
+    if (item && row && row.scrollWidth > row.clientWidth) {
+      row.scrollLeft = item.offsetLeft - (row.clientWidth - item.offsetWidth) / 2;
+    }
+  }, [active, openGroup]);
+
   return (
-    <nav className="ui-set-nav" aria-label={label}>
+    <nav className="ui-set-nav" aria-label={label} ref={navRef}>
+      {groups.length > 1 && (
+        <div className="ui-set-nav__tabs" role="tablist" aria-label="설정 범위">
+          {groups.map((group, index) => (
+            <button
+              key={group.label ?? index}
+              type="button"
+              role="tab"
+              aria-selected={openGroup === index}
+              className={`ui-set-nav__tab${openGroup === index ? " is-active" : ""}`}
+              onClick={() => setOpenGroup(index)}
+            >
+              {group.tabLabel ?? group.label ?? "내 계정"}
+            </button>
+          ))}
+        </div>
+      )}
       {groups.map((group, index) => (
-        <div key={group.label ?? index} className="ui-set-nav__group">
+        <div key={group.label ?? index} className={`ui-set-nav__group${openGroup === index ? " is-open" : ""}`}>
           {group.label && <div className="ui-set-nav__label">{group.label}</div>}
           {group.top}
-          {group.items.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className={`ui-set-nav__item${active === item.key ? " is-active" : ""}${item.danger ? " is-danger" : ""}`}
-              aria-current={active === item.key ? "page" : undefined}
-            >
-              {item.icon && <Icon name={item.icon} size={15} strokeWidth={1.8} />}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          <div className="ui-set-nav__items">
+            {group.items.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`ui-set-nav__item${active === item.key ? " is-active" : ""}${item.danger ? " is-danger" : ""}`}
+                aria-current={active === item.key ? "page" : undefined}
+              >
+                {item.icon && <Icon name={item.icon} size={15} strokeWidth={1.8} />}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       ))}
     </nav>
