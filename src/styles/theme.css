@@ -494,6 +494,17 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ctx-row__main:focus-visible { outline: 2px solid var(--text-1); outline-offset: -2px; }
 .ctx-row__chevron { flex-shrink: 0; color: var(--text-3); transition: transform .15s; }
 .ctx-row__chevron.is-open { transform: rotate(90deg); }
+/* 프로젝트 설정 톱니바퀴 — 상태 배지 오른쪽. 선택된 프로젝트는 늘 보이고, 나머지는 올리거나 포커스할 때 보인다(터치 기기는 늘) */
+.ctx-row--has-settings .ctx-row__main { padding-right: 40px; }
+.ctx-row__settings { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: none; border-radius: 7px; background: none; color: var(--text-3); cursor: pointer; transition: background .12s, color .12s, opacity .12s; }
+.ctx-row__settings:hover { background: color-mix(in srgb, var(--text-1) 8%, transparent); color: var(--text-1); }
+.ctx-row__settings.is-active { background: var(--surface); color: var(--text-1); box-shadow: 0 0 0 1px var(--border); }
+.ctx-row__settings:focus-visible { outline: 2px solid var(--text-1); outline-offset: -2px; opacity: 1; }
+@media (hover: hover) {
+  .ctx-row:not(.is-selected) .ctx-row__settings { opacity: 0; }
+  .ctx-row:hover .ctx-row__settings, .ctx-row:focus-within .ctx-row__settings { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .ctx-row__settings { transition: none; } }
 .ctx-row__name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ctx-docs { position: relative; margin: 2px 0 6px 17px; padding-left: 8px; border-left: 1px solid var(--border); }
@@ -503,7 +514,6 @@ select.ui-input { width: auto; padding-right: 28px; cursor: pointer; }
 .ctx-doc.is-active { background: color-mix(in srgb, var(--text-1) 8%, transparent); color: var(--text-1); font-weight: 600; }
 .ctx-doc.is-active svg { color: var(--text-1); }
 .ctx-doc:focus-visible { outline: 2px solid var(--text-1); outline-offset: -2px; }
-.ctx-doc--muted { margin-top: 2px; color: var(--text-3); }
 .ctx-doc__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ctx-doc__sync { flex-shrink: 0; padding: 1px 6px; font-size: 10px; }
 .ctx-spinner { width: 7px; height: 7px; border: 1.5px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: ctx-spin .8s linear infinite; }
