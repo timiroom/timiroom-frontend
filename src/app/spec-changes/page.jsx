@@ -5,7 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { rememberAuthReturnTo } from "@/lib/authConfig";
 import { buildDashboardUrl } from "@/lib/dashboardUrl";
 import { specChanges, integrationJobs, integrationJob } from "@/lib/integrationApi";
-import { ActionButton, Badge, EmptyState, LoadingState, SettingsHeader, SettingsSection } from "@/components/ui";
+import { ActionButton, AiErrorNotice, Badge, EmptyState, LoadingState, SettingsHeader, SettingsSection } from "@/components/ui";
+import { aiErrorKind } from "@/lib/aiErrors.mjs";
 
 const states = { GENERATING: "생성 중", READY: "검토 대기", APPROVED: "승인됨", REJECTED: "거절됨", STALE: "기준 변경", FAILED: "실패", QUEUED: "접수됨", RUNNING: "실행 중", COMPLETED: "완료" };
 const stateTone = { READY: "warning", APPROVED: "success", COMPLETED: "success", REJECTED: "neutral", STALE: "warning", FAILED: "danger", GENERATING: "info", QUEUED: "info", RUNNING: "info" };
@@ -101,7 +102,9 @@ export default function SpecChangesPage() {
       <SettingsSection title={`${kinds[job.kind] ?? "작업"} 결과`} description="검사 당시의 기준에 묶인 기록입니다. 이후 문서나 PR이 바뀌었다면 다시 검사해 주세요.">
         <div className="detail">
           <div className="detail__row"><StatusBadge status={job.status} />{typeof result?.passed === "boolean" && <Badge tone={result.passed ? "success" : "warning"}>{result.passed ? "검사 당시 통과" : "검토 필요"}</Badge>}</div>
-          {job.error && <p role="alert" className="detail__error">{jobErrors[job.error] ?? `작업을 완료하지 못했습니다. (${job.error})`}</p>}
+          {job.error && String(job.error).startsWith("AI_")
+            ? <AiErrorNotice compact error={{ code: job.error, message: aiErrorKind(job.error).message }} />
+            : job.error && <p role="alert" className="detail__error">{jobErrors[job.error] ?? `작업을 완료하지 못했습니다. (${job.error})`}</p>}
           {result?.summary && <p>{result.summary}</p>}
           <p className="detail__meta">
             작업 ID {job.jobId}

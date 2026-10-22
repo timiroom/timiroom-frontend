@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { fetchQaScenarios, createQaScenario, generateQaScenarios, runQaScenario, deleteQaScenario } from "@/lib/qaScenarioApi";
 import { useToast } from "@/context/ToastContext";
 import { confirmDialog } from "@/lib/feedback";
-import { ActionButton, AiWorking, Badge, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
+import { ActionButton, AiErrorNotice, AiWorking, Badge, EmptyState, Icon, LoadingState, PanelHeader } from "@/components/ui";
+import { AiRequestError } from "@/lib/aiErrors.mjs";
 
 /** 프로젝트의 기능 목록을 정규화한다 — featureList가 문자열/객체 배열이거나 PRD의 coreFeatures일 수 있다. */
 function projectFeatures(project) {
@@ -34,6 +35,8 @@ export function QaTestPanel({ project }) {
   const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  // AI 생성·실행 실패는 3초 만에 사라지는 토스트 대신 패널 안에 안내 카드로 남긴다(키 설정 바로가기·다시 시도)
+  const [aiFailure, setAiFailure] = useState(null);
   const [runningId, setRunningId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -62,12 +65,14 @@ export function QaTestPanel({ project }) {
       return;
     }
     setGenerating(true);
+    setAiFailure(null);
     try {
       const created = await generateQaScenarios(project.id, filter);
       setScenarios(current => [...current, ...created]);
       showToast("success", `${created.length}개의 시나리오를 생성했어요.`);
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "AI 시나리오 생성에 실패했습니다");
+      if (error instanceof AiRequestError) setAiFailure({ error, retry: handleGenerate });
+      else showToast("error", error instanceof Error ? error.message : "AI 시나리오 생성에 실패했습니다");
     } finally {
       setGenerating(false);
     }
@@ -94,11 +99,13 @@ export function QaTestPanel({ project }) {
 
   async function handleRun(scenarioId) {
     setRunningId(scenarioId);
+    setAiFailure(null);
     try {
       const updated = await runQaScenario(project.id, scenarioId);
       setScenarios(current => current.map(s => (s.id === scenarioId ? updated : s)));
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "시나리오 실행에 실패했습니다");
+      if (error instanceof AiRequestError) setAiFailure({ error, retry: () => handleRun(scenarioId) });
+      else showToast("error", error instanceof Error ? error.message : "시나리오 실행에 실패했습니다");
     } finally {
       setRunningId(null);
     }
@@ -140,6 +147,12 @@ export function QaTestPanel({ project }) {
           AI가 기능 명세를 근거로 만들었거나 직접 작성한 시나리오입니다. &ldquo;실행&rdquo;을 누르면 AI가 현재 API·DB 명세와
           (연결된 레포가 있다면) 관련 코드를 근거로 통과 여부를 판단합니다. 실제로 코드를 실행하지는 않습니다.
         </p>
+
+        {aiFailure && !generating && (
+          <div className="qa-gap">
+            <AiErrorNotice error={aiFailure.error} onRetry={aiFailure.retry} />
+          </div>
+        )}
 
         {generating && (
           <div className="qa-gap">
