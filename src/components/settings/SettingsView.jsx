@@ -66,14 +66,21 @@ export function SettingsView() {
   }, [area, first, second, router]);
 
   // AI 도구 연결 요청(API 서버가 ?client_id=…&state=… 로 보낸다). 연결된 도구 화면 맨 위에 승인 카드로 띄운다.
+  // ✕·Esc로 닫으면 요청은 남겨 두고(주소도 그대로) 안내 줄에서 다시 열 수 있게 한다.
+  // 승인·거절하지 않으면 AI 도구는 계속 기다리므로, 닫았다고 요청을 버리면 다시 열 길이 없어진다.
   const [consentRequest, setConsentRequest] = useState(null);
+  const [consentOpen, setConsentOpen] = useState(false);
   useEffect(() => {
     if (route.key !== "connections") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("client_id") && params.get("state")) setConsentRequest({ clientId: params.get("client_id"), state: params.get("state") });
+    if (params.get("client_id") && params.get("state")) {
+      setConsentRequest({ clientId: params.get("client_id"), state: params.get("state") });
+      setConsentOpen(true);
+    }
   }, [route.key]);
-  const dismissConsent = useCallback(() => {
+  const discardConsent = useCallback(() => {
     setConsentRequest(null);
+    setConsentOpen(false);
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
@@ -188,7 +195,15 @@ export function SettingsView() {
     content = (
       <>
         <SettingsHeader eyebrow="내 계정" title="연결된 도구" meta={<span>Codex·Claude Code 같은 AI 도구와 Slack을 연결합니다.</span>} />
-        {consentRequest && <AiToolConsentCard clientId={consentRequest.clientId} state={consentRequest.state} onDismiss={dismissConsent} />}
+        {consentRequest && consentOpen && (
+          <AiToolConsentCard clientId={consentRequest.clientId} state={consentRequest.state} onClose={() => setConsentOpen(false)} onDiscard={discardConsent} />
+        )}
+        {consentRequest && !consentOpen && (
+          <div className="consent-pending" role="status">
+            <span><strong>AI 도구 연결 요청이 기다리고 있어요.</strong> 허용하거나 거절해야 AI 도구가 다음 단계로 넘어갑니다.</span>
+            <button type="button" className="consent-btn consent-btn--primary" onClick={() => setConsentOpen(true)}>요청 다시 열기</button>
+          </div>
+        )}
         <AiToolConnectionsPanel projects={allProjects} />
       </>
     );

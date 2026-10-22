@@ -20,7 +20,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [pendingClient, setPendingClient] = useState(null);
-  const [editing, setEditing] = useState(null);   // 연결 범위 수정 중인 도구 { clientId, projectIds, scopes }
+  const [editing, setEditing] = useState(null);   // 연결 범위 수정 중인 도구 { clientId, grantedIds, projectIds, scopes }
   const [project, setProject] = useState("");
   const [channel, setChannel] = useState("");
   const loadGeneration = useRef(0);
@@ -90,6 +90,14 @@ export function AiToolConnectionsPanel({ projects = [] }) {
     catch (error) { await load(); setFeedback(error.message); }
     finally { setBusy(false); }
   }
+  // 권한 변경 목록: 내 프로젝트 목록에 더해, 이미 연결돼 있지만 목록에 없는 프로젝트도 보여 줘서 해제할 수 있게 한다
+  // (목록에 없다고 숨기면 저장할 때 보이지 않는 채로 다시 전송된다)
+  function editProjectOptions(grantedIds) {
+    const listed = projects.map((p) => ({ id: String(p.projectId ?? p.id), name: p.projectName ?? p.name, missing: false }));
+    const listedIds = new Set(listed.map((option) => option.id));
+    const missing = grantedIds.filter((id) => !listedIds.has(id)).map((id) => ({ id, name: projectName(id), missing: true }));
+    return [...listed, ...missing];
+  }
   function projectName(id) {
     const item = projects.find((entry) => String(entry.projectId ?? entry.id) === String(id));
     return item?.projectName ?? item?.name ?? `프로젝트 ${id}`;
@@ -112,11 +120,15 @@ export function AiToolConnectionsPanel({ projects = [] }) {
               <p className="connection-meta">{[...new Set(grants.flatMap(item => item.scopes))].map(scope => scopeNames[scope] || scope).join(", ")}</p></>}
           </div>
           {grants.length > 0 ? <div className="connection-actions">
-            <button disabled={busy} onClick={() => setEditing(editing?.clientId === clientId ? null : {
-              clientId,
-              projectIds: [...new Set(grants.flatMap(item => item.projectIds))].map(String),
-              scopes: [...new Set(grants.flatMap(item => item.scopes))],
-            })}>{editing?.clientId === clientId ? "닫기" : "권한 변경"}</button>
+            <button disabled={busy} onClick={() => {
+              const grantedIds = [...new Set(grants.flatMap(item => item.projectIds))].map(String);
+              setEditing(editing?.clientId === clientId ? null : {
+                clientId,
+                grantedIds,
+                projectIds: grantedIds,
+                scopes: [...new Set(grants.flatMap(item => item.scopes))],
+              });
+            }}>{editing?.clientId === clientId ? "닫기" : "권한 변경"}</button>
             <button disabled={busy} onClick={() => run(async () => {
               for (const grant of grants) await revokeConnection(grant.connectionId);
             }, "AI 도구 연결을 해제했습니다.")}>연결 해제</button>
@@ -125,10 +137,13 @@ export function AiToolConnectionsPanel({ projects = [] }) {
           {editing?.clientId === clientId && grants.length > 0 && (
             <div className="connection-edit">
               <fieldset><legend>프로젝트</legend>
-                {projects.map((p) => { const id = String(p.projectId ?? p.id); return (
-                  <label key={id}><input type="checkbox" checked={editing.projectIds.includes(id)}
-                    onChange={(e) => setEditing({ ...editing, projectIds: e.target.checked ? [...editing.projectIds, id] : editing.projectIds.filter((v) => v !== id) })} />{p.projectName ?? p.name}</label>
-                ); })}
+                {editProjectOptions(editing.grantedIds).map(({ id, name, missing }) => (
+                  <label key={id} className={missing ? "is-missing" : undefined}><input type="checkbox" checked={editing.projectIds.includes(id)}
+                    onChange={(e) => setEditing({ ...editing, projectIds: e.target.checked ? [...editing.projectIds, id] : editing.projectIds.filter((v) => v !== id) })} />{name}{missing && <small>목록에 없음</small>}</label>
+                ))}
+                {editProjectOptions(editing.grantedIds).some((option) => option.missing) && (
+                  <p className="connection-meta connection-edit__note">목록에 없는 프로젝트는 지워졌거나 지금은 볼 수 없는 프로젝트예요. 필요 없으면 선택을 해제하세요.</p>
+                )}
               </fieldset>
               <fieldset><legend>권한</legend>
                 {Object.entries(scopeNames).map(([scope, label]) => (
@@ -253,6 +268,9 @@ export function AiToolConnectionsPanel({ projects = [] }) {
         .connection-edit legend { width:100%; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--text-3); }
         .connection-edit label { display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid var(--border-2); border-radius:999px; background:var(--surface); font-size:13px; cursor:pointer; }
         .connection-edit label:has(input:checked) { border-color:var(--text-1); font-weight:600; }
+        .connection-edit label.is-missing { border-style:dashed; color:var(--text-2); }
+        .connection-edit label small { font-size:11px; font-weight:500; color:var(--text-3); }
+        .connection-edit__note { flex-basis:100%; color:var(--text-3); }
         .connection-edit input[type=checkbox] { width:15px; min-height:0; height:15px; margin:0; padding:0; accent-color:var(--text-1); }
         .connection-edit .connection-actions { justify-content:flex-end; }
         .connection-edit button.primary { background:var(--text-1); border-color:var(--text-1); color:var(--bg); }

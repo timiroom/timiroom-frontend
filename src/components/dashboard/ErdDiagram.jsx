@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 /* ══════════════════════════════════════
    ERD 관계도
@@ -100,6 +100,9 @@ export function ErdDiagram({ tables, edges, roleOf, onSelect, summary }) {
   const [panning, setPanning] = useState(false);
   const wrapRef = useRef(null);
   const dragRef = useRef(null);   // { x, y, left, top, moved }
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const anchorRef = useRef(null); // 휠 확대 기준점 { x, y: 관계도 좌표, ox, oy: 화면 안 위치 }
 
   /* 빈 곳을 끌어 화면을 옮긴다. 조금이라도 움직였으면 그 뒤의 클릭(표 이동)은 무시한다. */
   function onPointerDown(e) {
@@ -128,18 +131,40 @@ export function ErdDiagram({ tables, edges, roleOf, onSelect, summary }) {
     }
   }
 
-  /* Ctrl(⌘)+휠은 확대·축소, 그냥 휠은 평소처럼 스크롤 */
+  /* Ctrl(⌘)+휠은 확대·축소, 그냥 휠은 평소처럼 스크롤.
+     트랙패드 오므리기는 작은 휠 신호가 잇달아 오므로 한 번에 정해진 칸만큼이 아니라 움직인 양만큼 바꾸고,
+     마우스 아래의 지점이 그 자리에 머물도록 스크롤을 맞춘다. */
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
     const onWheel = (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      setScale(v => Math.min(1.4, Math.max(0.5, Math.round((v - Math.sign(e.deltaY) * 0.1) * 10) / 10)));
+      const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;   // 줄 단위로 오는 휠은 픽셀로 바꾼다
+      const current = scaleRef.current;
+      const next = Math.min(1.4, Math.max(0.5, current * Math.exp(-Math.max(-100, Math.min(100, delta)) * 0.002)));
+      if (next === current) return;
+      const rect = el.getBoundingClientRect();
+      const ox = e.clientX - rect.left, oy = e.clientY - rect.top;
+      // 화면이 다시 그려지기 전에 신호가 여러 번 오면 처음 잡은 기준점을 그대로 쓴다
+      anchorRef.current = anchorRef.current
+        ? { ...anchorRef.current, ox, oy }
+        : { x: (el.scrollLeft + ox) / current, y: (el.scrollTop + oy) / current, ox, oy };
+      scaleRef.current = next;
+      setScale(next);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
+
+  useLayoutEffect(() => {
+    const a = anchorRef.current;
+    const el = wrapRef.current;
+    if (!a || !el) return;
+    anchorRef.current = null;
+    el.scrollLeft = a.x * scale - a.ox;
+    el.scrollTop = a.y * scale - a.oy;
+  }, [scale]);
 
   // 처음 열 때 화면 너비에 맞추되, 글씨가 읽히도록 80% 아래로는 줄이지 않는다(넘치면 가로로 스크롤).
   useEffect(() => {
