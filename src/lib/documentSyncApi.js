@@ -1,4 +1,5 @@
 import { aiFetch } from "@/lib/aiGateway";
+import { aiErrorFromResponse } from "@/lib/aiErrors.mjs";
 
 const DOCUMENT_LABELS = {
   PRD: "PRD",
@@ -65,10 +66,7 @@ PRD, 기능 명세, API 명세, ERD 사이의 의미적 연결을 분석합니�
     signal,
   });
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.message || body.detail || `AI 영향도 분석 실패 (HTTP ${response.status})`);
-  }
+  if (!response.ok) throw await aiErrorFromResponse(response);
 
   const body = await response.json();
   const parsed = extractJson(body?.content);

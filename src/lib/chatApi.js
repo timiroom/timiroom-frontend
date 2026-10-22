@@ -1,4 +1,5 @@
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
+import { aiErrorFromResponse } from "@/lib/aiErrors.mjs";
 
 export const MAX_FILES = 5;
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -51,16 +52,7 @@ export async function sendChatMessage(sessionId, content, files = []) {
     }
   );
   if (!res) throw new Error("로그인이 만료되었습니다. 다시 로그인해 주세요.");
-  if (!res.ok) {
-    let detail = "메시지 전송 실패";
-    try {
-      const body = await res.json();
-      detail = body?.message || body?.error || body?.detail || detail;
-    } catch {
-      // 응답 본문이 JSON이 아닌 경우 상태 코드만 사용한다.
-      detail = `${detail} (HTTP ${res.status})`;
-    }
-    throw new Error(detail);
-  }
+  // AI 서버가 알려 준 이유(내 AI 키 오류, 사용량 소진 등)를 코드와 함께 넘긴다
+  if (!res.ok) throw await aiErrorFromResponse(res);
   return res.json();
 }

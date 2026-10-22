@@ -1,6 +1,7 @@
 "use client";
 
-import { Icon, AiWorking } from "@/components/ui";
+import { Icon, AiWorking, AiErrorNotice } from "@/components/ui";
+import { toAiError } from "@/lib/aiErrors.mjs";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
@@ -751,9 +752,12 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
       }
     } catch (err) {
       console.error("메시지 전송 실패:", err);
+      const error = toAiError(err);
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: err?.message || "일시적인 오류가 발생했습니다. 다시 시도해 주세요.",
+        content: "",
+        error: { code: error.code, message: error.message },
+        retryText: text,
       }]);
       setCurrentSuggestions([]);
     } finally {
@@ -828,7 +832,18 @@ export function ProjectChatWizard({ onPipelineStart, onCancel, sidebarCollapsed,
             </div>
           )}
 
-          {messages.map((msg, i) => (
+          {messages.map((msg, i) => msg.error ? (
+            <div key={i} style={{ marginBottom: 16, maxWidth: 560 }}>
+              <AiErrorNotice
+                error={msg.error}
+                onRetry={msg.retryText != null && !isLoading && i === messages.length - 1 ? () => {
+                  // 실패한 질문을 한 번 더 보낸다(같은 질문이 두 번 쌓이지 않게 마지막 질문과 오류 카드를 지운다)
+                  setMessages(prev => prev.slice(0, -2));
+                  sendText(msg.retryText);
+                } : undefined}
+              />
+            </div>
+          ) : (
             <MessageBubble key={i} role={msg.role} content={msg.content} files={msg.files} />
           ))}
 

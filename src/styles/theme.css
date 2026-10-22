@@ -1446,3 +1446,19 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 
 /* PRD: 모든 섹션을 한 화면에 이어서 보여 준다(dashboard/PrdPanel). 섹션 사이에 구분 여백 */
 .prd-section + .prd-section { margin-top: 56px; }
+
+/* ── AI 오류 안내 카드 (AiErrorNotice) ── */
+.ai-error { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-1); font-size: 13px; line-height: 1.6; max-width: 100%; }
+.ai-error--action { border-color: color-mix(in srgb, var(--db-orange) 35%, var(--border)); background: color-mix(in srgb, var(--db-orange) 6%, var(--surface)); }
+.ai-error--temporary { background: color-mix(in srgb, var(--text-1) 3%, var(--surface)); }
+.ai-error--compact { padding: 10px 12px; }
+.ai-error__icon { flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); color: var(--text-2); }
+.ai-error--action .ai-error__icon { color: #b45309; border-color: color-mix(in srgb, var(--db-orange) 35%, var(--border)); }
+.ai-error__body { min-width: 0; flex: 1; }
+.ai-error__title { display: block; font-size: 13px; font-weight: 650; margin-bottom: 2px; }
+.ai-error__message { margin: 0; color: var(--text-2); word-break: keep-all; overflow-wrap: anywhere; white-space: pre-wrap; }
+.ai-error__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ai-error__btn { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text-1); font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.ai-error__btn:hover { background: color-mix(in srgb, var(--text-1) 5%, var(--surface)); }
+.ai-error__btn--primary { background: var(--text-1); border-color: var(--text-1); color: var(--surface); }
+.ai-error__btn--primary:hover { background: color-mix(in srgb, var(--text-1) 85%, var(--surface)); }

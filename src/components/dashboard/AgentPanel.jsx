@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sendMessageStream } from "@/lib/agentApi";
 import { fetchModelTier } from "@/lib/usageApi";
-import { ActionButton, Badge, Icon, PanelHeader } from "@/components/ui";
+import { ActionButton, AiErrorNotice, Badge, Icon, PanelHeader } from "@/components/ui";
 
 /* 실제 모델은 사용자가 설정에서 고른 AI 품질(빠름·균형·정밀)과 서버 설정으로 정해진다.
    모델 이름은 바뀔 수 있어 화면에는 고른 품질만 보여 준다. */
@@ -147,15 +147,17 @@ function MessageBubble({ msg }) {
 
       {/* 텍스트 */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          color: msg.isError ? "#f87171" : C.text,
-          fontSize: 14,
-          lineHeight: 1.75,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}>
-          {msg.content}
-        </div>
+        {msg.isError && msg.error ? <AiErrorNotice error={msg.error} /> : (
+          <div style={{
+            color: msg.isError ? "#f87171" : C.text,
+            fontSize: 14,
+            lineHeight: 1.75,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}>
+            {msg.content}
+          </div>
+        )}
         <div style={{
           marginTop: 6, fontSize: 11, color: C.subtle,
           opacity: hovered ? 1 : 0, transition: "opacity 0.15s",
@@ -235,7 +237,7 @@ export function AgentPanel({ project, view }) {
     setIsLoading(true);
     setStreamText("");
 
-    const history = [...messages, userMsg].map(m => ({
+    const history = [...messages, userMsg].filter(m => !m.isError && m.content).map(m => ({
       role: m.role, content: m.content,
     }));
 
@@ -258,12 +260,13 @@ export function AgentPanel({ project, view }) {
         setIsLoading(false);
         abortRef.current = null;
       },
-      onError: (errMsg) => {
+      onError: (message, error) => {
         setMessages(prev => [
           ...prev,
           {
             role: "assistant",
-            content: `오류가 발생했습니다: ${errMsg}\n\nrag-pipeline 서버(8081)가 실행 중인지 확인해주세요.`,
+            content: "",
+            error: error ? { code: error.code, message: error.message } : { code: "AI_PROVIDER_ERROR", message },
             timestamp: new Date(),
             isError: true,
           },
