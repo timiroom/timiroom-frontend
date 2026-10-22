@@ -1455,7 +1455,7 @@ export function FeaturesPanel({ project, readOnly = false, onDocumentSaved, onDo
 
   return (
     <div className="features-panel-shell" style={{
-      flex: 1, display: "flex", height: "100vh", overflow: "hidden",
+      flex: 1, display: "flex", height: "100%", minHeight: 0, overflow: "hidden",
       background: "var(--content-bg)", fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif",
       position: "relative", minWidth: 0, containerType: "inline-size", containerName: "features-panel",
     }}>

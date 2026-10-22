@@ -10,6 +10,7 @@ import { buildDashboardUrl } from "@/lib/dashboardUrl";
 import { ActionButton, Avatar, SettingsHeader, SettingsLayout, SettingsNav } from "@/components/ui";
 import { Spinner } from "@/components/dashboard/mypage/teamWorkspace/PanelPrimitives";
 import { AiToolConnectionsPanel } from "@/components/dashboard/mypage/AiToolConnectionsPanel";
+import { AiToolConsentCard } from "./AiToolConsentCard";
 import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { ProfileSettings } from "./ProfileSettings";
 import { UsageSettings } from "./UsageSettings";
@@ -64,9 +65,21 @@ export function SettingsView() {
     }
   }, [area, first, second, router]);
 
+  // AI 도구 연결 요청(API 서버가 ?client_id=…&state=… 로 보낸다). 연결된 도구 화면 맨 위에 승인 카드로 띄운다.
+  const [consentRequest, setConsentRequest] = useState(null);
+  useEffect(() => {
+    if (route.key !== "connections") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("client_id") && params.get("state")) setConsentRequest({ clientId: params.get("client_id"), state: params.get("state") });
+  }, [route.key]);
+  const dismissConsent = useCallback(() => {
+    setConsentRequest(null);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   useEffect(() => {
     if (authLoading || user) return;
-    rememberAuthReturnTo(window.location.pathname);
+    rememberAuthReturnTo(window.location.pathname + window.location.search);
     router.replace("/");
   }, [authLoading, user, router]);
 
@@ -175,6 +188,7 @@ export function SettingsView() {
     content = (
       <>
         <SettingsHeader eyebrow="내 계정" title="연결된 도구" meta={<span>Codex·Claude Code 같은 AI 도구와 Slack을 연결합니다.</span>} />
+        {consentRequest && <AiToolConsentCard clientId={consentRequest.clientId} state={consentRequest.state} onDismiss={dismissConsent} />}
         <AiToolConnectionsPanel projects={allProjects} />
       </>
     );

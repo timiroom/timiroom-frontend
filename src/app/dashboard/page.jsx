@@ -249,9 +249,53 @@ function mergeWorkspaceProjects(projects, runningPipeline) {
   return [buildRunningProject(runningPipeline), ...projects];
 }
 
-function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onOpenWorkspaceComposer }) {
+function DashboardEmptyState({ workspaceName, hasWorkspace, loadFailed = false, retrying = false, onRetry, onCreateProject, onOpenWorkspaceComposer }) {
   // 워크스페이스가 없을 때는 사이드바 폭과 상관없이 창 정중앙에 둔다. 배경은 루트가 그린다.
   const centered = !hasWorkspace;
+  // 목록을 못 불러온 것은 워크스페이스가 없는 것과 다르다. 새로 만들라고 하지 않고 다시 시도하게 한다.
+  if (centered && loadFailed) {
+    return (
+      <EmptyStateCard centered icon="warning" title="워크스페이스를 불러오지 못했어요"
+        description="잠시 후 다시 시도해 주세요. 계속 안 되면 인터넷 연결을 확인해 주세요.">
+        <button type="button" onClick={onRetry} disabled={retrying} className="empty-cta">
+          {retrying ? "다시 불러오는 중…" : "다시 시도"}
+        </button>
+      </EmptyStateCard>
+    );
+  }
+  return (
+    <EmptyStateCard
+      centered={centered}
+      icon={hasWorkspace ? "box" : "users"}
+      title={hasWorkspace
+        ? `${workspaceName ?? "이 워크스페이스"}에는 아직 프로젝트가 없어요`
+        : "먼저 워크스페이스를 만들어 주세요"}
+      description={hasWorkspace
+        ? "이 워크스페이스에서 여러 프로젝트를 함께 관리하고, 같은 초대 코드로 팀원을 초대할 수 있어요."
+        : "새 워크스페이스를 만들거나 초대 코드로 참여해 보세요."}
+    >
+      {hasWorkspace ? (
+        <button
+          type="button"
+          onClick={onCreateProject}
+          className="empty-cta"
+        >
+          첫 프로젝트 만들기
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpenWorkspaceComposer}
+          className="empty-cta"
+        >
+          워크스페이스 시작하기
+        </button>
+      )}
+    </EmptyStateCard>
+  );
+}
+
+function EmptyStateCard({ centered, icon, title, description, children }) {
   return (
     <div style={{
       ...(centered
@@ -279,35 +323,15 @@ function DashboardEmptyState({ workspaceName, hasWorkspace, onCreateProject, onO
           background: "color-mix(in srgb, var(--text-1) 8%, transparent)",
           color: "var(--text-1)",
         }}>
-          <Icon name={hasWorkspace ? "box" : "users"} size={26} strokeWidth={1.6} />
+          <Icon name={icon} size={26} strokeWidth={1.6} />
         </div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text-1)", letterSpacing: "-.03em" }}>
-          {hasWorkspace
-            ? `${workspaceName ?? "이 워크스페이스"}에는 아직 프로젝트가 없어요`
-            : "먼저 워크스페이스를 만들어 주세요"}
+        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.03em" }}>
+          {title}
         </div>
         <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 10, lineHeight: 1.8 }}>
-          {hasWorkspace
-            ? "이 워크스페이스에서 여러 프로젝트를 함께 관리하고, 같은 초대 코드로 팀원을 초대할 수 있어요."
-            : "새 워크스페이스를 만들거나 초대 코드로 참여해 보세요."}
+          {description}
         </div>
-        {hasWorkspace ? (
-          <button
-            type="button"
-            onClick={onCreateProject}
-            className="empty-cta"
-          >
-            첫 프로젝트 만들기
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenWorkspaceComposer}
-            className="empty-cta"
-          >
-            워크스페이스 시작하기
-          </button>
-        )}
+        {children}
       </div>
     </div>
   );
@@ -411,6 +435,8 @@ export default function DashboardPage() {
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveTeamId());
   const [workspaceDetail, setWorkspaceDetail] = useState(null);
   const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
+  // 목록 요청이 실패했는지. 다시 불러오는 동안에도 유지해 화면이 시작 카드로 깜빡이지 않게 한다.
+  const [workspacesLoadFailed, setWorkspacesLoadFailed] = useState(false);
   const [isLoadingWorkspaceDetail, setIsLoadingWorkspaceDetail] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
@@ -662,6 +688,7 @@ export default function DashboardPage() {
       const list = await getMyTeams();
       const safeList = Array.isArray(list) ? list : [];
       setWorkspaces(safeList);
+      setWorkspacesLoadFailed(false);
 
       if (safeList.length === 0) {
         applyActiveWorkspaceId(null);
@@ -686,7 +713,9 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("워크스페이스 목록 로드 실패:", error);
       setWorkspaces([]);
-      applyActiveWorkspaceId(null);
+      setWorkspacesLoadFailed(true);
+      // 저장해 둔 마지막 워크스페이스는 지우지 않는다. 다시 불러오면 그 워크스페이스로 돌아간다.
+      setActiveWorkspaceIdState(null);
       setWorkspaceDetail(null);
       return [];
     } finally {
@@ -1243,7 +1272,13 @@ export default function DashboardPage() {
   // 워크스페이스가 하나도 없으면 사이드바에는 계정 줄만 두고, 가운데에 시작 카드만 보여준다
   // 워크스페이스가 하나도 없는 사람은 어느 분기로 들어오든(마법사든, 맨 아래 빈 화면이든)
   // 본문이 어두운 시작 카드가 된다. showWizard는 처음에 false라 그 값으로 가르면 안 된다.
-  const workspaceOnboarding = !activeWorkspaceId && !isLoadingWorkspaces;
+  // 목록 요청이 실패했을 때도 같은 화면 틀을 쓰되, 카드는 "다시 시도"로 바뀐다(다시 불러오는 중에도 유지).
+  const workspaceOnboarding = !activeWorkspaceId && (!isLoadingWorkspaces || workspacesLoadFailed);
+  const workspaceLoadFailedProps = {
+    loadFailed: workspacesLoadFailed,
+    retrying: isLoadingWorkspaces,
+    onRetry: () => loadWorkspaces(),
+  };
 
   return (
     <>
@@ -1265,6 +1300,18 @@ export default function DashboardPage() {
       }}>
         {isNarrow && !contextPanelCollapsed && (
           <div className="ctx-backdrop" aria-hidden="true" onClick={() => setContextPanelCollapsed(true)} />
+        )}
+        {/* 첫 화면에는 문서 탭 줄이 없어서, 사이드바가 접혀 있으면(좁은 화면은 처음부터 접힘) 계정 줄로 갈 길이 없다 */}
+        {workspaceOnboarding && contextPanelCollapsed && (
+          <button
+            type="button"
+            className="onboarding-menu-btn"
+            aria-label="사이드바 열기"
+            title="사이드바 열기"
+            onClick={() => setContextPanelCollapsed(false)}
+          >
+            <IconPanelToggle />
+          </button>
         )}
         <ContextPanel
           projects={projects}
@@ -1313,6 +1360,7 @@ export default function DashboardPage() {
             <DashboardEmptyState
               workspaceName={null}
               hasWorkspace={false}
+              {...workspaceLoadFailedProps}
               onCreateProject={handleOpenCreateProject}
               onOpenWorkspaceComposer={() => {
                 setComposerError("");
@@ -1420,6 +1468,7 @@ export default function DashboardPage() {
           <DashboardEmptyState
             workspaceName={activeWorkspace?.teamName ?? activeWorkspace?.name ?? null}
             hasWorkspace={Boolean(activeWorkspaceId)}
+            {...workspaceLoadFailedProps}
             onCreateProject={handleOpenCreateProject}
             onOpenWorkspaceComposer={() => {
               setComposerError("");
