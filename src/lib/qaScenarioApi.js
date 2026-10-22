@@ -1,4 +1,5 @@
 import { API_BASE_URL, apiFetch } from "@/lib/authConfig";
+import { aiErrorFromResponse } from "@/lib/aiErrors.mjs";
 
 async function errorFromResponse(res, fallback) {
   let message = fallback;
@@ -6,7 +7,13 @@ async function errorFromResponse(res, fallback) {
     const body = await res.json();
     if (body?.error) message = body.error;
   } catch {}
-  return new Error(`${message} (HTTP ${res?.status ?? "network"})`);
+  return new Error(message);
+}
+
+/** AI를 부르는 요청(생성·실행)은 이유 코드와 함께 화면용 오류로 바꾼다 */
+async function aiError(res) {
+  if (!res) return new Error("로그인이 만료되었습니다. 다시 로그인해 주세요.");
+  return aiErrorFromResponse(res);
 }
 
 export async function fetchQaScenarios(projectId) {
@@ -31,7 +38,7 @@ export async function generateQaScenarios(projectId, featureName) {
     method: "POST",
     body: JSON.stringify({ featureName }),
   });
-  if (!res?.ok) throw await errorFromResponse(res, "AI 시나리오 생성에 실패했습니다");
+  if (!res?.ok) throw await aiError(res);
   return res.json();
 }
 
@@ -40,7 +47,7 @@ export async function runQaScenario(projectId, scenarioId) {
   const res = await apiFetch(`${API_BASE_URL}/api/v1/projects/${projectId}/qa-scenarios/${scenarioId}/run`, {
     method: "POST",
   });
-  if (!res?.ok) throw await errorFromResponse(res, "시나리오 실행에 실패했습니다");
+  if (!res?.ok) throw await aiError(res);
   return res.json();
 }
 

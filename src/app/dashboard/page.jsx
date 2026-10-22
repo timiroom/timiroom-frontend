@@ -23,7 +23,8 @@ import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { QaTestPanel } from "@/components/dashboard/QaTestPanel";
 import { ProjectChatWizard, ProgressScreen } from "@/components/dashboard/ProjectChatWizard";
 import { WorkspaceComposerDialog } from "@/components/dashboard/workspace/WorkspaceComposerDialog";
-import { Icon, LoadingScreen, LoadingState } from "@/components/ui";
+import { AiErrorNotice, Icon, LoadingScreen, LoadingState } from "@/components/ui";
+import { toAiError } from "@/lib/aiErrors.mjs";
 import { CommitHistoryView } from "@/components/dashboard/CommitHistoryView";
 import { ProjectSettingsView } from "@/components/dashboard/ProjectSettingsView";
 import { readDashboardUrl, writeDashboardUrl } from "@/lib/dashboardUrl";
@@ -379,9 +380,10 @@ function DocumentSyncStatus({ sync }) {
         }}>{isRunning ? "↻" : isError ? "!" : "✓"}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{sync.title}</div>
-          <div style={{ marginTop: 2, fontSize: 11, color: "var(--text-3)", lineHeight: 1.45 }}>{sync.message}</div>
+          {!sync.aiError && <div style={{ marginTop: 2, fontSize: 11, color: "var(--text-3)", lineHeight: 1.45 }}>{sync.message}</div>}
         </div>
       </div>
+      {sync.aiError && <div style={{ marginTop: 10 }}><AiErrorNotice compact error={sync.aiError} /></div>}
 
       {sync.targets?.length > 0 && (
         <div style={{ display: "grid", gap: 6, marginTop: 11 }}>
@@ -554,7 +556,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!documentSync || !["complete", "error"].includes(documentSync.phase)) return undefined;
-    const timeoutId = window.setTimeout(() => setDocumentSync(null), 7000);
+    // 바로가기 버튼이 있는 AI 오류 안내는 읽고 누를 시간이 필요해 더 오래 둔다
+    const timeoutId = window.setTimeout(() => setDocumentSync(null), documentSync.aiError ? 20000 : 7000);
     return () => window.clearTimeout(timeoutId);
   }, [documentSync]);
 
@@ -1065,11 +1068,13 @@ export default function DashboardPage() {
       } : current);
     } catch (error) {
       if (error.name === "AbortError" || documentSyncRequestRef.current !== requestId) return;
+      const aiError = toAiError(error);
       setDocumentSync({
         phase: "error",
         sourceType,
         title: "연결 문서 분석 실패",
-        message: error.message || "AI 영향도 분석을 완료하지 못했습니다.",
+        message: aiError.message,
+        aiError: { code: aiError.code, message: aiError.message },
         targets: [],
       });
     }

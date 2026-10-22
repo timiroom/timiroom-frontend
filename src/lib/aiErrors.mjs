@@ -16,18 +16,19 @@ export class AiRequestError extends Error {
 const KEY_SETTINGS = { label: "내 AI 키 확인", href: "/settings/ai-keys" };
 const USAGE = { label: "사용량 보기", href: "/settings/usage" };
 
+// message는 서버가 안내 문구 없이 코드만 남긴 경우(작업 기록 등)에 쓴다
 const KINDS = {
-  AI_KEY_INVALID: { title: "AI 키를 확인해 주세요", action: KEY_SETTINGS },
-  AI_KEY_FORBIDDEN: { title: "AI 키 권한을 확인해 주세요", action: KEY_SETTINGS },
-  AI_MODEL_NOT_FOUND: { title: "AI 모델을 찾지 못했어요", action: KEY_SETTINGS },
-  AI_KEY_QUOTA_EXCEEDED: { title: "AI 키 크레딧을 모두 썼어요", action: KEY_SETTINGS },
-  USAGE_LIMIT_EXCEEDED: { title: "이번 달 AI 사용량을 모두 썼어요", action: USAGE },
-  AI_BUSY: { title: "AI가 잠시 바빠요", retry: true },
-  AI_TIMEOUT: { title: "AI 응답이 늦어지고 있어요", retry: true },
-  AI_SERVICE_UNAVAILABLE: { title: "AI에 잠시 연결할 수 없어요", retry: true },
-  AI_INPUT_TOO_LONG: { title: "내용이 너무 길어요" },
-  AI_REQUEST_REJECTED: { title: "AI가 요청을 처리하지 못했어요", retry: true },
-  AI_PROVIDER_ERROR: { title: "AI 응답을 받지 못했어요", retry: true },
+  AI_KEY_INVALID: { title: "AI 키를 확인해 주세요", action: KEY_SETTINGS, message: "연결한 AI 키가 올바르지 않거나 만료되었습니다. 설정 > 내 AI 키에서 키를 확인해 주세요." },
+  AI_KEY_FORBIDDEN: { title: "AI 키 권한을 확인해 주세요", action: KEY_SETTINGS, message: "연결한 AI 키로 이 모델을 쓸 권한이 없습니다. 설정 > 내 AI 키에서 모델이나 키 권한을 확인해 주세요." },
+  AI_MODEL_NOT_FOUND: { title: "AI 모델을 찾지 못했어요", action: KEY_SETTINGS, message: "연결한 AI 키에서 고른 모델을 찾지 못했습니다. 설정 > 내 AI 키에서 모델 이름을 확인해 주세요." },
+  AI_KEY_QUOTA_EXCEEDED: { title: "AI 키 크레딧을 모두 썼어요", action: KEY_SETTINGS, message: "연결한 AI 키의 크레딧이나 사용 한도를 모두 썼습니다. AI 제공사 결제 화면에서 확인하거나, 설정 > 내 AI 키에서 키 사용을 끄고 티미룸 AI로 계속하세요." },
+  USAGE_LIMIT_EXCEEDED: { title: "이번 달 AI 사용량을 모두 썼어요", action: USAGE, message: "이번 달 AI 사용 한도를 모두 썼습니다. 사용량 화면에서 다시 채워지는 날짜를 확인해 주세요." },
+  AI_BUSY: { title: "AI가 잠시 바빠요", retry: true, message: "AI 요청이 잠시 몰렸습니다. 30초쯤 뒤에 다시 시도해 주세요." },
+  AI_TIMEOUT: { title: "AI 응답이 늦어지고 있어요", retry: true, message: "AI 응답이 오래 걸려 중단했습니다. 잠시 후 다시 시도해 주세요." },
+  AI_SERVICE_UNAVAILABLE: { title: "AI에 잠시 연결할 수 없어요", retry: true, message: "AI 서버에 잠시 연결할 수 없습니다. 잠시 후 다시 시도해 주세요." },
+  AI_INPUT_TOO_LONG: { title: "내용이 너무 길어요", message: "AI가 한 번에 읽을 수 있는 길이를 넘었습니다. 내용을 줄여서 다시 시도해 주세요." },
+  AI_REQUEST_REJECTED: { title: "AI가 요청을 처리하지 못했어요", retry: true, message: "AI가 이 요청을 처리하지 못했습니다. 내용을 조금 바꿔서 다시 시도해 주세요." },
+  AI_PROVIDER_ERROR: { title: "AI 응답을 받지 못했어요", retry: true, message: "AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요." },
 };
 
 /** code에 맞는 제목·바로가기·다시 시도 가능 여부 */

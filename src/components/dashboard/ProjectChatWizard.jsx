@@ -144,6 +144,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const [phase,       setPhase]       = useState("running");
   const [errMsg,      setErrMsg]      = useState(null);
   const [errorDetails, setErrorDetails] = useState([]);
+  // AI 제공사 문제(내 AI 키, 크레딧, 요청 몰림 등)로 생성이 멈췄으면 그 코드. 안내 카드와 바로가기를 보여 준다
+  const [errCode, setErrCode] = useState(null);
   const [statuses,    setStatuses]    = useState(() =>
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
@@ -165,6 +167,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
     setPhase("running");
     setErrMsg(null);
     setErrorDetails([]);
+    setErrCode(null);
     setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
     setElapsedSeconds(0);
     setEventLog([]);
@@ -241,6 +244,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
             ...Object.values(error.qa?.blockingIssues || {}).flat(),
           ].filter(Boolean).map(String);
           setErrMsg(error.message === "타임아웃" ? "생성이 중간에 멈췄습니다. 다시 시도해 주세요." : (error.message || "파이프라인 오류가 발생했습니다"));
+          setErrCode(typeof error.errorCode === "string" && error.errorCode.startsWith("AI_") ? error.errorCode : null);
           setErrorDetails([...new Set(details)].slice(0, 12));
         } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
         setPhase("error");
@@ -337,7 +341,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
             <div style={{ height: 6, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${percent}%`, background: phase === "error" ? "#f87171" : phase === "done" ? "#34d399" : "linear-gradient(90deg, var(--db-purple-600), var(--db-purple-400))", borderRadius: 100, transition: "width 0.6s ease, background 0.3s", boxShadow: phase === "running" ? "0 0 8px var(--db-purple-400)" : "none" }}/>
             </div>
-            {phase === "error" && errMsg && <div style={{ marginTop: 8, fontSize: 12, color: "#f87171" }}>{errMsg}</div>}
+            {phase === "error" && errMsg && !errCode && <div style={{ marginTop: 8, fontSize: 12, color: "#f87171" }}>{errMsg}</div>}
+            {phase === "error" && errMsg && errCode && <div style={{ marginTop: 10, textAlign: "left" }}><AiErrorNotice compact error={{ code: errCode, message: errMsg }} /></div>}
             {phase === "running" && activeStep && (
               <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-2)" }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--db-purple-400)", boxShadow: "0 0 0 4px rgba(124,92,235,0.12)" }} />
