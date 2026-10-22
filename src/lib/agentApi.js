@@ -16,6 +16,7 @@
  */
 
 import { aiFetch, notifyUsageChanged } from "@/lib/aiGateway";
+import { aiErrorFromBody, aiErrorFromResponse, toAiError } from "@/lib/aiErrors.mjs";
 
 /* ── 시스템 프롬프트 생성 ── */
 export function buildSystemPrompt(projectContext) {
@@ -53,10 +54,7 @@ export async function sendMessage({ messages, projectContext, systemPrompt, proj
     },
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `HTTP ${res.status}`);
-  }
+  if (!res.ok) throw await aiErrorFromResponse(res);
 
   return res.json(); // { content: string, metadata: {...} }
 }
@@ -86,10 +84,7 @@ export async function sendMessageStream({
       signal,
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || err.message || `HTTP ${res.status}`);
-    }
+    if (!res.ok) throw await aiErrorFromResponse(res);
 
     const reader  = res.body.getReader();
     const decoder = new TextDecoder();
@@ -110,7 +105,7 @@ export async function sendMessageStream({
         try {
           const parsed = JSON.parse(data);
           // 서버가 스트림 도중 오류를 만나면 error 필드를 실어 보낸다
-          if (parsed.error) { onError?.(parsed.error); return; }
+          if (parsed.error) { const error = aiErrorFromBody(parsed); onError?.(error.message, error); return; }
           onChunk?.(parsed.delta ?? "");
         } catch {}
       }
@@ -119,7 +114,8 @@ export async function sendMessageStream({
   } catch (err) {
     // AbortError는 사용자 취소이므로 onError 호출 없이 조용히 종료
     if (err.name === "AbortError") return;
-    onError?.(err.message || "스트리밍 오류가 발생했습니다.");
+    const error = toAiError(err);
+    onError?.(error.message, error);
   }
 }
 
@@ -154,10 +150,7 @@ export async function requestDocumentEdit({ docType, document, instruction, hist
     signal,
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `HTTP ${res.status}`);
-  }
+  if (!res.ok) throw await aiErrorFromResponse(res);
 
   const body = await res.json();
   // pipeline_py 공통 응답 포맷: { success, code, data }
@@ -167,9 +160,6 @@ export async function requestDocumentEdit({ docType, document, instruction, hist
 /* ── 백엔드 연결 테스트 ── */
 export async function testConnection() {
   const res = await aiFetch("/test");
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || "연결 실패");
-  }
+  if (!res.ok) throw await aiErrorFromResponse(res);
   return true;
 }

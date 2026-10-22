@@ -30,7 +30,8 @@
  */
 
 import { tint } from "@/lib/color";
-import { AiWorking } from "@/components/ui";
+import { AiWorking, AiErrorNotice } from "@/components/ui";
+import { toAiError } from "@/lib/aiErrors.mjs";
 import { useUsage, isUsageBlocked, USAGE_WARN_PERCENT } from "@/context/UsageContext";
 import { formatResetDate } from "@/lib/usageApi";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -566,9 +567,10 @@ export function AiChatDock({
   }, [setMessages, slot]);
 
   /* ── 대화 히스토리 (서버 전송용) ── */
-  function buildHistory(extra) {
+  function buildHistory(extra, skipId = extra?.id) {
     return messages
-      .filter(m => m.id !== "init")
+      // 다시 시도할 때는 그 질문이 이미 목록에 있으니 한 번만 보낸다
+      .filter(m => m.id !== "init" && (skipId == null || m.id !== skipId))
       .map(m => m.type === "edit"
         ? { role: "assistant", content: m.analysis?.summary || m.reply || "수정안을 분석했습니다." }
         : m)
@@ -586,7 +588,7 @@ export function AiChatDock({
         docType:     editDocType,
         document:    docJson,
         instruction: userMsg.content,
-        history:     buildHistory(),
+        history:     buildHistory(undefined, userMsg.id),
         related:     buildRelatedDocs(project, contextType),
         projectId:   project?.id,
         signal:      abortRef.current.signal,
@@ -609,9 +611,11 @@ export function AiChatDock({
       }
     } catch (e) {
       if (e.name !== "AbortError") {
+        const error = toAiError(e);
+        // content를 비워 두어 다음 대화 기록(buildHistory)에 오류 문구가 섞이지 않게 한다
         setMessages(prev => [...prev, {
-          id: Date.now() + 1, role: "assistant",
-          content: `오류: ${e.message}`,
+          id: Date.now() + 1, role: "assistant", type: "error", content: "",
+          error: { code: error.code, message: error.message }, retry: { mode: "edit", userMsg },
         }]);
       }
     } finally {
@@ -646,14 +650,23 @@ export function AiChatDock({
         ));
       },
       onDone: () => { setBusy(false); setStreamingId(null); },
-      onError: (err) => {
+      onError: (message, error) => {
+        const detail = error ? { code: error.code, message: error.message } : { code: "AI_PROVIDER_ERROR", message };
         setMessages(prev => prev.map(m =>
-          m.id === aiId ? { ...m, content: `오류: ${err}` } : m
+          m.id === aiId ? { ...m, type: "error", content: "", error: detail, retry: { mode: "stream", userMsg } } : m
         ));
         setBusy(false);
         setStreamingId(null);
       },
     });
+  }
+
+  /* 일시적인 오류(AI가 바쁨, 시간 초과)는 같은 요청을 그대로 다시 보낸다 */
+  function retryRequest(msg) {
+    if (busy || !msg.retry?.userMsg) return;
+    setMessages(prev => prev.filter(m => m.id !== msg.id));
+    if (msg.retry.mode === "edit") runEditRequest(msg.retry.userMsg);
+    else runStreamRequest(msg.retry.userMsg);
   }
 
   const handleSend = useCallback(async () => {
@@ -806,7 +819,14 @@ export function AiChatDock({
       {/* 메시지 영역 */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 8px", background: "var(--surface)" }}>
         {messages.map(msg =>
-          msg.type === "edit" ? (
+          msg.type === "error" ? (
+            <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <AiAvatar />
+              <div style={{ flex: 1, minWidth: 0, maxWidth: "88%" }}>
+                <AiErrorNotice compact error={msg.error} onRetry={msg.retry && !busy ? () => retryRequest(msg) : undefined} />
+              </div>
+            </div>
+          ) : msg.type === "edit" ? (
             <EditProposal
               key={msg.id}
               msg={msg}

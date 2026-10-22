@@ -24,6 +24,8 @@ export class UsageLimitError extends Error {
 export async function usageLimitErrorFrom(res) {
   if (!res || res.status !== 429) return null;
   const body = await res.clone().json().catch(() => ({}));
+  // 429는 AI 제공사가 잠시 바쁠 때(AI_BUSY)도 온다. 월 사용량 소진일 때만 한도 안내를 띄운다.
+  if (body.code !== "USAGE_LIMIT_EXCEEDED") return null;
   const error = new UsageLimitError({ message: body.error || body.detail, resetAt: body.resetAt, plan: body.plan });
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(USAGE_LIMIT_EVENT, { detail: error }));
   return error;
