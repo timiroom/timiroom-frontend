@@ -37,9 +37,11 @@ export const revokeConnection = (id) => integrationRequest(`/api/v1/integrations
 export const slackConnection = () => integrationRequest("/api/v1/integrations/slack");
 export const connectSlack = () => integrationRequest("/api/v1/integrations/slack/connect", { method: "POST" });
 export const linkSlack = (code) => integrationRequest("/api/v1/integrations/slack/link", { method: "POST", body: { code } });
-export const unlinkSlack = () => integrationRequest("/api/v1/integrations/slack/link", { method: "DELETE" });
+// teamId를 주면 그 워크스페이스의 계정만, 없으면 모든 워크스페이스의 연결을 해제한다
+export const unlinkSlack = (teamId) => integrationRequest(`/api/v1/integrations/slack/link${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ""}`, { method: "DELETE" });
+export const installSlack = () => integrationRequest("/api/v1/integrations/slack/install", { method: "POST" });
 // events: 받을 알림 종류(CHANGE·REVIEW·PR). 비우면 전부 받는다. 같은 채널을 다시 보내면 알림 종류만 바뀐다.
-export const configureSlackChannel = (projectId, channelId, events) => integrationRequest("/api/v1/integrations/slack/channels", { method: "POST", body: { projectId, channelId, events } });
+export const configureSlackChannel = (projectId, channelId, events, teamId) => integrationRequest("/api/v1/integrations/slack/channels", { method: "POST", body: { projectId, teamId, channelId, events } });
 export const removeSlackChannel = (projectId, channelId) => integrationRequest(`/api/v1/integrations/slack/channels/${projectId}${channelId ? `?channelId=${encodeURIComponent(channelId)}` : ""}`, { method: "DELETE" });
 
 const projectPath = (id) => `/api/v1/projects/${id}`;
