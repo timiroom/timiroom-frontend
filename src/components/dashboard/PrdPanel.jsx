@@ -487,6 +487,7 @@ function SectionContent({ doc, sectionKey, htmlSections, extras = [] }) {
   const extra = extras.find((section) => section.key === sectionKey);
   if (extra) return <HtmlSectionView html={renderMarkdown(extra.markdown)} />;
   if (doc.type === "html") {
+    if (sectionKey === "__all__") return <HtmlSectionView html={doc.htmlContent || ""} />;
     const sec = htmlSections.find(s=>s.key===sectionKey);
     return <HtmlSectionView html={sec?.html||""} />;
   }
@@ -506,18 +507,31 @@ function SectionContent({ doc, sectionKey, htmlSections, extras = [] }) {
    PRD 사이드바
 ══════════════════════════════════════ */
 function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
+  const listRef = useRef(null);
+  // 좁은 화면에서는 목차가 가로 한 줄이라, 지금 읽는 섹션이 줄 밖에 있으면 보이는 곳으로 옮긴다(세로 스크롤은 건드리지 않는다)
+  useEffect(() => {
+    const list = listRef.current;
+    const item = list?.querySelector('[aria-current="location"]');
+    if (!list || !item || list.scrollWidth <= list.clientWidth) return;
+    const left = item.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + item.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = left - (list.clientWidth - item.offsetWidth) / 2;
+    }
+  }, [activeKey]);
   return (
     <div className="prd-side" style={{ width:210, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       <div className="prd-side__title" style={{ padding:"16px 14px 10px" }}>
         <div style={{ fontSize:11, fontWeight:700, color:C.sub, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:3 }}>PRD</div>
         <div style={{ fontSize:14, fontWeight:700, color:C.text, lineHeight:1.35, wordBreak:"break-word" }}>{projectName || "제품 요구사항 문서"}</div>
       </div>
-      <div className="prd-side__list" style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
+      <nav ref={listRef} className="prd-side__list" aria-label="PRD 목차" style={{ flex:1, overflowY:"auto", padding:"4px 8px 8px" }}>
         {sections.map(sec => {
           const isActive = activeKey===sec.key;
           return (
             <button
               key={sec.key}
+              type="button"
+              aria-current={isActive ? "location" : undefined}
               onClick={()=>onSelect(sec.key)}
               style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:7, marginBottom:1, background:isActive?"color-mix(in srgb, var(--text-2) 12%, transparent)":"transparent", border:"none", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
               onMouseEnter={e=>{ if(!isActive) e.currentTarget.style.background="rgba(0,0,0,0.04)"; }}
@@ -528,7 +542,7 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
             </button>
           );
         })}
-      </div>
+      </nav>
       <div className="prd-side__foot" style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
         <button
           onClick={onEditAll}
@@ -547,7 +561,12 @@ function PrdSidebar({ sections, activeKey, onSelect, projectName, onEditAll }) {
 
 /* ══════════════════════════════════════
    PRD PANEL
+   모든 섹션을 한 화면에 이어서 보여 주고, 왼쪽 목차는 그 위치로 스크롤한다.
+   스크롤하면 지금 읽는 섹션이 목차에 표시된다.
 ══════════════════════════════════════ */
+const SECTION_SCROLL_GAP = 16;   // 목차로 이동할 때 섹션 제목 위에 남기는 여백
+const SECTION_SPY_OFFSET = 96;   // 본문 맨 위에서 이만큼 안으로 들어온 섹션을 "지금 읽는 섹션"으로 본다
+
 export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocumentSaved, onDocumentEditingChange, onProposeDocument }) {
   const [markdown,      setMarkdown]     = useState("");
   const dirtyRef = useRef(false); // 저장하지 않은 편집이 있으면 문서를 다시 받아도 편집기를 덮어쓰지 않는다
@@ -556,6 +575,9 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
   const [saved,         setSaved]        = useState(false);
   const [editMode,      setEditMode]     = useState(false);
   const [activeSection, setActiveSection]= useState("overview");
+  const scrollRef   = useRef(null);
+  const sectionRefs = useRef({});
+  const scrollLock  = useRef(null);   // 목차를 눌러 이동하는 동안은 지나가는 섹션으로 표시가 흔들리지 않게 잠근다
 
   const doc       = project?.prdDocument;
   const isHtmlDoc = doc?.type === "html";
@@ -588,6 +610,56 @@ export function PrdPanel({ project, readOnly = false, onDocumentChange, onDocume
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableSections]);
+
+  // 화면에 그릴 섹션. 내용 있는 섹션이 하나도 없으면 개요 자리에 빈 안내를 둔다.
+  const renderedSections = availableSections.length > 0 ? availableSections : [{ key:"overview", label:"프로젝트 개요", icon:"overview" }];
+
+  function goToSection(key) {
+    const container = scrollRef.current;
+    const el = sectionRefs.current[key];
+    if (!container || !el) return;
+    setActiveSection(key);
+    const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - SECTION_SCROLL_GAP;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    clearTimeout(scrollLock.current);
+    scrollLock.current = setTimeout(() => { scrollLock.current = null; }, reduceMotion ? 50 : 900);
+    container.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? "auto" : "smooth" });
+  }
+
+  // 스크롤 위치로 지금 읽는 섹션을 고른다. 맨 아래에 닿으면 마지막 섹션으로 본다(짧은 마지막 섹션은 위까지 못 올라오므로).
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || editMode) return undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (scrollLock.current) return;
+      const top = container.getBoundingClientRect().top;
+      const keys = renderedSections.map((section) => section.key);
+      let current = keys[0];
+      if (container.scrollTop > 0 && container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+        current = keys[keys.length - 1];
+      } else {
+        keys.forEach((key) => {
+          const el = sectionRefs.current[key];
+          if (el && el.getBoundingClientRect().top - top <= SECTION_SPY_OFFSET) current = key;
+        });
+      }
+      if (current) setActiveSection((prev) => (prev === current ? prev : current));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    const onScrollEnd = () => { if (scrollLock.current) { clearTimeout(scrollLock.current); scrollLock.current = null; } };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    container.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      container.removeEventListener("scroll", onScroll);
+      container.removeEventListener("scrollend", onScrollEnd);
+      cancelAnimationFrame(frame);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableSections, editMode, doc]);
+
+  useEffect(() => () => clearTimeout(scrollLock.current), []);
 
   /* 편집기 원문: 구조화 PRD는 정해진 틀의 마크다운으로, HTML 문서는 마크다운으로 옮겨 연다 */
   useEffect(() => {
@@ -724,7 +796,7 @@ ${content}</body></html>`;
           <PrdSidebar
             sections={availableSections}
             activeKey={activeSection}
-            onSelect={key=>setActiveSection(key)}
+            onSelect={goToSection}
             projectName={project?.name}
             onEditAll={readOnly ? undefined : ()=>setEditMode(true)}
           />
@@ -733,13 +805,22 @@ ${content}</body></html>`;
               {hasDraft && <Badge tone="success"><Icon name="check" size={11} /> AI 초안</Badge>}
               <PdfBtn disabled={!hasDraft} />
             </PanelHeader>
-            <div style={{ flex:1, overflowY:"auto" }}>
+            <div ref={scrollRef} style={{ flex:1, overflowY:"auto" }}>
               {!doc ? (
                 // 편집은 AI가 만든 PRD를 고치는 방식이라, 문서가 없을 때는 편집을 열지 않는다(저장할 곳이 없다).
                 <EmptyState icon="doc" title="아직 PRD가 없습니다" description="AI 기획 생성이 끝나면 여기에 PRD가 만들어집니다. 생성이 끝났는데도 비어 있다면 생성 과정에서 실패한 것입니다." />
               ) : (
                 <div className="panel-inner">
-                  <SectionContent doc={doc} sectionKey={activeSection} htmlSections={htmlSections} extras={extras} />
+                  {renderedSections.map((section) => (
+                    <section
+                      key={section.key}
+                      className="prd-section"
+                      aria-label={section.label}
+                      ref={(el) => { if (el) sectionRefs.current[section.key] = el; else delete sectionRefs.current[section.key]; }}
+                    >
+                      <SectionContent doc={doc} sectionKey={section.key} htmlSections={htmlSections} extras={extras} />
+                    </section>
+                  ))}
                 </div>
               )}
             </div>

@@ -1443,3 +1443,6 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .consent-hint { flex-basis: 100%; }
   .consent-actions .consent-btn { flex: 1; min-height: 44px; }
 }
+
+/* PRD: 모든 섹션을 한 화면에 이어서 보여 준다(dashboard/PrdPanel). 섹션 사이에 구분 여백 */
+.prd-section + .prd-section { margin-top: 56px; }
