@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/authConfig";
 import { aiClients, aiConnectionLink, connectionRows } from "@/lib/aiConnectionLinks.mjs";
-import { connections, revokeConnection, updateConnection, slackConnection, connectSlack, unlinkSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
+import { connections, revokeConnection, updateConnection, slackConnection, connectSlack, unlinkSlack, installSlack, configureSlackChannel, removeSlackChannel } from "@/lib/integrationApi";
 // 채널마다 골라 받을 수 있는 알림 종류
 const SLACK_EVENTS = [
   { id: "CHANGE", label: "변경안 승인 요청" },
@@ -15,6 +15,7 @@ const scopeNames = { "projects:read": "프로젝트 정보 조회", "specs:read"
 export function AiToolConnectionsPanel({ projects = [] }) {
   const [items, setItems] = useState([]);
   const [slack, setSlack] = useState(null);
+  const [channelTeam, setChannelTeam] = useState("");
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -68,7 +69,8 @@ export function AiToolConnectionsPanel({ projects = [] }) {
     const url = new URL(window.location.href);
     const result = url.searchParams.get("slack");
     if (!result) return;
-    if (result === "cancelled") setFeedback("Slack 연결을 취소했습니다.");
+    if (result === "installed") setFeedback("Slack 워크스페이스에 티미룸 앱을 추가하고 내 계정을 연결했습니다.");
+    else if (result === "cancelled") setFeedback("Slack 연결을 취소했습니다.");
     else if (result === "failed") setFeedback("Slack 연결을 완료하지 못했습니다. 다시 시도해 주세요.");
     // Connection badges always come from the server, never from this URL parameter.
     url.searchParams.delete("slack");
@@ -80,6 +82,15 @@ export function AiToolConnectionsPanel({ projects = [] }) {
       const { url } = await connectSlack();
       const target = new URL(url);
       if (target.origin !== "https://slack.com" || target.pathname !== "/openid/connect/authorize") throw new Error("Slack 연결 주소를 확인하지 못했습니다.");
+      window.location.assign(target.href);
+    } catch (error) { setFeedback(error.message); setBusy(false); }
+  }
+  async function startSlackInstall() {
+    setBusy(true); setFeedback("");
+    try {
+      const { url } = await installSlack();
+      const target = new URL(url);
+      if (target.origin !== "https://slack.com" || target.pathname !== "/oauth/v2/authorize") throw new Error("Slack 설치 주소를 확인하지 못했습니다.");
       window.location.assign(target.href);
     } catch (error) { setFeedback(error.message); setBusy(false); }
   }
@@ -97,6 +108,14 @@ export function AiToolConnectionsPanel({ projects = [] }) {
     const listedIds = new Set(listed.map((option) => option.id));
     const missing = grantedIds.filter((id) => !listedIds.has(id)).map((id) => ({ id, name: projectName(id), missing: true }));
     return [...listed, ...missing];
+  }
+  // 예전 응답(account 하나)도 받는다
+  const slackAccounts = slack?.accounts ?? (slack?.connected && slack.account ? [slack.account] : []);
+  const slackWorkspaces = slack?.workspaces ?? [];
+  function workspaceName(teamId) {
+    const linked = slackAccounts.find((a) => a.team_id === teamId);
+    const installed = slackWorkspaces.find((w) => w.teamId === teamId);
+    return linked?.team_name || installed?.teamName || (slackWorkspaces.length > 1 ? `워크스페이스 ${teamId}` : "Slack 워크스페이스");
   }
   function projectName(id) {
     const item = projects.find((entry) => String(entry.projectId ?? entry.id) === String(id));
@@ -165,15 +184,29 @@ export function AiToolConnectionsPanel({ projects = [] }) {
       )}
       {slackEnabled && <div className="integration-slack">
         <h3>Slack 연결</h3>
-        <p>Slack 계정을 연결하면 프로젝트 알림을 받고, Slack에서 바로 검토 대기 확인과 검사를 요청할 수 있습니다. 같은 Slack 워크스페이스의 팀원이라면 누구나 각자 연결할 수 있습니다.</p>
-        <div className="integration-row">
-          <div className="connection-detail"><div className="connection-title"><strong>Slack 계정</strong><span className={`connection-status ${slack?.connected ? "active" : ""}`}>{loading ? "확인 중" : slack?.connected ? "연결됨" : slack ? "미연결" : "확인 실패"}</span></div>
-            {slack?.connected && <p className="connection-meta">{slack.account.linked_at ? `${new Date(slack.account.linked_at).toLocaleDateString("ko-KR")}에 연결` : "연결되어 있습니다"} · Slack에서 /timiroom 명령을 쓸 수 있습니다</p>}
+        <p>Slack 계정을 연결하면 프로젝트 알림을 받고, Slack에서 바로 검토 대기 확인과 검사를 요청할 수 있습니다. 여러 워크스페이스를 쓰면 워크스페이스마다 계정을 하나씩 연결합니다.</p>
+        {slackAccounts.map((account) => (
+          <div className="integration-row" key={account.team_id}>
+            <div className="connection-detail"><div className="connection-title"><strong>{workspaceName(account.team_id)}</strong><span className="connection-status active">연결됨</span></div>
+              <p className="connection-meta">{account.linked_at ? `${new Date(account.linked_at).toLocaleDateString("ko-KR")}에 연결` : "연결되어 있습니다"} · Slack에서 /timiroom 명령을 쓸 수 있습니다</p>
+            </div>
+            <button disabled={busy || loading} onClick={() => run(() => unlinkSlack(account.team_id), `${workspaceName(account.team_id)} 연결과 그 워크스페이스의 알림 채널을 해제했습니다.`)}>연결 해제</button>
           </div>
-          {slack?.connected ? <button disabled={busy || loading} onClick={() => run(unlinkSlack, "Slack 연결과 설정한 알림 채널을 해제했습니다.")}>연결 해제</button>
-            : <button disabled={busy || loading || !slack} onClick={startSlackConnection}>{busy ? "연결 중…" : "연결"}</button>}
+        ))}
+        <div className="integration-row">
+          <div className="connection-detail"><div className="connection-title"><strong>{slackAccounts.length ? "다른 워크스페이스 계정" : "Slack 계정"}</strong>
+            {!slackAccounts.length && <span className="connection-status">{loading ? "확인 중" : slack ? "미연결" : "확인 실패"}</span>}</div>
+            <p className="connection-meta">{slackWorkspaces.length > 1 ? "Slack 로그인 화면에서 연결할 워크스페이스를 고르세요." : "티미룸 앱이 설치된 워크스페이스의 계정으로 로그인합니다."}</p>
+          </div>
+          <button disabled={busy || loading || !slack || slack.connectAvailable === false} onClick={startSlackConnection}>{busy ? "연결 중…" : "계정 연결"}</button>
         </div>
-        {slack?.connected && <>
+        {slack?.installAvailable && <div className="integration-row">
+          <div className="connection-detail"><div className="connection-title"><strong>워크스페이스에 앱 추가</strong></div>
+            <p className="connection-meta">{slackWorkspaces.length ? `설치된 워크스페이스: ${slackWorkspaces.map((w) => w.teamName || w.teamId).join(", ")}. ` : ""}다른 워크스페이스에서도 쓰려면 그 워크스페이스에 티미룸 앱을 추가하세요(워크스페이스 관리자 승인이 필요할 수 있어요).</p>
+          </div>
+          <button disabled={busy || loading} onClick={startSlackInstall}>앱 추가</button>
+        </div>}
+        {slackAccounts.length > 0 && <>
           <h4>프로젝트 알림 채널</h4>
           <p>한 프로젝트에 채널을 여러 개 연결하고, 채널마다 받을 알림을 고를 수 있습니다. 예를 들어 기획 채널은 변경안·교차검증, 개발 채널은 PR 검사 결과만 받게 할 수 있습니다.</p>
           <p>알림을 받을 Slack 채널에서 <code>/timiroom 채널연결 프로젝트이름</code>을 입력하면 바로 연결됩니다(PM만). 그다음 그 채널에 티미룸 앱을 초대하세요.</p>
@@ -183,12 +216,12 @@ export function AiToolConnectionsPanel({ projects = [] }) {
               const toggle = (id) => {
                 const next = events.includes(id) ? events.filter((e) => e !== id) : [...events, id];
                 if (!next.length) { setFeedback("알림을 모두 끄려면 채널을 해제하세요."); return; }
-                run(() => configureSlackChannel(item.project_id, item.channel_id, next), "받을 알림을 바꿨습니다.");
+                run(() => configureSlackChannel(item.project_id, item.channel_id, next, item.team_id), "받을 알림을 바꿨습니다.");
               };
               return <li key={`${item.project_id}-${item.channel_id}`}>
                 <div className="connection-detail">
                   <strong>{projectName(item.project_id)}</strong>
-                  <p className="connection-meta"><a href={`https://app.slack.com/client/${slack.account.team_id}/${item.channel_id}`} target="_blank" rel="noreferrer">Slack에서 채널 열기 ({item.channel_id})</a></p>
+                  <p className="connection-meta">{slackWorkspaces.length > 1 && `${workspaceName(item.team_id)} · `}<a href={`https://app.slack.com/client/${item.team_id}/${item.channel_id}`} target="_blank" rel="noreferrer">Slack에서 채널 열기 ({item.channel_id})</a></p>
                   <div className="slack-events" role="group" aria-label="받을 알림">
                     {SLACK_EVENTS.map((event) => (
                       <button key={event.id} type="button" aria-pressed={events.includes(event.id)} disabled={busy}
@@ -204,7 +237,10 @@ export function AiToolConnectionsPanel({ projects = [] }) {
           )}
           <details className="integration-manual"><summary>채널 ID로 직접 연결하기</summary>
           <p>채널 이름을 눌러 열리는 채널 정보 맨 아래에서 채널 ID(C로 시작)를 복사할 수 있습니다.</p>
-          <form onSubmit={(event) => { event.preventDefault(); run(() => configureSlackChannel(Number(project), channel.trim()), "알림 채널을 설정했습니다."); }}>
+          <form onSubmit={(event) => { event.preventDefault(); run(() => configureSlackChannel(Number(project), channel.trim(), undefined, channelTeam || slackAccounts[0]?.team_id), "알림 채널을 설정했습니다."); }}>
+            {slackAccounts.length > 1 && <label className="integration-label">워크스페이스<select value={channelTeam || slackAccounts[0].team_id} onChange={(event) => setChannelTeam(event.target.value)}>
+              {slackAccounts.map((account) => <option key={account.team_id} value={account.team_id}>{workspaceName(account.team_id)}</option>)}
+            </select></label>}
             <label className="integration-label">프로젝트<select value={project} onChange={(event) => setProject(event.target.value)} required>
               <option value="">프로젝트 선택</option>{projects.map((item) => <option key={item.projectId ?? item.id} value={item.projectId ?? item.id}>{item.projectName ?? item.name}</option>)}
             </select></label>
