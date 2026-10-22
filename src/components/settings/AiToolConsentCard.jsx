@@ -8,12 +8,13 @@ const SCOPE_ORDER = ["projects:read", "specs:read", "specs:propose", "consistenc
 
 /**
  * AI 도구(Codex·Claude Code) 연결 요청 승인 창. 설정 → 연결된 도구 화면 위에 모달로 뜬다.
- * 바깥을 눌러도 닫히지 않게 하고(실수로 놓치지 않게), ✕·Esc로 닫으면 결정을 미룬 것으로 본다.
+ * 바깥을 눌러도 닫히지 않게 하고(실수로 놓치지 않게), ✕·Esc로 닫으면 결정을 미룬 것으로 본다(onClose).
+ * 미룬 요청은 화면 위 안내 줄에서 다시 열 수 있다. 요청을 찾을 수 없을 때만 닫으면서 요청을 버린다(onDiscard).
  * API 서버(/oauth2/authorize)가 승인이 필요하면 /settings/connections?client_id=…&state=… 로 보낸다.
  * 그릴 내용은 /api/v1/integrations/consent에서 받고, 고른 결과는 같은 API 서버로 폼 POST해서
  * 승인 처리와 토큰 발급은 지금처럼 API 서버가 한다.
  */
-export function AiToolConsentCard({ clientId, state, onDismiss }) {
+export function AiToolConsentCard({ clientId, state, onClose, onDiscard }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [projects, setProjects] = useState([]);
@@ -46,13 +47,16 @@ export function AiToolConsentCard({ clientId, state, onDismiss }) {
   const toggle = (setter, value) => (event) =>
     setter((current) => (event.target.checked ? [...current, value] : current.filter((v) => v !== value)));
 
+  // 요청을 찾을 수 없으면 다시 열 일이 없으니 버리고, 그 밖에는 결정을 미룬 채로 닫는다
+  const dismiss = error ? onDiscard : onClose;
+
   const shell = (title, body) => (
     <dialog ref={dialogRef} className="consent-dialog" aria-labelledby="consent-title"
-      onCancel={(event) => { event.preventDefault(); onDismiss(); }}>
+      onCancel={(event) => { event.preventDefault(); dismiss(); }}>
       <div className="consent-card__head">
         <span className="consent-card__badge">연결 요청</span>
         <h2 id="consent-title">{title}</h2>
-        <button type="button" className="consent-close" onClick={onDismiss} aria-label="닫기">
+        <button type="button" className="consent-close" onClick={dismiss} aria-label={error ? "닫기" : "나중에 결정하기"} title={error ? undefined : "나중에 결정하기"}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
@@ -63,7 +67,7 @@ export function AiToolConsentCard({ clientId, state, onDismiss }) {
   if (error) {
     return shell("AI 도구 연결", <>
       <p className="consent-card__desc" role="alert">{error}</p>
-      <div className="consent-actions"><button type="button" className="consent-btn" onClick={onDismiss}>닫기</button></div>
+      <div className="consent-actions"><button type="button" className="consent-btn" onClick={onDiscard}>닫기</button></div>
     </>);
   }
   if (!data) return shell("AI 도구 연결", <LoadingState label="연결 요청을 불러오는 중…" />);
