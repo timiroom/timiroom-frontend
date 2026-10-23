@@ -98,8 +98,9 @@ function SectionIcon({ name, size }) {
 
 function parseSectionsFromHtml(html) {
   if (typeof document === "undefined" || !html) return [];
-  const div = document.createElement("div");
-  div.innerHTML = html;
+  // 저장된 HTML은 팀원이 쓴 글이다. 분석 전에 DOMPurify로 거르고, 스크립트가 돌지 않는 DOMParser 문서에서 읽는다.
+  // (화면에 붙이지 않은 div라도 innerHTML에 넣으면 <img onerror> 같은 코드가 실행된다.)
+  const div = new DOMParser().parseFromString(sanitizeHtml(html), "text/html").body;
   const sections = [];
   let current = null;
   Array.from(div.childNodes).forEach(node => {
