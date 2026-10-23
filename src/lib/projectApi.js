@@ -272,3 +272,16 @@ export function enrichProjectWithArtifacts(project, artifacts) {
     artifactSources: sources,
   };
 }
+
+/* ══════════════════════════════════════
+   프로젝트 Mock 서버 주소
+   GET /api/v1/mock/{projectId}/url → { key, path }
+   주소에는 서명된 키가 들어가 프로젝트 번호만으로는 열 수 없다.
+══════════════════════════════════════ */
+export async function fetchMockBaseUrl(projectId) {
+  if (projectId == null || !API_BASE_URL) return "";
+  const res = await apiFetch(`${API_BASE_URL}/api/v1/mock/${encodeURIComponent(projectId)}/url`);
+  if (!res || !res.ok) return "";
+  const body = await res.json().catch(() => ({}));
+  return typeof body?.path === "string" ? `${API_BASE_URL}${body.path}` : "";
+}
