@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test src/lib/aiConnectionLinks.test.mjs src/lib/specPresentation.test.mjs src/lib/prdMarkdown.test.mjs src/lib/techStack.test.mjs src/lib/aiErrors.test.mjs src/lib/relatedDocs.test.mjs"
+    "test": "node --test src/lib/aiConnectionLinks.test.mjs src/lib/specPresentation.test.mjs src/lib/prdMarkdown.test.mjs src/lib/techStack.test.mjs src/lib/aiErrors.test.mjs src/lib/pipelineProgress.test.mjs src/lib/relatedDocs.test.mjs"
   },
   "dependencies": {
     "@babel/runtime": "7.29.7",

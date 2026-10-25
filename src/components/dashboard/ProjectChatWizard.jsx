@@ -12,6 +12,7 @@ import {
 import { restartPipeline } from "@/lib/pipelineApi";
 import { getOrCreateDefaultTeam } from "@/lib/teamApi";
 import { createProject } from "@/lib/projectApi";
+import { pipelineFailure, pollStoredResult, storageIsConfirmed } from "@/lib/pipelineProgress.mjs";
 
 /* ═══════════════════════════════════════════
    파이프라인 진행 화면 상수 (ProgressScreen용)
@@ -20,7 +21,7 @@ import { createProject } from "@/lib/projectApi";
 const PIPELINE_STEPS = [
   { key: "PHASE1",  label: "RAG 준비",    icon: "database", agents: null },
   { key: "SEARCH",  label: "시장 조사",    icon: "search", agents: null },
-  { key: "PM",      label: "기능 분석",    icon: "list", agents: null },
+  { key: "PM",      label: "프로젝트 계획", icon: "list", agents: null },
   { key: "PRD",     label: "PRD 작성",    icon: "doc", agents: null },
   { key: "FEATURE_SPEC", label: "기능명세", icon: "checklist", agents: null },
   { key: "DBA_API", label: "DB · API 설계", icon: "server", agents: "DBA · API 병렬" },
@@ -39,6 +40,7 @@ const SSE_TO_STEP = {
   QA: "QA", QA_RETRY: "QA", QA_REPAIR: "QA",
   PHASE3: "PHASE3",
   PHASE4: "PHASE4",
+  STORAGE_CONFIRMATION: "PHASE4", KAFKA_PUBLISHED: "PHASE4",
 };
 
 const ROW1    = PIPELINE_STEPS.slice(0, 5);
@@ -100,7 +102,7 @@ function FlowNode({ step, status }) {
             whiteSpace: "nowrap", letterSpacing: ".03em",
             transition: "all 0.3s",
           }}>
-            ×4 병렬
+            2개 에이전트 병렬
           </div>
         )}
         {isDone && (
@@ -128,7 +130,7 @@ function FlowNode({ step, status }) {
           </span>
         )}
         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
-          {isError ? "실패" : isDone ? "완료" : isRunning ? "실행 중" : "대기"}
+          {isError ? "확인 필요" : isDone ? "완료" : isRunning ? "실행 중" : status === "skipped" ? "미실행" : "대기"}
         </span>
       </div>
     </div>
@@ -146,6 +148,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const [errorDetails, setErrorDetails] = useState([]);
   // AI 제공사 문제(내 AI 키, 크레딧, 요청 몰림 등)로 생성이 멈췄으면 그 코드. 안내 카드와 바로가기를 보여 준다
   const [errCode, setErrCode] = useState(null);
+  const [retrySafe, setRetrySafe] = useState(true);
+  const [pendingStorage, setPendingStorage] = useState(false);
   const [statuses,    setStatuses]    = useState(() =>
     Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"]))
   );
@@ -158,6 +162,24 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
 
+  useEffect(() => {
+    if (!pendingStorage || !pipelineId) return;
+    return pollStoredResult(
+      async () => {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/pipeline/state/${pipelineId}`);
+        return response?.ok ? response.json() : null;
+      },
+      result => {
+        doneRef.current = true;
+        setPendingStorage(false);
+        setPhase("done");
+        setPercent(100);
+        setStatuses(Object.fromEntries(PIPELINE_STEPS.map(step => [step.key, "done"])));
+        onComplete(result);
+      }
+    );
+  }, [pendingStorage, pipelineId, onComplete]);
+
   /* ── SSE 연결 ── */
   useEffect(() => {
     if (!pipelineId) return;
@@ -168,6 +190,8 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
     setErrMsg(null);
     setErrorDetails([]);
     setErrCode(null);
+    setRetrySafe(true);
+    setPendingStorage(false);
     setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
     setElapsedSeconds(0);
     setEventLog([]);
@@ -216,9 +240,18 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         }
       });
       es.addEventListener("complete", (e) => {
+        window.clearInterval(timer);
         doneRef.current = true;
         setReconnecting(false);
         const d = JSON.parse(e.data);
+        if (!storageIsConfirmed(d.result)) {
+          setPhase("error");
+          setPendingStorage(true);
+          setRetrySafe(false);
+          setErrMsg("Kafka 발행 후 DB 저장 확인이 대기 중입니다. 중복 생성하지 마세요.");
+          es.close();
+          return;
+        }
         setPercent(100);
         setPhase("done");
         setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
@@ -229,23 +262,18 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
         // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
         if (doneRef.current || !e.data) return;
+        window.clearInterval(timer);
         doneRef.current = true;
         setReconnecting(false);
-        setStatuses(prev => {
-          const next = { ...prev };
-          if (currentKeyRef.current) next[currentKeyRef.current] = "error";
-          return next;
-        });
         try {
           const error = JSON.parse(e.data);
-          const details = [
-            ...(error.validationBlockers || []),
-            ...(error.blockerDetails || []).map(item => item?.message || item?.detail || item?.code),
-            ...Object.values(error.qa?.blockingIssues || {}).flat(),
-          ].filter(Boolean).map(String);
+          const failure = pipelineFailure(error, {}, currentKeyRef.current);
+          setStatuses(prev => pipelineFailure(error, prev, currentKeyRef.current).statuses);
+          setRetrySafe(failure.retrySafe);
+          setPendingStorage(failure.pendingStorage);
           setErrMsg(error.message === "타임아웃" ? "생성이 중간에 멈췄습니다. 다시 시도해 주세요." : (error.message || "파이프라인 오류가 발생했습니다"));
           setErrCode(typeof error.errorCode === "string" && error.errorCode.startsWith("AI_") ? error.errorCode : null);
-          setErrorDetails([...new Set(details)].slice(0, 12));
+          setErrorDetails(failure.details);
         } catch { setErrMsg("파이프라인 오류가 발생했습니다"); }
         setPhase("error");
         es.close();
@@ -275,6 +303,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   }, [pipelineId, onComplete, connectKey]);
 
   async function handleRestart() {
+    if (!retrySafe) return;
     setRestarting(true);
     try {
       const result = await restartPipeline(pipelineId);
@@ -319,7 +348,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: `2px solid ${accentColor}`, background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
           <span style={{ fontSize: 14 }}>✦</span>
-          {phase === "done" ? "생성 완료" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
+          {phase === "done" ? "생성 완료" : pendingStorage ? "저장 확인 대기" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--db-purple-300)", fontWeight: 700 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: phase === "running" ? "var(--db-purple-400)" : phase === "done" ? "#34d399" : "#f87171", display: "inline-block", animation: phase === "running" ? "prog-pulse 1.5s infinite" : "none" }}/>
@@ -331,7 +360,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                {phase === "done" ? "생성을 마쳤습니다. 잠시 후 이동합니다." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
+                {phase === "done" ? "생성과 저장을 마쳤습니다. 잠시 후 이동합니다." : pendingStorage ? "발행은 완료됐으며 저장 상태를 확인해야 합니다." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
                 <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{elapsedLabel}</span>
@@ -421,7 +450,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
               </button>
               <button
                 onClick={handleRestart}
-                disabled={restarting}
+                disabled={restarting || !retrySafe}
                 style={{
                   padding: "10px 24px", borderRadius: 8,
                   background: restarting ? "rgba(107,85,220,0.4)" : "var(--db-grad-purple)",
@@ -448,7 +477,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                       <polyline points="23 4 23 10 17 10"/>
                       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                     </svg>
-                    다시 시작
+                    {retrySafe ? "다시 시작" : "중복 생성 차단"}
                   </>
                 )}
                </button>
