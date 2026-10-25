@@ -12,10 +12,6 @@
 /** 백엔드 base URL */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-/** rag-pipeline base URL */
-export const RAG_PIPELINE_URL =
-  process.env.NEXT_PUBLIC_RAG_PIPELINE_URL || "http://localhost:8081";
-
 /** 프론트엔드 URL */
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

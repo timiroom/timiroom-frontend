@@ -7,7 +7,7 @@ import { useState, useMemo, useEffect } from "react";
 import { AiChatDock } from "./AiChatDock";
 import { ConsistencyBadge } from "./ConsistencyBadge";
 import { updateArtifact } from "@/lib/pipelineApi";
-import { API_BASE_URL } from "@/lib/authConfig";
+import { fetchMockBaseUrl } from "@/lib/projectApi";
 import {
   generateAxiosCode,
   generateReactQueryCode,
@@ -1145,8 +1145,17 @@ export function ApiSpecPanel({ project, readOnly = false, onDocumentSaved, onDoc
   const rawApiSpec = localApiSpec ?? project?.apiSpec;
   const canEdit    = !readOnly && !!project?.artifactIds?.API_SPEC;
 
-  /* Mock 서버 기본 URL — 백엔드 MockController가 이 경로로 명세 기반 가짜 응답을 준다 */
-  const mockBaseUrl = project?.id && API_BASE_URL ? `${API_BASE_URL}/mock/${project.id}` : "";
+  /* Mock 서버 기본 URL — 백엔드 MockController가 이 경로로 명세 기반 가짜 응답을 준다.
+     주소에 서명된 키가 들어가므로 백엔드에서 받아 온다(프로젝트 멤버만). */
+  const [mockBaseUrl, setMockBaseUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    setMockBaseUrl("");
+    if (project?.id) {
+      fetchMockBaseUrl(project.id).then((url) => { if (active) setMockBaseUrl(url); }).catch(() => {});
+    }
+    return () => { active = false; };
+  }, [project?.id]);
   const hasEndpoints = Array.isArray(rawApiSpec?.endpoints) && rawApiSpec.endpoints.length > 0;
 
   const specTags = useMemo(() => buildTagsFromApiSpec(rawApiSpec) || [], [rawApiSpec]);

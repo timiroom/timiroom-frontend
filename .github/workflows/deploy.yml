@@ -32,7 +32,6 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/timiroom-frontend:${{ env.IMAGE_TAG }}
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.timiroom.kro.kr
-            NEXT_PUBLIC_RAG_PIPELINE_URL=https://rag.timiroom.kro.kr
             NEXT_PUBLIC_APP_URL=https://timiroom.kro.kr
             NEXT_PUBLIC_INTEGRATION_ENABLED=${{ vars.NEXT_PUBLIC_INTEGRATION_ENABLED || 'false' }}
             NEXT_PUBLIC_SLACK_ENABLED=${{ vars.NEXT_PUBLIC_SLACK_ENABLED || 'false' }}
