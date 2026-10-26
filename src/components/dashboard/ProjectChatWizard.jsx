@@ -12,7 +12,7 @@ import {
 import { restartPipeline } from "@/lib/pipelineApi";
 import { getOrCreateDefaultTeam } from "@/lib/teamApi";
 import { createProject } from "@/lib/projectApi";
-import { pipelineFailure, pollStoredResult, storageIsConfirmed } from "@/lib/pipelineProgress.mjs";
+import { createReconnectBudget, pipelineFailure, pollPipelineState, storageIsConfirmed } from "@/lib/pipelineProgress.mjs";
 
 /* ═══════════════════════════════════════════
    파이프라인 진행 화면 상수 (ProgressScreen용)
@@ -130,7 +130,7 @@ function FlowNode({ step, status }) {
           </span>
         )}
         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: isDone ? "rgba(52,211,153,0.15)" : isRunning ? "rgba(107,85,220,0.2)" : "rgba(255,255,255,0.04)", color: isDone ? "#34d399" : isRunning ? "var(--db-purple-300)" : "var(--text-3)", transition: "all 0.3s" }}>
-          {isError ? "확인 필요" : isDone ? "완료" : isRunning ? "실행 중" : status === "skipped" ? "미실행" : "대기"}
+          {isError ? "확인 필요" : isDone ? "완료" : isRunning ? "실행 중" : status === "disconnected" ? "연결 확인" : status === "pending_storage" ? "저장 확인" : status === "skipped" ? "미실행" : "대기"}
         </span>
       </div>
     </div>
@@ -159,67 +159,125 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
   // 연결이 잠깐 끊기면 자동으로 다시 붙는다. 생성은 서버에서 계속되므로 끊김을 실패로 보지 않는다.
   const [reconnecting, setReconnecting] = useState(false);
   const [connectKey, setConnectKey] = useState(0);
+  const [needsStateCheck, setNeedsStateCheck] = useState(true);
+  const [stateCheckPaused, setStateCheckPaused] = useState(false);
   const currentKeyRef = useRef(null);
   const doneRef       = useRef(false);
+  const sourceRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  const deliveredRef = useRef(false);
+  const previousPipelineRef = useRef(null);
+  const startedAtRef = useRef(Date.now());
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  const finishResult = useCallback(result => {
+    if (deliveredRef.current) return;
+    deliveredRef.current = true;
+    doneRef.current = true;
+    sourceRef.current?.close();
+    setPendingStorage(false);
+    setNeedsStateCheck(false);
+    setPhase("done");
+    setPercent(100);
+    setStatuses(Object.fromEntries(PIPELINE_STEPS.map(step => [step.key, "done"])));
+    onCompleteRef.current?.(result);
+  }, []);
+
 
   useEffect(() => {
-    if (!pendingStorage || !pipelineId) return;
-    return pollStoredResult(
+    if (stateCheckPaused || (!pendingStorage && !needsStateCheck) || !pipelineId) return;
+    let activeRequest = null;
+    const stop = pollPipelineState(
       async () => {
-        const response = await apiFetch(`${API_BASE_URL}/api/v1/pipeline/state/${pipelineId}`);
-        return response?.ok ? response.json() : null;
-      },
-      result => {
-        doneRef.current = true;
-        setPendingStorage(false);
-        setPhase("done");
-        setPercent(100);
-        setStatuses(Object.fromEntries(PIPELINE_STEPS.map(step => [step.key, "done"])));
-        onComplete(result);
+        activeRequest = new AbortController();
+        const timeout = window.setTimeout(() => activeRequest?.abort(), 10000);
+        try {
+          const response = await apiFetch(`${API_BASE_URL}/api/v1/pipeline/state/${pipelineId}`, { signal: activeRequest.signal });
+          if (!response?.ok) {
+            if (response?.status === 401 || response?.status === 403) return { status: "UNAVAILABLE", message: "로그인과 프로젝트 접근 권한을 확인한 뒤 다시 연결해 주세요." };
+            throw new Error("진행 상태 조회 실패");
+          }
+          return await response.json();
+        } finally { window.clearTimeout(timeout); activeRequest = null; }
+      }, {
+        onStored: finishResult,
+        onFailed: state => {
+          doneRef.current = true;
+          sourceRef.current?.close();
+          setNeedsStateCheck(false);
+          setPendingStorage(false);
+          setRetrySafe(state.retrySafe !== false);
+          setErrMsg(state.message || "생성에 실패했습니다. 다시 시작할 수 있습니다.");
+          setStatuses(prev => pipelineFailure(state, prev, currentKeyRef.current).statuses);
+          setPhase("error");
+        },
+        onPending: () => { setPendingStorage(true); setRetrySafe(false); },
+        onUnavailable: message => {
+          setStateCheckPaused(true);
+          setNeedsStateCheck(false);
+          setRetrySafe(false);
+          setReconnecting(false);
+          setErrMsg(message);
+          setPhase("disconnected");
+        },
       }
     );
-  }, [pendingStorage, pipelineId, onComplete]);
+    return () => { stop(); activeRequest?.abort(); };
+  }, [pendingStorage, needsStateCheck, stateCheckPaused, pipelineId, connectKey, finishResult]);
 
   /* ── SSE 연결 ── */
   useEffect(() => {
     if (!pipelineId) return;
 
-    // 상태 초기화 (재시작 시에도 깔끔하게 리셋)
-    setPercent(5);
+    const newRun = previousPipelineRef.current !== pipelineId;
+    previousPipelineRef.current = pipelineId;
+    if (newRun) {
+      deliveredRef.current = false;
+      startedAtRef.current = Date.now();
+      setPercent(5);
+      setErrMsg(null);
+      setErrorDetails([]);
+      setErrCode(null);
+      setRetrySafe(true);
+      setPendingStorage(false);
+      setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
+      setElapsedSeconds(0);
+      setEventLog([]);
+      currentKeyRef.current = null;
+    }
     setPhase("running");
-    setErrMsg(null);
-    setErrorDetails([]);
-    setErrCode(null);
-    setRetrySafe(true);
-    setPendingStorage(false);
-    setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "waiting"])));
-    setElapsedSeconds(0);
-    setEventLog([]);
-    currentKeyRef.current = null;
+    setStateCheckPaused(false);
+    setNeedsStateCheck(true);
     doneRef.current = false;
-    // 새로고침 뒤 다시 붙으면 서버가 처음 진행 이벤트부터 다시 보낸다. 그 시각을 시작 시각으로 쓴다.
-    let startedAt = Date.now();
+    let startedAt = startedAtRef.current;
     const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+      if (!doneRef.current) setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
     }, 1000);
 
     let source = null;
-    let attempt = 0;
+    const budget = createReconnectBudget();
+    let lastSignal = Date.now();
     let retryTimer = null;
     let stopped = false;
 
     const connect = () => {
+      if (stopped || doneRef.current) return;
       const es = new EventSource(
         `${API_BASE_URL}/api/v1/pipeline/progress/${pipelineId}`,
         { withCredentials: true }
       );
       source = es;
-      // 다시 붙으면 서버가 처음부터 진행 이벤트를 다시 보내므로 기록을 비우고 받는다.
-      if (attempt > 0) setEventLog([]);
+      sourceRef.current = es;
+      let live = true;
+      lastSignal = Date.now();
       es.addEventListener("progress", (e) => {
-        attempt = 0;
+        if (stopped || !live || doneRef.current) return;
+        lastSignal = Date.now();
+        let d;
+        try { d = JSON.parse(e.data); } catch { es.onerror(); return; }
+        if (!budget.progress(d)) return;
+        setPhase("running");
         setReconnecting(false);
-        const d      = JSON.parse(e.data);
+        setNeedsStateCheck(false);
         const eventAt = d.timestamp ? Date.parse(d.timestamp) : NaN;
         if (!Number.isNaN(eventAt) && eventAt < startedAt) startedAt = eventAt;
         const newKey = SSE_TO_STEP[d.step];
@@ -239,11 +297,30 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           });
         }
       });
+      es.addEventListener("heartbeat", () => {
+        if (stopped || !live || doneRef.current) return;
+        lastSignal = Date.now();
+        setPhase("running");
+        setReconnecting(false);
+        setNeedsStateCheck(false);
+      });
+      es.addEventListener("connection", () => {
+        if (stopped || !live || doneRef.current) return;
+        live = false;
+        es.close();
+        setNeedsStateCheck(true);
+        setReconnecting(false);
+        setErrMsg("진행 연결을 찾지 못했습니다. 저장된 실행 상태를 확인합니다.");
+        setPhase("disconnected");
+      });
       es.addEventListener("complete", (e) => {
+        if (stopped || !live || doneRef.current) return;
+        let d;
+        try { d = JSON.parse(e.data); } catch { es.onerror(); return; }
+        if (!d.result || typeof d.result !== "object") { es.onerror(); return; }
         window.clearInterval(timer);
         doneRef.current = true;
         setReconnecting(false);
-        const d = JSON.parse(e.data);
         if (!storageIsConfirmed(d.result)) {
           setPhase("error");
           setPendingStorage(true);
@@ -252,21 +329,19 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           es.close();
           return;
         }
-        setPercent(100);
-        setPhase("done");
-        setStatuses(Object.fromEntries(PIPELINE_STEPS.map(s => [s.key, "done"])));
         es.close();
-        setTimeout(() => onComplete(d.result), 1500);
+        finishResult(d.result);
       });
       es.addEventListener("error", (e) => {
         // EventSource는 서버가 정상적으로 스트림을 닫아도 네이티브 error 이벤트를
         // 추가로 발생시킬 수 있다. 실제 파이프라인 오류(MessageEvent)만 처리한다.
-        if (doneRef.current || !e.data) return;
+        if (stopped || !live || doneRef.current || !e.data) return;
+        let error;
+        try { error = JSON.parse(e.data); } catch { es.onerror(); return; }
         window.clearInterval(timer);
         doneRef.current = true;
         setReconnecting(false);
         try {
-          const error = JSON.parse(e.data);
           const failure = pipelineFailure(error, {}, currentKeyRef.current);
           setStatuses(prev => pipelineFailure(error, prev, currentKeyRef.current).statuses);
           setRetrySafe(failure.retrySafe);
@@ -279,28 +354,35 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         es.close();
       });
       es.onerror = () => {
-        if (doneRef.current || stopped) return;
+        if (doneRef.current || stopped || !live) return;
+        live = false;
         es.close();
-        // 연결만 끊긴 경우: 생성은 서버에서 계속된다. 잠시 뒤 다시 붙는다(최대 6번, 점점 길게).
-        if (attempt < 6) {
-          attempt += 1;
+        setNeedsStateCheck(true);
+        const delay = budget.failure();
+        if (delay !== null) {
           setReconnecting(true);
-          retryTimer = window.setTimeout(connect, Math.min(15000, 1000 * 2 ** attempt));
+          retryTimer = window.setTimeout(connect, delay);
           return;
         }
+        window.clearInterval(timer);
         setReconnecting(false);
+        setErrMsg("자동 재연결을 마쳤습니다. 다시 연결해 현재 실행 상태를 확인해 주세요.");
         setPhase("disconnected");
       };
     };
+    const watchdog = window.setInterval(() => {
+      if (!doneRef.current && Date.now() - lastSignal >= 45000) source?.onerror?.();
+    }, 5000);
     connect();
 
     return () => {
       stopped = true;
       window.clearInterval(timer);
+      window.clearInterval(watchdog);
       window.clearTimeout(retryTimer);
       source?.close();
     };
-  }, [pipelineId, onComplete, connectKey]);
+  }, [pipelineId, connectKey, finishResult]);
 
   async function handleRestart() {
     if (!retrySafe) return;
@@ -348,7 +430,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", height: "100%", borderRight: "1px solid var(--border)", borderBottom: `2px solid ${accentColor}`, background: "var(--db-bg-primary)", fontSize: 12, color: "var(--text-2)" }}>
           <span style={{ fontSize: 14 }}>✦</span>
-          {phase === "done" ? "생성 완료" : pendingStorage ? "저장 확인 대기" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
+          {phase === "done" ? "생성 완료" : pendingStorage ? "저장 확인 대기" : phase === "disconnected" ? "연결 확인 필요" : phase === "error" ? "생성 실패" : "프로젝트 생성 중..."}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--db-purple-300)", fontWeight: 700 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: phase === "running" ? "var(--db-purple-400)" : phase === "done" ? "#34d399" : "#f87171", display: "inline-block", animation: phase === "running" ? "prog-pulse 1.5s infinite" : "none" }}/>
@@ -360,7 +442,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                {phase === "done" ? "생성과 저장을 마쳤습니다. 잠시 후 이동합니다." : pendingStorage ? "발행은 완료됐으며 저장 상태를 확인해야 합니다." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
+                {phase === "done" ? "생성과 저장을 마쳤습니다. 잠시 후 이동합니다." : pendingStorage ? "발행은 완료됐으며 저장 상태를 확인해야 합니다." : phase === "disconnected" ? "서버의 현재 실행 상태를 확인해 주세요." : phase === "error" ? "생성에 실패했습니다." : "문서를 생성하고 있습니다."}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
                 <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{elapsedLabel}</span>
@@ -383,7 +465,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "28px 24px 32px", display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", width: ROW_W }}>
               {ROW1.flatMap((step, idx) => {
-                const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
+                const nodes = [<FlowNode key={step.key} step={step} status={pendingStorage && step.key === "PHASE4" ? "pending_storage" : phase === "disconnected" && statuses[step.key] === "running" ? "disconnected" : statuses[step.key]} />];
                 if (idx < ROW1.length - 1) nodes.push(<FlowArrow key={`r1-${idx}`} active={isAct(ROW1[idx].key)} />);
                 return nodes;
               })}
@@ -391,7 +473,7 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
             <FlowDown active={isAct("FEATURE_SPEC")} />
             <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "center", width: ROW_W }}>
               {ROW2.flatMap((step, idx) => {
-                const nodes = [<FlowNode key={step.key} step={step} status={statuses[step.key]} />];
+                const nodes = [<FlowNode key={step.key} step={step} status={pendingStorage && step.key === "PHASE4" ? "pending_storage" : phase === "disconnected" && statuses[step.key] === "running" ? "disconnected" : statuses[step.key]} />];
                 if (idx < ROW2.length - 1) nodes.push(<FlowArrow key={`r2-${idx}`} active={isAct(ROW2[idx].key)} flip />);
                 return nodes;
               })}
@@ -413,13 +495,14 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
           )}
           {reconnecting && phase === "running" && (
             <div role="status" style={{ textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
-              연결이 잠시 끊겨 다시 연결하는 중입니다. 생성은 서버에서 계속됩니다.
+              연결을 복구하고 있습니다. 기존 실행 상태를 확인하며 새로 생성하지 않습니다.
+              <button onClick={() => setConnectKey(k => k + 1)} style={{ marginLeft: 12, cursor: "pointer" }}>지금 다시 연결</button>
             </div>
           )}
           {phase === "disconnected" && (
             <div style={{ textAlign: "center" }}>
               <p style={{ margin: "0 0 14px", fontSize: 13, lineHeight: 1.6, color: "var(--text-2)" }}>
-                서버와 연결이 끊겼습니다. 생성은 서버에서 계속되며, 끝나면 알림으로 알려 드립니다.
+                {errMsg || "서버와 연결이 끊겼습니다. 다시 연결하면 기존 실행의 현재 상태를 확인합니다."}
               </p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                 <button onClick={onLeave ?? onCancel}
@@ -431,6 +514,11 @@ export function ProgressScreen({ pipelineId: initialPipelineId, onComplete, onCa
                   다시 연결
                 </button>
               </div>
+            </div>
+          )}
+          {pendingStorage && phase !== "disconnected" && (
+            <div style={{ textAlign: "center" }}>
+              <button onClick={() => setConnectKey(k => k + 1)} style={{ padding: "10px 24px", cursor: "pointer" }}>저장 상태 다시 확인</button>
             </div>
           )}
            {phase === "error" && (

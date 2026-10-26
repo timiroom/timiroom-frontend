@@ -75,7 +75,7 @@ export async function restartPipeline(pipelineId) {
   );
   if (!res || !res.ok) {
     const body = await res?.json().catch(() => ({}));
-    throw new Error(body?.error || `다시 시작하지 못했습니다 (HTTP ${res?.status})`);
+    throw new Error(body?.message || body?.error || `다시 시작하지 못했습니다 (HTTP ${res?.status})`);
   }
   return res.json(); // { pipelineId }
 }
