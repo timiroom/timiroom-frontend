@@ -10,7 +10,7 @@ const SLACK_EVENTS = [
   { id: "REVIEW", label: "교차검증 결과" },
   { id: "PR", label: "PR 검사 결과" },
 ];
-const scopeNames = { "projects:read": "프로젝트 정보 조회", "specs:read": "명세 조회", "specs:propose": "수정안 작성", "consistency:run": "검사 요청", "consistency:read": "검사 결과 조회" };
+const scopeNames = { "projects:read": "프로젝트 정보 조회", "specs:read": "명세 조회", "specs:propose": "수정안 작성", "specs:approve": "명세 승인·발행", "consistency:run": "검사 요청", "consistency:read": "검사 결과 조회" };
 
 export function AiToolConnectionsPanel({ projects = [] }) {
   const [items, setItems] = useState([]);
@@ -128,7 +128,7 @@ export function AiToolConnectionsPanel({ projects = [] }) {
       <label className="integration-label">MCP 연결 주소
         <input readOnly aria-label="MCP 연결 주소" value={`${API_BASE_URL}/mcp`} onFocus={(event) => event.target.select()} />
       </label>
-      <p>연결된 도구가 만든 문서 변경안은 PM의 검토와 승인 후 적용됩니다.</p>
+      <p>문서 변경안은 교차검증과 PM 승인 후 적용됩니다. 명세 승인·발행 권한을 허용한 도구에서는 프로젝트 PM이 승인과 발행도 요청할 수 있습니다.</p>
       {loading ? <p role="status">연결을 확인하고 있습니다.</p> : (
         <ul>{connectionRows(items).map(({ clientId, grants }) => <li key={clientId}>
           <div className="connection-detail">
